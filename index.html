@@ -811,6 +811,7 @@ function persist() {
   try { localStorage.setItem(DBKEY, JSON.stringify(db)); saveOK = true; } catch (e) { saveOK = false; }
   saveWarn();
   rebuildCache();
+  try { syncTouch(); } catch (e) {}
 }
 const uid = () => Math.random().toString(36).slice(2, 9);
 const EMPTY = '__empty';
@@ -2010,6 +2011,7 @@ function renderData() {
   const used = new Set(db.matches.flatMap(m => m.blue.concat(m.red)));
   const hs = db.heroes.filter(h => used.has(h.id)).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
   el.innerHTML = `
+  <div class="section"><div class="panel" id="sync-box">${syncHTML()}</div></div>
   <div class="section"><div class="panel"><h2>バックアップ</h2>
     <p class="small muted" style="margin:0">記録はこのブラウザの中にだけあります。ブラウザのデータを消すと戦績も消えるので、ときどき下の文字列をコピーしてメモ帳などに保存してください。</p>
     <textarea id="backup-out" readonly aria-label="バックアップ用の文字列">${esc(JSON.stringify(db))}</textarea>
@@ -2023,7 +2025,7 @@ function renderData() {
     <div class="hlist">${hs.length ? hs.map(x => `<div class="hero-item"><input type="text" id="rn-${x.id}" data-rename="${x.id}" value="${esc(x.name)}" aria-label="${esc(x.name)}の名前"><span class="small muted">${db.matches.filter(m => m.blue.includes(x.id) || m.red.includes(x.id)).length}試合</span></div>`).join('') : '<span class="small muted">まだ登録されたヒーローはいません。</span>'}</div>
   </div></div>
   <div class="section"><div class="panel"><h2>全部消す</h2>
-    <p class="small muted" style="margin:0">試合・ヒーロー名・自分の名前の学習をすべて消します。元に戻せません。</p>
+    <p class="small muted" style="margin:0">試合・ヒーロー名・自分の名前の学習をすべて消します。元に戻せません。${syncS.user ? 'ログイン中でも、クラウドの記録は自動では消えません（この端末が空のまま同期しようとすると、確認が出ます）。' : ''}</p>
     <div class="row">${el.dataset.reset === '1' ? '<button class="btn danger" data-act="reset-yes">本当に消す</button><button class="btn ghost" data-act="reset-no">やめる</button>' : '<button class="btn danger" data-act="reset">全部消す</button>'}</div>
   </div></div>`;
 }
@@ -2179,6 +2181,11 @@ document.addEventListener('click', e => {
       pendingRestore = o; renderData();
     } catch (_) { $('#restore-msg').textContent = '読み込めませんでした。コピーした文字列を最初から最後まで貼り付けてください。'; }
   } else if (act === 'clear-filter') { const v = $('#view-stats'); delete v.dataset.mode; delete v.dataset.hero; delete v.dataset.stage; renderStats(); }
+  else if (act === 'sync-login') syncLogin();
+  else if (act === 'sync-logout') syncLogout();
+  else if (act === 'sync-now') syncRun();
+  else if (act === 'sync-pull') syncPull();
+  else if (act === 'sync-push') syncPush(true);
   else if (act === 'restore-no') { pendingRestore = null; renderData(); }
   else if (act === 'restore-yes') {
     const o = pendingRestore; pendingRestore = null;
@@ -2291,6 +2298,162 @@ document.addEventListener('change', e => {
   }
 });
 
+
+/* ---------- ログインと同期（Firebase） ---------- */
+// 同期するのはバックアップと同じ内容。ログインしなくても今まで通り使える。
+const FB_CONFIG = {
+  apiKey: "AIzaSyCV9mScVN2-XSagAspWd_LMTQmySMbPsyY",
+  authDomain: "compass-system-20b55.firebaseapp.com",
+  projectId: "compass-system-20b55",
+  storageBucket: "compass-system-20b55.firebasestorage.app",
+  messagingSenderId: "218597639060",
+  appId: "1:218597639060:web:689f64e778237dd8a50581"
+};
+const FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0 };
+let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
+function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function syncSaveMeta(m) { try { localStorage.setItem(SYNC_KEY, JSON.stringify(m)); } catch (e) {} }
+function syncHasLocal() { return db.matches.length > 0 || (db.seasons || []).length > 0; }
+function syncSplit(text) {
+  const out = []; let i = 0;
+  while (i < text.length) {
+    let e = Math.min(i + SYNC_CHUNK, text.length);
+    if (e < text.length) { const c = text.charCodeAt(e - 1); if (c >= 0xD800 && c <= 0xDBFF) e--; }
+    out.push(text.slice(i, e)); i = e;
+  }
+  return out;
+}
+async function fbReal() {
+  const B = `https://www.gstatic.com/firebasejs/${FB_VER}/`;
+  const [A, Au, F] = await Promise.all([import(B + 'firebase-app.js'), import(B + 'firebase-auth.js'), import(B + 'firebase-firestore.js')]);
+  const app = A.initializeApp(FB_CONFIG), auth = Au.getAuth(app), fs = F.getFirestore(app);
+  return {
+    onUser: cb => Au.onAuthStateChanged(auth, u => cb(u ? { uid: u.uid, name: u.displayName || '' } : null)),
+    signIn: () => Au.signInWithPopup(auth, new Au.GoogleAuthProvider()),
+    signOut: () => Au.signOut(auth),
+    async getMeta(uid) { const m = await F.getDoc(F.doc(fs, 'users', uid)); if (!m.exists()) return null; const d = m.data(); return { updatedAt: d.updatedAt, count: d.count, n: d.n }; },
+    async getCloud(uid) {
+      const cm = await this.getMeta(uid); if (!cm) return null; const parts = [];
+      for (let i = 0; i < cm.n; i++) { const c = await F.getDoc(F.doc(fs, 'users', uid, 'chunks', String(i))); parts.push(c.exists() ? c.data().s : ''); }
+      return Object.assign({ text: parts.join('') }, cm);
+    },
+    async putCloud(uid, text, count, prevN) {
+      const parts = syncSplit(text), b = F.writeBatch(fs), at = Date.now();
+      parts.forEach((x, i) => b.set(F.doc(fs, 'users', uid, 'chunks', String(i)), { s: x }));
+      for (let i = parts.length; i < (prevN || 0); i++) b.delete(F.doc(fs, 'users', uid, 'chunks', String(i)));
+      b.set(F.doc(fs, 'users', uid), { updatedAt: at, n: parts.length, count });
+      await b.commit(); return at;
+    }
+  };
+}
+function syncHTML() {
+  const s = syncS, u = s.user;
+  const msg = s.msg ? `<p class="small${s.err ? '' : ' muted'}" style="margin:6px 0 0;${s.err ? 'color:var(--lose)' : ''}">${esc(s.msg)}</p>` : '';
+  const intro = '<p class="small muted" style="margin:0">ログインすると、戦績のデータがGoogle（Firebase）のサーバーに保存され、別の端末でも同じ記録を使えます。ログインしなくても、今まで通りこの端末の中だけで使えます。</p>';
+  if (!u) return `<h2>ログインと同期</h2>${intro}<div class="row"><button class="btn primary" data-act="sync-login"${s.busy ? ' disabled' : ''}>Googleでログイン</button></div>${msg}`;
+  let choose = '';
+  if (s.status === 'choose') {
+    const cc = s.cm ? s.cm.count : 0;
+    choose = `<div class="panel" style="margin-top:10px"><p class="small" style="margin:0"><b>この端末の記録（${db.matches.length}試合）</b>と<b>クラウドの記録（${cc}試合）</b>が違っています。どちらを残すか選んでください。選ばなかった方の記録は消えます。迷うときは、先にバックアップを取ってください。</p><div class="row"><button class="btn" data-act="sync-pull">クラウドの記録にする</button><button class="btn danger" data-act="sync-push">この端末の記録でクラウドを上書きする</button></div></div>`;
+  }
+  return `<h2>ログインと同期</h2><p class="small" style="margin:0">ログイン中：<b>${esc(u.name || 'Googleアカウント')}</b></p>${choose}<div class="row"><button class="btn" data-act="sync-now"${s.busy ? ' disabled' : ''}>今すぐ同期</button><button class="btn ghost" data-act="sync-logout">ログアウト</button></div>${msg}`;
+}
+function syncRender(msg, err) {
+  if (msg !== undefined) { syncS.msg = msg; syncS.err = !!err; }
+  const el = document.getElementById('sync-box'); if (el) el.innerHTML = syncHTML();
+}
+function syncLoad() {
+  if (FBA) return Promise.resolve();
+  if (syncLoading) return syncLoading;
+  syncLoading = (async () => {
+    try { FBA = window.__FB_MOCK || await fbReal(); }
+    catch (e) { syncLoading = null; throw e; }
+    FBA.onUser(u => { syncS.user = u; if (!u) { syncS.status = 'out'; syncRender(''); return; } syncRun(); });
+  })();
+  return syncLoading;
+}
+function syncErr(e) {
+  const c = (e && e.code) || '';
+  if (c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request') return 'ログインをやめました。';
+  if (c === 'auth/popup-blocked') return 'ログイン画面がブロックされました。もう一度ボタンを押してください。';
+  if (c === 'auth/unauthorized-domain') return 'このページのドメインが、Firebaseの承認済みドメインに入っていません。';
+  if (c === 'permission-denied' || /permission/i.test((e && e.message) || '')) return 'クラウドへの保存が許可されていません（Firestoreのルール設定を確認してください）。';
+  return '同期できませんでした：' + ((e && (e.code || e.message)) || '不明なエラー');
+}
+async function syncLogin() {
+  if (syncS.busy) return; syncS.busy = true; syncRender('読み込み中…');
+  try { await syncLoad(); syncS.busy = false; await FBA.signIn(); }
+  catch (e) { syncRender(/Failed to fetch|import|Load failed|dynamically/i.test((e && e.message) || '') && !(e && e.code) ? 'ログイン機能を読み込めませんでした。ネットワークを確認してください。このページの種類では使えない場合もあります。' : syncErr(e), true); }
+  syncS.busy = false; syncRender();
+}
+async function syncLogout() {
+  if (!FBA) return; clearTimeout(syncTimer);
+  try { await FBA.signOut(); } catch (e) {}
+  syncS.user = null; syncS.status = 'out'; syncRender('ログアウトしました。この端末の記録は残っています。');
+}
+// ログイン時・手動・変更後に呼ぶ。クラウドとこの端末の状態を見て、同期するか、選んでもらうかを決める
+async function syncRun() {
+  const u = syncS.user; if (!u || !FBA || syncS.busy) return;
+  syncS.busy = true; syncS.status = 'in'; syncRender('同期を確認しています…');
+  try {
+    let m = syncMeta();
+    if (m.uid !== u.uid) m = { uid: u.uid, cloudAt: 0, dirty: true };
+    const cm = await FBA.getMeta(u.uid); syncS.cm = cm;
+    if (!cm) {
+      if (syncHasLocal()) await syncPush(false, m); else { syncSaveMeta(m); syncRender('クラウドには、まだ記録がありません。'); }
+    } else if (cm.updatedAt === m.cloudAt) {
+      if (!m.dirty) { syncSaveMeta(m); syncRender(syncDone()); }
+      else if (!syncHasLocal() && cm.count > 0) { syncSaveMeta(m); syncS.status = 'choose'; syncRender(''); }
+      else await syncPush(false, m);
+    } else if ((!m.dirty && m.cloudAt) || !syncHasLocal()) await syncPull(m);
+    else { syncSaveMeta(m); syncS.status = 'choose'; syncRender(''); }
+  } catch (e) { syncRender(syncErr(e), true); }
+  syncS.busy = false; syncRender();
+}
+function syncDone() { return '同期済み（' + new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) + '）'; }
+async function syncPush(force, m0) {
+  const u = syncS.user; if (!u || !FBA) return;
+  const own = !m0; if (own) { if (syncS.busy) return; syncS.busy = true; }
+  try {
+    let m = m0 || syncMeta(); if (m.uid !== u.uid) m = { uid: u.uid, cloudAt: 0, dirty: true };
+    const cm = await FBA.getMeta(u.uid); syncS.cm = cm;
+    if (!force && cm && cm.updatedAt !== m.cloudAt) { syncSaveMeta(m); syncS.status = 'choose'; syncRender(''); }
+    else {
+      const at = await FBA.putCloud(u.uid, JSON.stringify(db), db.matches.length, cm ? cm.n : 0);
+      m.cloudAt = at; m.dirty = false; syncSaveMeta(m); syncS.cm = { updatedAt: at, count: db.matches.length };
+      syncS.status = 'in'; syncRender(syncDone());
+    }
+  } catch (e) { syncRender(syncErr(e), true); }
+  if (own) { syncS.busy = false; syncRender(); }
+}
+async function syncPull(m0) {
+  const u = syncS.user; if (!u || !FBA) return;
+  const own = !m0 || !m0.uid; if (own) { if (syncS.busy) return; syncS.busy = true; }
+  try {
+    let m = (m0 && m0.uid) ? m0 : syncMeta(); if (m.uid !== u.uid) m = { uid: u.uid, cloudAt: 0, dirty: true };
+    const c = await FBA.getCloud(u.uid); if (!c) throw new Error('クラウドに記録がありません');
+    const o = JSON.parse(c.text);
+    if (!o || !Array.isArray(o.matches) || !Array.isArray(o.heroes)) throw new Error('クラウドの記録を読み込めませんでした');
+    syncApplying = true;
+    try { db = Object.assign(emptyDB(), o); seedHeroes(); persist(); } finally { syncApplying = false; }
+    m.cloudAt = c.updatedAt; m.dirty = false; syncSaveMeta(m); syncS.cm = { updatedAt: c.updatedAt, count: c.count, n: c.n };
+    syncS.status = 'in'; renderAll(); syncRender(`クラウドの記録（${db.matches.length}試合）を読み込みました。`);
+  } catch (e) { syncRender(syncErr(e), true); }
+  if (own) { syncS.busy = false; syncRender(); }
+}
+// 記録が変わったら印を付け、ログイン中なら少し待ってからクラウドへ送る
+function syncTouch() {
+  if (syncApplying) return;
+  const m = syncMeta(); m.dirty = true; syncSaveMeta(m);
+  if (syncS.user && FBA && syncS.status === 'in') { clearTimeout(syncTimer); syncTimer = setTimeout(syncAuto, 4000); }
+}
+async function syncAuto() {
+  if (!syncS.user || !FBA || syncS.busy || syncS.status !== 'in') return;
+  if (!syncHasLocal() && syncS.cm && syncS.cm.count > 0) { syncS.status = 'choose'; syncRender(''); return; }
+  await syncPush(false);
+}
+if (syncMeta().uid) { syncLoad().catch(() => {}); }
 renderAll();
 try { const t = localStorage.getItem(DBKEY + '-tab'); if (t && document.getElementById('view-' + t)) showTab(t); } catch (e) {}
 </script>
