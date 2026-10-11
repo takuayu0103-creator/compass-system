@@ -223,8 +223,8 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .shead:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .spic{position:relative;width:96px;height:96px;border-radius:10px;overflow:hidden;background:color-mix(in srgb,var(--accent) 18%,var(--soft));display:grid;place-items:center;flex:0 0 auto}
 .spic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;z-index:1}
-/* 公式の顔画像は外側に枠がある（h01〜h47は選択中の橙枠、h48〜は灰色の縁）。少し拡大して枠を隠し、見た目をそろえる */
-.spic img[src*="/ico_h"]{object-position:center;transform:scale(1.08)}
+/* 公式の顔画像は外側に枠がある（h01〜h47は選択中の橙枠、h48〜は灰色の縁と下に名前の帯）。h48〜は上寄せで拡大して、縁と下の名前帯を外に出す */
+.spic img[src*="/ico_h"]{object-position:50% 0;transform-origin:50% 0;transform:scale(1.25)}
 /* h01〜h47（_on）は縦長で、下に橙の名前帯が付いている。上寄せで切り出し、上から1/3あたりを中心に拡大して枠と帯を外に出す */
 .spic img[src*="_on.png"]{object-position:50% 0;transform-origin:50% 33%;transform:scale(1.14)}
 .sinit{font-family:var(--f-display);font-weight:900;font-size:2.2rem;color:var(--accent)}
