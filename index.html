@@ -296,6 +296,11 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
   .stat.drill{grid-template-columns:minmax(0,7.4em) 1fr 6em 1em;gap:6px}
   .teams{grid-template-columns:1fr}
 }
+.who{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:4px 0 8px}
+.who select{max-width:12em}
+.who .vb{color:var(--accent);font-weight:700}
+body.viewing #tab-add,body.viewing #tab-data,body.viewing #view-add,body.viewing #view-data{display:none!important}
+body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],body.viewing [data-reseason],body.viewing [data-memo],body.viewing [data-mdate],body.viewing [data-act="season-new"],body.viewing #season-new{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -304,6 +309,8 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
     <div class="brand"><h1>【戦績摂理<img class="mark" alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAtO0lEQVR42u19e5RdZZXnb+/vnHPvrXclvFFoEJiZ0OOstpJbJSNWYtsjtjqv9larNDoKJqBgCFWVhARycwN5FPXANDh2sH21trZVAoIoIChUPyCpUDONo1mrlW5BUCCPqlu3Xveec769549zb6WICUJyQiohZ7EWC1atqnO+vb/9+O3f3ht4Ez6/7m1JAcDunkUXqYJUQTj5vDkeLQt/35aFl0z2NT+X7114IwDotib3zXgebyrN1yyYcpDRnnf+sWvkh9aCPJfdKd/eMr9zaN3PshnvYgyElIO8Wc6E3ywf+tS2JpdykN1d77iUSP6OiFyBmsCK1CfNzfm+5tV/mBvwcXGG9E10MehNdfN700tcogFimu+HIkzEqlBmSJVrzEQpXNvQMbRJ+zMGmQEhgp60ACfMzV/Y6hC+a5jmBzYSPgAQgUTBk76VKs9sLPSm11HbgMV6vCksAZ/YN//c5MJlw8HIlqZ3pVznPmaeNx2KEIgPMIOkABUDa6sTTi7fnV5HOQj6M3yiKwGduMJvdXDxaTr+/PPvSiT4mzaUt/hWhV5d6VWhNukYxw/tmrr2oc2aBSMHJZyY7oBPTOFnmXKD4d5//bdLFfIDqL7FD8XSa/heAvllS7Ap35u+kXKQfdl0bdkS0EkLMMefx7KtzpLcYFjoXvRu1zN3lwKZBwBMxK/1CiugRNAql3mipKsaO7bfVgkkTyrAHI70sT4SXH7rossQ8lddQ2eEVuVwLJ0q1DDEYeIg1Gxdx45bNANDA7AnXcBcfAotCSJooXdhKwX8bQLqQqv+4X4jEcgq2A+l6Lm0Id+XXkMDsJptdU4qwNwL+JK4fXtx9+ZF71blexRaq4CjquYID4cElCwGYlOOuXWkZ9Fqyg2GTy09cWDj494FaH/GUNuAHe9uXuy49GAp1ARBhZmM6pGH7kSAqIYEKqY8rpkshrnGzp3rf5VtTX4Ni/1cLicnFeBYCX9bk0vLhoORrvSlxqG7HUPzQiuEA/L8Iz0gUbUgIgY05bGZ9O2ahvahzSdCTMDH9c1fNhyM96aXpBL0XdfQqX6osQq/nBGAiQwBbBU87YvUeGZT/rbmtVFMAD6ey8nH5YvrY60OLRkMX9ycfk+1h+86hhv9UCwRmaP+txVKrFLlGDPtY11dx5O3aD8M2iDHI1h03FmAX/e2pGjJYLhv06J31iX5u47hxlIo8kYIv5IdqBJPhSLVSdqQ706vozZYZFvN8WgJzHF187OtTv2N/xR01KffU13tfltETy1X9d7Q7yjXDhBY9ZOueW/He88KUmufGATAjy8G5QaPH0tw3FgA7c8Yyg2G+duaFovSPSp6dikUpTdY+LODA1WVYihSl3I2jnSnb8zlILuxoOp4KiDR8XLzKTcYFrrSlzoe3+uLzlNVrZR0j9nhESC6HzaeKtnO+o6hHlUw0fEBG89pC6CZjKnc/JHu9AfUoX4B5lMUmR/zd1ctuwMBTQdiPYe7R29blCOCaCZjTirAkT4LdrvUNmBHuhe9m4m+KYq60IqPORZtV0glvtWplGfWFfqaV9PAgH3sOICN56wL0P4FHn6+K9xTtfDShOF7iFAvIAFgKCbFVYWCUP4ntt+nSYep6Nu1DZ1Dmyvu66QFeB3PY9lWh9p2+aM1i95Vl3R/SETzFCRMcGMTPqCeQ2SISDUei8IMIkVQCmWqOmk25Xtb1lFuMNRsU9VcTRHn3EtVbszLPU3vqmLnHiY0hqpM+trr+a9F+KQgEIYBnO0aOqMUqjId2XnMgo2ZAany2EwEdm3DDRHRlNoG7EkF+H2pXtuAHe1tWlLlut+yijNKgQpTfLceCriGKBS9DyE6wXIJiPocw/MC+b2Usdd0oLpfyVDlMU2W5OaGzh23aqR0mEuIIc814e/ZnH6PIXN3KDjDDyQ24ZeDNfUcpkD0+04VfbZvase/1rHpJ6YbQ9Exh4nlCN2BHgAWTQfWVif5lnx3yzoiKLIwcwknmBMK8JtsUxW1Ddg93QsX1VbxdxzmxgpvPzbMBhBD4MDa7zg2ubT6mu2/uXgXCDdsL9au2PElUekIrRYShgiIp8JHBBKQmfJF6qo4l+9pvplyCJHNzhl+4TF/iYrPH+155x/XJOlvg1BOL8UrfBCgriHyQ70PNP6phvZdIxFxNCeqIIpOQfPdzZ9xDDYQ0fzAqhLFlB0AyoRpz1BVMbA3NXTs3KhZMHaBjnU5meeE8HvTSwh2QEVjFz4AcR2iwOrDRnlpJHxEws9G31/22VTfueOLpVDXhqJ7DYMUR47mlXVLxaopBqq1SffWfM+i1ZSDoKXFO9bu4JgpwGNl4Y90pS91iO5m4sZJ39o4zT4RxBCxH8jdnOKP13T8l72z2b2UQ9T+VdYAZLM0b+e5fy2g1SI64TCx4MhjAgIxG0oAwIQf2mrP2TzW29xO7dunkTm2l/AN177+TMZkFuwmyg2GI30LP8TCXzJMp5eDr9jeRwFbm2AzUbKP2MBm5q0eHuvvh2lri0yuZsH7apr/O6wOnbJ66IVKhD68tMlp2jYcTva1XCEqtxuH5wX2yLODVygmoJ5hDkPZUNuxI6uZjEH/selFfMO1L7Ngt0u5wXCkt6XVKH+diGqsaEmhSjEKvyZhTGHaPkRqPzZv9fCYZiLh61NNrm69IFGobb4u5eKbrsHXRrvT5xFBkQEvvGs4wOOtprrwvm9aodUiOupy1EQa04EToPCtTLkur5voS6+kgQH7+PpWc8JbAN3W5OLRYcm3pN/tEPUDaBBVqJKJKeBSVUhNwpgp3z48XUh++PTc4EQFhSOCqoIKfenlDtPtogTDQGD1UYV/TUP7/33mwAaQfF/L1aSyhYnqrSC+wLBcRfQM8XQoa+d1DG3Sfhhqe2ODwjfMAjyWbXVo2XAw2tz8zpTD9zPhFKsQJnLijLZrksaMl+yPoOFfnJ4bnNAsGFQWfrbVKdyevt4wbREltariWxXP8HtJvTumeha+lXIQzcBURsfUj73vLgHaFTrqRCliLGVeZpCKlkqhFOuSzsZCb/NN1Ab7YvefVJ9wFqDC4Xt5y8JLqhPmPhE0CsBMINV4BA8FiIiY9F5Yvrq288nd2Sx4fblbSLOtzljN9BrX5ZxYwOrsNE9tlWfMZMk+7jn2E1XXD/+6YgnKaaKO9aWvAKjPZTrFjykmUEAoOgebctlMFMObGzp33vpGFpD4Dbn5SwbD8e7mxY1Vzt2G6BSJuBSxCL/yeA6RqtxbGAuX1nY+uVv7MyaXgxBDdVuTO1ZbXEWMNaJAqK/M8RXEkyVR19DiwLpfz/ctPJ9ykP4MDCgKGOtvGPqGiK4KRUZcJkY8KSIDgFXwpC9SlXBuKfQ230S5wVD1jZlPcFT/QMWn7dncvDjh4R5magytCMVJ5iCIS8S+6APG4Kra63e8XGnpRjYKrEZrix0OYx0TUoHFqxV91GEiVTxmxV5d37HzFzOWYGmTi4/W6Pj/mf4EQF2Gab5vj7yAdABYJCmXzXjJrp/XMZTTbKuD3KA9mrWDo6YAuq2pipYNT+3uanpHfcJ9yAKn+qFaoniIqOWmH3UZHIb6HfZpee3aWcIvI4CFnvRKzzEbAhHPRqaHfl8GUe2xmSrZfwohH53f8dTzlTpFRRnG+xa1idAXnaOQIgJAbdLQ+HQQIYZHufmEjs7NL1f1utPvqUrw3VaowQ9tbDe/nEvDM0QlK/ez2ivrOob3ahaMixc4+HkmpFxO9t626DrP8O2Gybze2+oaQmDlcaguq1iC2YMiRnvTVzrAZmZzqi+iHN9ZChOmPIdqJkuSndc5tEGzrQ52naY0EH85OfYYQLOtDrUN2PG+9HuI6Tuq1FDm7ccpfHEMUTHUH5kiLZ0R/noote3ycfEuKvQsWptyTS8I/FqFH6GHBIUWfSuhZ8xigL5Z/HzzhZSDIBv5ZVXQPxdSX7ei60Kxu53odx95TECAqqoVJIqhSl3KyRV6WlZSbjDEgp8flSpirArQn4kInIW+9KUidLdDdMp0YG2c9XwiqGEyYWi/a2rDy2vWXLZHFYTcrDz/uV9fr0Q5AK7V137zCSBEkakDReCLSCphFhVDfLkSGCIbZQWLAdRP/OldUFolijETRyk5ymQMM9yIaGrDVIK6xrqb2ym3y0e2NXYliCeAyYJ/Oe8C96Llz5RGepr/qyG9C6DTZ6DwuKyLwtZGef6PlYsfblzxdL4Co2J9lnDxLso/99znDNMWAJ5VHFaQFt3Emf+0riHjh/qTaYMrz1yx49kK7VvLPzrWnb6CDH2eieaFEnNMoCoJh40f2g31HTuzcc8siuVFn8W53kXLnynt6Wpa4hC+Ikq1qlpSqFB8+mprk8ZMluwP6j3588YVT+c1C6aBATt8V5PzLL7m5Z99drlhbALBk8MUfuUmznpMYNUmXX5PSvC3o3+ZPo+onCJqOUXsHPoGQKus6pgbQwHpFbAxEZWsTiU9Z12hr2VlZIXig43pyG9/RH3O1061Jo3ztwKdF4oyEF+0rwqtTTBPleRH/rhmTskNFWaPhCEA+Z7m5cbQ51UVVqEUv79UzxCVQnlcHPuJebPAospBjva2LCOVTcw8z6rG9g5lepm4Dhk/1JsaOnZsjGtm0RFZgEpJdzQ10eIZ8z0wTi8TKeIsbGhNgnm8JD8q+PKxGeHnIuE/tbTJzXcvamfGbapQq5CjIHyIAqVQrOfwYhOab4x1RYGh9meMKkiyWW5s375NgWtVNc9xso0BUmjJD6VUmzS3Fvpa1lAO8vKdrTXHzAI8tbTJXXjXcLB3yztaqhLu/b5gvirIcLzwLhNIofewoc/UXr/j5QPh3dHq4o1JjzZYUZTz/PhzZQJU1Cphigkph9nxQ/0HiPlk/con/u3xbKtZUkbviKATfekrQqXbXab5gcQGG1csilR5zJPFMtH0CGFjOlyzH5E5FrZWpZwBFZxasr87gfNIP9gzRL7V79Wn3E/RZ/5xdDa1OsL2i6tBehMzeRKZ/aMGbZdTNKtKIAIZIg5FHwPbqxpueOrfKi4JAxmmtgE72pP+FBP1OIYag1BjrSIyqyQcY6Z9WdfQseOWIwkMX/dLVeDdke5F7044fK8A80KrykTx+bsIkmVr9fucTC6tuXbwpRlIthxzjNVOdRjmmwFUHSWff8gDK5+yGiYSkcdd8q5M3fCP/zbzjuXdA/mC+TgRdTmG5sedHTBBUy7zRHlm0eGSSl7XC/26tyVFbbC7u5rekXLMPcw0z4rauISP/QfLodV+IPmpmmsHX9IMDOXKaXJuMMzXTa9IeWY9gNTR8vmvcvgzuhCKSsozi0vif2VfpZRcHl2D337QNnYOfRksnxGRUYeJNaZSMgEkApryRepSbnakJ72GBgYsBjJ81CzA7GlcZPAgMyXj6KaZfbAEaNIhmg7lfiPm07WdT+5WBWH9Ahe7LrYYGJB9PQs/l2DTzURunMWYI3VVpUAG/SC46vQ1Ealktkku9LZcqZAtruHYSsllf2CJaDrhcs2EH26Y37Ezq9mMh9ex9OI1vUgF3s3ftvC9ljHATEk/FBtnJYwU1jDRlK8Pzwi/QubI7fKxYIGOdS9aW+M5XQCcQFSOtfDLdm/atxImXG5NJJyv5HtbLqAcBBmwAqRZ8C/+JfgbAm4KrOx2GEeMGO4/N4JVTZVCkfqEs26sN91JuQEfaOXYXIBW4N3uRe8mNt/xDJ8S90weIqjjkAmtfpeTcnlNxxN7FKD1ucgqqILytQ/eQMzrrEXCHuWA7/UBRupBEQRW1TPmUqjetafrkrNoABZZEOUgTaPnS1370DaIrLYWBddQLJRzJhhDZERAU4HYlGtuG+tJd0QNqa+tNZ1eS7Q/1rfwQyL8ZSKajyjVOSrwbgHUdk779hHtzxi0DQiyWcLFOco/n77OEHUB5Fk59mb/YAdYZpaLZ4iDUH/iqV6V6hz6lWZgMACJGEvQQl/zUih6makm7sCQgNBz2A1Cm61rH9rwWPbc5OKzTrFY+kFLdPCBlnRo4S/wKLfLf3Fz+j01CfqOFa0igBVwK1M4Y7hAUhsROB8oSPjJs8tVPcpBNYI7nXxN8bPM2ERleJfipY5L7ApdUQKrP7biXzmv8/8+N1M7KKeKY33N1zDQZQzVHO4w60P9bQIVky5VlYJwdV37zi7d1uTit8P2UDEBHRLevfg0HXvhV0uSxv2GiDYGoi7iNLsKW500ZrIUPjJSKLWdl3s6X7n5leBprLf5c46h21XBYYytWpUn4TBCUYQxt4EB5Q5kK4+IYFlj59CvZgLD8g+M9TZfbRgbiagx5m9TQK3nGCcIZXVd+46uV8MJ6HeFH+Wye7rSSzyHHki6XDXlS2AIboy8JEm6zKVAHlZPLq+/bue+ys0HIg7fyLhZ4TI2EtgJJWbqFUACDaG4nwn/0TV8YSleZo+U+xGNH+LxBOHTqfbtv5Md5LsXXc3MXQDqNL7KqQI6pYpkbdIxhWK4qrFj6LY9XZfUnrrqifFXDQIjbB8y1ptuqUma74pqasq3ajge4Zc/UgDwtG/vmbbyvyrCx/r9wh8tOKtShrtiF75WhA8L0B31VdNXCet1JSu/TTrEGkNXMBHAUXhYDERCz8HikujXK6SSgUp2oKD6jp3bApV2VeQrLjEmmKAaRDxRslKbMF357vSNp656YvxggSHPFv6S3GD48sam/2yIHoRiHhFpuagRW8DkGWIo7gvH8cnTV+58KZoCFvXoaX/GjI07K43RtaGoWo0v1ZNoAQSVyYJ3BPX5LF7+f2MNK3Y+LISlpVB+m3TYaAykDkQZUlKVOLBqUx5f4of6zT097/z3beXsoLKAZn7Hzr+2gjUKjLgxkEpma4EqqBhKmEqYTfnedDSupv+V8wkIAPozMG0DsCNdC1uTnhkIBaeW59/FCu+WEb7v1yeTS6mC8FWWMJw1QWPjTrtj6CZVVFuJGT+PflMoql+sJ86hkCgAg4JcVHTa193yxy7rlw3TOWEMf3sWZLy/rhHqPxgKP1tzw/DPKpNCdFuTi6XD4Xhf81UK7XOYa4L4swOkXKKpUKJxNbNcEWm2qYpyw1OjfS3vcCCPOIbnlUKxhPjyfAXEZeIg0O+qm/x044rBvCq4jGWAAB3tXtRe5TmbfCtuKFEVMLabT9GNC0W6G+dXraNPDhYPlvHk+xa+F2LucpjOC0VjvwAOE4dWHmU1K2o6n/x5JTVUgKDAWO+iqw1xlzFU69sY+QTRckytcg1PlOyNDR07tlRiPQKAid7//J8sBT9JGDNvOuaxLCBIymGeCuz9JavLTl+58yVVEO5qcvDbGsXFp2n++eeuc5i6COTFmhvvv/liFV9ssGYNrXpi/GBkil/3tqTOad8+PdKb/rhD9HWNn4mvgNoIO8I3GjqGPqX72WfRv7dekCj4jcuIeR0RzZeYXoIIEEFApJR0jTPthzc2dOzcogri/JaWtNXge1BqKMZM4ARgGeCpwD5oUubTp6/c+dIMvLtsOMD6QTv63LM3phzuUoUbt/ANEykQiOid7Mt6rHxiQjVC58o/Q7+47oKEKuic9u3T+b53ne+AP8LRtdSYpR/ZO6WXIPyt2ZUlmhk6egHqJnbeKYKvikoY2zsoQKSkCvJDEc8xm/O96WVEUK538f8U9BXXEDNH6HZMCakmHDZW9O5JTX285poI3q00bZS7dDscw2utIGraiFH4RIBAQlX53/UTqdX1a3buw/qIsDEbgr7w0mdCImhh47tOhQZbqxP8fisqMWMO5WCWxsnKNQ0rtz9aIY/M/EQWRMsfKo3WLbzUc2gx4nXBYCIHEaOaAyuPKNPD2p8xDrVvnwZwS76nGZ5DG4JQpgVkiOAeti4QwhrPOJMl+2NUeZ8++zODozq+PvL5WRDWqxZ6Wz6nwEYmcsuFnTip48QEhErbGtyR1ZTbWTqY2c9mwdQGu6frj84S4/8VlD4wUbIaJ+ClgCQMcTHUfUaxtG7Vzgf6MzBE+1POF7vfXk2dP53c071wEYO/lHDpQr8UTwwSNSyoVYHvOSblh/ZxNaW2xhVP54Ed0R/Q7IIayu2ayPek19RXORvHp20goiExpV632VeVupRjCkX7AGvyk3Udg3tnpmQOZPjZn+92G2qnr3WZbhVEhR2ON9ip+J//XQdaR+3bR37nts0CvHbf2nSml3S+QKTvV8BDNDMqruDPJgyZwOoLKnx1feeTPzhQESv/ne9p/hMCbncdvjiakxRrsSt0DTl+KA+WxifaTsOpxd2nInnansVT0Qbt3K6JX2y9INHQMbRpZDK8pTZpXGJKHEYMojVJx4wVw0e0kLyirmNwr/ZnTKU/n9oGbGNt6dOe4S0g8kQhHCNztsxHFFX9og3CtYcUfkQwkZHuPzrXTZi7mPBfELfwFZowZER1TBWfre988gf9GZiKC5wt/PHe9BKQ3uE5dLFv4xN+eUCVNUyOH8oPQfwXp+d2TSA3aE8bPG0aF+/az+SJ+uoyRG0DttDXfHOVxxumfbFWwb/vUHQWvOsH8nCtJ5fTdTv3ZbPg9eV8U7c1uWOT3M7gWwhwQkHs8K5CQ6t0Z2NtuJKWDQeV6PoAwTARZHJL+i2+g7uI6L0UUdhjmd1HAKyqZSJm0nwY6pWNK3feW8Y8pHJcv9h6QeKi5c+UCn3pS1Xpr1xDC2IliyBad1ebcJzJUviomFSmccVg/sAzmfljlINQ24DV/gVe3Q07bhkvygbDZAgIXy0WrUzjYgIXfXsvyfTHcd3OEa2wdwHVbUvdsXFnpUtmM4EcUUjMbdUAIVTVO0o6fRMtGw40m+UDhV/2vTLy+aZzAhdfcA2/nwAnzsXQqmo9hw2AF8jS5Y0rd94bNbDAziQDj7U6F37uGX+sN90iSn9lGAvi7DKmSNGDuqTjTPj2AULqo40rBqNGmgPO5KAfXYGF8z3Nq6sTvLkYiLUCPjAoqQAcNQnDhVL4iFH7sbqO4b2zW5q1P2PGXnhuFSnWEcizGh/IU97vSxIFH1vrExM34bRd08jgd8iRlZu/d0v6LZ6Du1yH318KVYjiD/gC1RdtaK9t7Hzqnlcwmcv0Nsrt8se6m5vB+HbK5fOmAonz5mtZCR1V/GB3/sUPn5d7rpjNgnMHKQkfmg+w9YIEPnd5MNb70NoqjzdMB1LphaNZsLd6hrgU6g9KJVx5xtodL8/Au0ubXJw5TeN1tSsM4yZRqokd3o1QnkDUfrHeT+RQNOMHG6hQeac9XZec5bLdpoQ/pWhceKw0dkNERPhtGMj1DSuHBg6s/lXK3fu2pJuNS1/3DF3kx8irLK+wkZTDXAztIxNqPzaLY/E6CSFltI6WDQf57vQ6YyhnBRY0ExNETZNWvzdZCC8/Ozc8VZm1VzmRfF96ecrh7sDCOQrYfhne1d7GptRqWnLw5ojKx092XXKW79htBLwf+xU5rvexhmGs4AUCPlvfseP+A/cGVZSw0NP8LhC+5jn8tmIY381nAqxoyTAniPX7Qu6VtSN/vA/I4dUIovwq2qS0bDhQBTV0Dm0IBZuTLpvKB1d7bAKr9xmDq8/ODU9VEL4yqGHyPenrXaYtgYUTHoXCDhFCFblTXGygJYNhZezr7/j8HGRfz8K3+hx+mVTfH4Us4BiFr0QwVvWXbPi6svAJs1yQahQDjG5tWiLA3ximtxUD0Th9vqhOAgislQc04Kvqlv/jHtQ9nPh97GB+DWZFf5Zd4DV27FhTLMm6Go/JMMxUIA9MGyyrzOQpFxYiJk99emXK4y5V8uKs50OBCN6lIBDcCR/r548MvQLenX3z2wZgJ7v+6CyG+aLn8GUgorjNPkfF/+dZsbJuxZPf08danXLDamT2MxlDBNnTvXARB84drsF5QcxIoxKEiasB/INOlK6oMKrLIB+OSAEA4A9zu3ztz5iGlTtumSjJjVb1fjtWvOKMsvDXV1wGgELPohWstDYUuKEoOF6+XSCqFtCvlXT6pvo1O/dVlPRgef7kHZecZY37ZcP4QCAaK5O4fPOJgBG2et1DO879vmZgZruiSvv63i1N6SrH+VvH0MWBINZUT4Eg4hHoT+pD+9HG3NP5g12IV8cKXuNTiSQLPU2n1HUM750hFiiAAfD48+mrVHG7MZyKmfEKAsRh4lD1zjpv/Ea6dtfEIfL8coNm05mhmm0KfMAQscQ45VMUknCIfSv71OqnG1fuvPdAwOnF7rdXn9n508mJvpZ3hCJ/V+WZCyf9eECeiGugAkXJMZwKQhkMxPnQqaueGM8CnHsdzCI6DGG8ooRZ+f+FnvRKYsop4IjCxAinwhAh6RImfbt1tzOy6qLlz5R+H7ybSJk7FfhTAnmI9+bbhEPGt/pbAJ+ub9/xw9mHrgBV+gHG+1rea0X+0jX8H3wR4Tjdj8J6DhnfyoPTUsyc0fnTqb1d/67mlKkzpl9Pt/DrfyHNkva2pCrC37s1XTfa07JSQLcSUVJj7NWrgDwiWpoq2S+x420s/LxeNJvlQwl/X8+lb/VSzl1QuoyIPMQ7okaTLhurWiDVz9a37/ihZmDW44CqXg4y2p1+j1W5I+HwfwhE4xV+NCTL+KE8WO/gI2d2/nQSAE5Z9S8TuPg0fb3W5HAOgrC+/KE97/wjgv1713B1YFWZwfGRKdQmXWOmS/K0R/ZDqVp9CUuH7YFrWSsp1/jG5tNDT/+amd6nCifeBha1RARDGAlElzZ2DH3vdwo7Wy9IUDQn6V2GsO1owbtVnnGKvvxEA/fDDTf+4+jBrOHRswCVFDEHyWaz3HDOW36qpL0KJSayZV8bk6YTFwNRz8VFJaWradlwQBRN7awwXDUbCX9P1yVn2QS+lPL4gwBi3dgpCongXX3ZWnzioMLPtjq0/JnSvtsWvdMQthmmBXFy+8p+N6hLOs50yT5QV1UWfvT9h33lKIabQUSk+Z6WNdUJ2lj0xQpgieDFNSnEoWjKoB/azY0dO9eUR6gK+kHUBjv++ebTrdW7Eob/q29VIrQ5JuEDknSYg1BehNhr6zqfumf2WPfI55+boNxzxXxvS5og367yzPmTvo1zYIYq1CYcdkIrD9Yo/xm1b5+OY07QkUekRKrZ1mRDx/ZNE9PhBmPIKCAiKAFqj9QaEECBqFpRSbnOjaM9zTnKDYbozxC1we7rufStYYivQelDvhWLGIWvCnWZ2Iq+INDldZ1P3aNlEknlZwYyYOSei6p60G84hs+f9OOblhJ9jEqVa5wg1IfHp/1PUPv26QqdPo6MIo5bSpU5Ofu6mzc6hHYinSKiBqvx7OYtB4SRi1F0v+w1bji7WJgfOvYrhvG+0CLmwo5aBrECv7EhPjtv1Y77D0XmGOle9G5D9OWkay4ohhJbr18Z3p1mohQRHpicxlWnX3jOXmTiWy8Ta6/dTDdxd0unst1ERIBSLP64wmwFqQEoVNFthvEHovhAdBjx0tgNga3qL5nQWXfD0H0Hbv3U1laHBgfDkd6FrUbpq44x5x0Fnz8Z8dP0x1PFqaVnrP3Zy/rV1uSBtPZj4gJ062WJAxcir8egaHaBV9exvYeEN9Z4xoEiQAyDE1UBZrhlup/nOnwdiD5UruvEOZZODBFE8GuGrqq7Yeg+zR4A7yqIBgfDvb1NaaPmC44x54Uac7QvUNdQNaB/LwX+5BlrfxZB7jEKP3YLMCOsfhhkIGO9i9akPOfWYiAHoFjxBIcU8zeUS8xkSHfbgK6unXzffbh4F81e+lwBwCb7Fi0U5e+wofPjnAJWdj+hZ9gJrPxYCqUPN+aezh+qnj83FQAgZDJMAwO20Ntyo2FssqqTInCJ1BDIzJntyfuFL44hDkX3qepVjR1D3zswv/5Ntqnq7NzwVL6nuQmEb1W5fFGcZA5VKEhLLnMysPJ4vRY/iI6fTh3NhdNHZcwKAYqBAdH+llRd+/bNgcX62iq3GlBWpXCuLa1XhU26zGEoL5PgiorwZ70nZbPgs3PDU/nbWt5LhG+6TBfFzOQBCNY1nAxEHqzX+g9S508n9952SQ22NTlH69uP3mBFQKlt+/RvtjVVNXRsz01OBzfVpRyHGY7I3FmfXoF3Q5FxVr2mvnPHg5opM5krPj8LypXZu8pyp2fo38cZ8M1KOZ3AyoP1ofPn1PnIpAJ86qonxvHo+XIU5fSGHDIRQfO96XW1nslNBBE/iHCsR7ypqEI9w3tKQXD1vJXD9x0K3t3Xs/ASh8yXHEOxEzitqk25bEqBPqZEH244BJ39uLIAB0LHP8su8BrahzYUSrKBQcwEW2nhOhaPKMRlZgL2hqF+at7K4fu0H+Zg8O7k1nSLR/zXTtzsXQKsalCbMKYY6g/qrPlvDe3bRw5W7DquLcCBwEkFNp7yrVWQ5Zhg49cRpNqkw6YY2JeZ+Jq69u33Hri1s7L0Kr+lJa2ufqvG47dN+jbWtnlAQ89hJwj14elE8sOnXxstuqSjEO0fUwswo205iHb/SXVjx/ZN40WbNUyGVK3qG/fBAOAymUDkeQiuq2vffu+B8K5mwbRseGq8u3kxe/o3CUNvmyiJxCX8iJyvknSNE1p9SEtyeST87Bsq/DfcAsykiP3RgY/2ttxKqiuI1DJRbdwbxA+G8JV/+W+hZfbugdTt8g0s9C5sFZi7kg5dVAo1VnhXIoSvikkfnJqmT73wXDjSdOYHLeVy8kbL45h4YAUIWy/zaPlDpdHudCcRbSRSAuiopTuiUM8hCkN5BqD2uvYd36+cwH7hl8fgR9j+V12Hz/dt3PCuRvR5xSNM5XV3Wy9IYPkz/tFcEDknXMArcILPPeRrdoHX2DnUDdIsgRyFHq19ueowhYHVfyGi1X3jOx7AQIZnw7uRixoM93Y3NxumLxjD5/sxp3pQ2KRrqgA8ToF+qrLujpY/UzoWwj9mClDJDCi3y9dMxjS0D20W6JqUy45qtCOocmNisjjqOeSS6s+g4eB6LHBeAe9mswwAYxGZ4yuO4T8MRYWiOUZHPC1Eo18RuoZMGMrDoYuP1K+ZmY0oOIbPMR+4jIEB0W1NbkP70ObAYqVjiJgxpYJAoWFMOkDFQJSIPiDkrPo5ogZNRWVBcy76KcMfZMKC8vjW8hYEDQEt0n7+82FYPC25HGH7L/nhn88/89zJaPfBsRX+nFAAAhRLnwp/lW1N1qzY3m0Vt9ZWu9XEUBXSOKIUQtSpY5iSUL3+rLq61XgczozZLffsCxe7SfXr5dldNkpNyWGiVDlNPQwWtYau4aS18sNS6PyPt60eHsPPd6d+ufUyby4goTwXXoKI9LzcYPHF7rdX19+w/ebJ6eDG2qTxjAHFBRsTwIFISKCplEFutGY6q9uaXCqPrVEFNa54emzC9Tsh8i2i/THJEbyAeCaicdW6+OipMxPKBicuHGkO5sTZY44+Iz3pbH3SWT9esoIYaV7lrxYDsqHq1vobtq8sD0OlX269zLto+UMlvf0/NeTDxJ3E+Ej0d19f/l9u3LCew8afDe/OAZ9/XChAZSXdSHd6nWsop9FGOGaKZyWdKNRhIlEJAbqt7q3nrKtMKa8I6WfZBd5b62q/4DCuDAWCAxZhHrBedv9hlplLVR67U6H9Yb2Z9z9p+UOlNwrbP2EswEwBqad5bU2Cb53wbVie/efGxDYWQ1EQaAUbGsaTt0TxwKBFJurmfbH77dVVlLqrLmU+Nlbcb4nK+XxRlRIVIkhEWVNLDN9lTgWhPBqM488qiy7n2s2fUzHAodLEPV2X1DZ07NhYKMrNHrNjiIK4YGMC2Go0VCrp0M35mul12DWoj2dh0B8thj6z86eTddZcPenL3yUMzfT7lxXQmX19ypu/NemYVKj6UJ0794UPINYVr7E/3Y8+72sWXLX2N4Mr/+QsB6BFohpZgZjMHwFkFSXDfOnU2WcmTU3V389/8DrB44NADrzk0edLy1vO/Cf18FaX6T9aQUAEE3UqzFIBReC57BYD+cmU8F/UjI1PLF68gM7LPWfn8hkz5vqzHvqbbFNVfcfQzYb0ViK4VjXWQ1WFAdRjopWnBvOz63MA/vIybz2gWYBPz+18ifzpa/xQvu0acok0lFlglaoWkx67xVAfUVP8szM7n9yNF1O6eP2gnevHSzhOHu1f4FHbLj/fk17DRBvLo9hMHCTTMuVcmaMRqaHIxl/+i801bRsOy0pIlIPona01heL0lxKu+UgxjJpQALX1KdcpTIc/hlfz5/XX/XjfXDf7x6UCRDc1y0Q5yfek16Rcs7EYWon6wIjjUITygGt1mSgIbXf9uX+wptKEUQlKdVtT1ei4ubM2YT456Yt4hpgUDyTdwkfp2l3lkm5Ojpcz5eNJAYhyotkFXkPH0KZiqCsdZjZERVX144CNK4OjrCgSrlk5/sKzmwFAtzW55ZHeRMuGpxzXXzVRsv0JwxyE+qN/zRc+MXDarnKv3vEj/ONOASJrvCvU/oxX3769O7S6ubbGqeL4ttpEe3kBDUVVlTsLfYu2oHhqxOGgaNRb7ef+eW/A9vpSIJ9FQj72h7ldIxksMECrd7ydJ+E4fSqUrUJv+sbapLOpUIxmkcU3YTsqFbuG2A/sbfUTVWvLkzeoPPt/ZjbRoaamnLQAR1Nzlw1PZbPguvahzaPT4frapMMRyHdkwaCqWgV8LoNEgVXrOWbFeF1xc3kUXSX6V81GG8AqQj/ehH9cW4DK+z+WhVmSQ1joaVnDRjeqwpZnFB2WNKKps0DFkmhEJqHAilXQHdaadaesemLieBX4CWMBKvJanIPVLLiuY/umUHBzymWjCl8VweEQSgj7V8mW+QBqrU41VLmGgQsdzzXIZun4F/2JYQFmnspmzHxPy5qEQxt9K5MAUkeq5AqEniFHRR+oakxm6JODxePR15+oFmDmqdTaGzq2b/JFNpAiUNXgcGlllZKuU1624FPxCvyvwdJMwJdtTaoe/xfohFEAAEAuAmrqb9iRBWgzCEbk8GBjqxpWe46xog+rSV3euOLp/Cu6dHedFtAJ4AgIJ+BTgY0LPc1rlXBrecSbOVgN/6A3XxHUpIw7Ph3eDeKlc5XMcdICHEqIbbt8zWa5rmPHRlK5KeUZhqoVjdBCOqS/VyuKIBFV9R6sH0995EQW/glrAWYEWp6nU+hpWek46AqtFiUaKslEcGZbg7J1KLqGkoGVhyeL/hXqm8mzUOO/ntGrJy3AXHqeXezrY61OXcf220pWttRWO0mHIar6O9ixFbWuoaQV3K/+9EfPWvvPeybnnWqfryu5J/IRndAWYMYS9LakqH37dL5n0dq6lHvreDEUfcWKOLUp15hpXx4ihFfU/Z41KyctwPGm5e3bpx/LtjoNHTs35ifCbAQbq9XK3iPHmDDUB21Y+5G6juG9/Zl4hjCetABzyQrMGuNe6GtezYzNoY3W2oeiD4+B/sc5MY1fPfnMVSVQkPZHPMj8bYvWTt7eomM9zT/W7rdXA0B/JmNOntKb4Hk521oDAPme5mu0t+XsGQtx8nkTWYOywLW3JfWL6y5LvFnP4f8DEYkyOcMmLpoAAAAASUVORK5CYII=">解析システム】</h1><span class="tag">非公式・試作版</span><span class="sub">#コンパス 非公式戦績トラッカー</span></div>
     <p class="lede">リプレイの詳細画面のスクショから、どのステージ・どの相手に負けがちかを集計します。</p>
   </header>
+
+  <div id="who-bar" class="who" hidden></div>
 
   <nav class="tabs" role="tablist" aria-label="ページ切り替え">
     <button role="tab" id="tab-add" aria-selected="true" data-tab="add">読み込み</button>
@@ -807,7 +814,10 @@ function saveWarn() {
   el.textContent = '⚠ このブラウザでは保存できていません。いまの変更は閉じると消えます。データタブでバックアップを取ってください。';
 }
 let pendingRestore = null;
+// フレンドのデータを見ている間（閲覧のみ）。この間は保存も同期もしない
+const view = { on: false, my: null, pend: '', lid: '', uid: '', name: '', at: 0, unsub: null };
 function persist() {
+  if (view.on) return;
   try { localStorage.setItem(DBKEY, JSON.stringify(db)); saveOK = true; } catch (e) { saveOK = false; }
   saveWarn();
   rebuildCache();
@@ -2194,6 +2204,7 @@ document.addEventListener('click', e => {
   else if (act === 'friend-ask') { syncS.delAsk = t.dataset.id; syncRender(); }
   else if (act === 'friend-ask-no') { syncS.delAsk = ''; syncRender(); }
   else if (act === 'friend-refresh') friendRefresh();
+  else if (act === 'friend-view') { viewOpen(t.dataset.id); window.scrollTo({ top: 0 }); }
   else if (act === 'friend-copy') {
     const code = (friendInv() || {}).code || '', ok = () => friendMsg('コピーしました。', false);
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(ok, () => { const el = document.getElementById('inv-code'); if (el) el.select(); friendMsg('長押しでコピーしてください。', false); });
@@ -2314,6 +2325,12 @@ document.addEventListener('change', e => {
 });
 
 
+// 閲覧中は、書き換える操作を受け付けない（保存もされないが、見た目も変わらないようにする）
+const VIEW_BLOCK = '[data-del],[data-ask],[data-unseason],[data-reseason],[data-mptsign],[data-act="season-new"],[data-act="season-start"],[data-act="season-del"],[data-act="season-del-yes"],[data-act="season-del-no"],[data-act="season-cancel"],[data-memo],[data-mdate],[data-season-pt],[data-season-name],[data-season-hero],[data-newhero],[id^="mpt-"]';
+document.addEventListener('click', e => { if (view.on && e.target.closest && e.target.closest(VIEW_BLOCK)) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+['input', 'change'].forEach(ev => document.addEventListener(ev, e => { if (view.on && e.target.closest && e.target.closest(VIEW_BLOCK)) e.stopImmediatePropagation(); }, true));
+document.addEventListener('change', e => { if (e.target && e.target.id === 'who') { const v = e.target.value; if (v) viewOpen(v); else viewClose(); } });
+
 /* ---------- ログインと同期（Firebase） ---------- */
 // 同期するのはバックアップと同じ内容。ログインしなくても今まで通り使える。
 const FB_CONFIG = {
@@ -2370,7 +2387,31 @@ async function fbReal() {
     },
     async askLink(id, data) { await F.setDoc(F.doc(fs, 'links', id), data); },
     async approveLink(id) { await F.updateDoc(F.doc(fs, 'links', id), { status: 'active' }); },
-    async delLink(id) { await F.deleteDoc(F.doc(fs, 'links', id)); }
+    async delLink(id) { await F.deleteDoc(F.doc(fs, 'links', id)); },
+    watchLinks(uid, cb) {
+      const us = ['a', 'b'].map(k => F.onSnapshot(F.query(F.collection(fs, 'links'), F.where(k, '==', uid)), () => cb(), () => {}));
+      return () => us.forEach(f => f());
+    },
+    async putShare(uid, text, count) {
+      const m = await F.getDoc(F.doc(fs, 'shares', uid)), prevN = m.exists() ? m.data().n : 0;
+      const parts = syncSplit(text), b = F.writeBatch(fs);
+      parts.forEach((x, i) => b.set(F.doc(fs, 'shares', uid, 'chunks', String(i)), { s: x }));
+      for (let i = parts.length; i < prevN; i++) b.delete(F.doc(fs, 'shares', uid, 'chunks', String(i)));
+      b.set(F.doc(fs, 'shares', uid), { updatedAt: Date.now(), n: parts.length, count });
+      await b.commit();
+    },
+    async delShare(uid) {
+      const m = await F.getDoc(F.doc(fs, 'shares', uid)); if (!m.exists()) return;
+      const b = F.writeBatch(fs); for (let i = 0; i < m.data().n; i++) b.delete(F.doc(fs, 'shares', uid, 'chunks', String(i)));
+      b.delete(F.doc(fs, 'shares', uid)); await b.commit();
+    },
+    async getShare(uid) {
+      const m = await F.getDoc(F.doc(fs, 'shares', uid)); if (!m.exists()) return null;
+      const d = m.data(), parts = [];
+      for (let i = 0; i < d.n; i++) { const c = await F.getDoc(F.doc(fs, 'shares', uid, 'chunks', String(i))); parts.push(c.exists() ? c.data().s : ''); }
+      return { text: parts.join(''), updatedAt: d.updatedAt, count: d.count };
+    },
+    watchShare(uid, cb, errcb) { return F.onSnapshot(F.doc(fs, 'shares', uid), sn => cb(sn.exists() ? sn.data() : null), errcb); }
   };
 }
 function syncHTML() {
@@ -2409,7 +2450,7 @@ function friendHTML() {
   h += '<p class="small" style="margin:10px 0 0"><b>フレンド</b></p>';
   h += act.length ? rows(act, l => s.delAsk === l.id
     ? `<span class="small">本当に解除しますか？お互いに見えなくなります。</span><span><button class="btn danger" data-act="friend-del" data-id="${esc(l.id)}"${dis}>解除する</button> <button class="btn ghost" data-act="friend-ask-no">やめる</button></span>`
-    : `<span>${esc(other(l) || '名前なし')}</span><button class="btn ghost" data-act="friend-ask" data-id="${esc(l.id)}">解除</button>`) : '<p class="small muted" style="margin:4px 0 0">まだフレンドはいません。</p>';
+    : `<span>${esc(other(l) || '名前なし')}</span><span><button class="btn primary" data-act="friend-view" data-id="${esc(l.id)}">戦績を見る</button> <button class="btn ghost" data-act="friend-ask" data-id="${esc(l.id)}">解除</button></span>`) : '<p class="small muted" style="margin:4px 0 0">まだフレンドはいません。</p>';
   const inv = friendInv();
   h += '<p class="small" style="margin:12px 0 0"><b>招待コードを渡す</b></p>';
   h += inv ? `<div class="row" style="align-items:center;gap:8px;margin-top:6px"><input type="text" readonly value="${esc(inv.code)}" id="inv-code" style="font-size:1.2rem;letter-spacing:.15em;font-weight:700;max-width:12em"><button class="btn" data-act="friend-copy">コピー</button><button class="btn ghost" data-act="friend-inv-del"${dis}>消す</button></div><p class="small muted" style="margin:4px 0 0">${new Date(inv.exp).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} まで有効。相手が申請したら、上に承認ボタンが出ます。</p>`
@@ -2423,14 +2464,14 @@ async function friendRefresh(quiet) {
   const u = syncS.user; if (!u || !FBA || !FBA.listLinks) return;
   try { syncS.links = await FBA.listLinks(u.uid); if (!quiet) syncS.fmsg = ''; syncS.ferr = false; }
   catch (e) { syncS.fmsg = friendErr(e); syncS.ferr = true; }
-  syncRender();
+  syncRender(); shareSync();
 }
 async function friendDo(fn) {
   const u = syncS.user; if (!u || !FBA || syncS.fbusy) return;
   syncS.fbusy = true; syncRender();
   try { await fn(u); }
   catch (e) { syncS.fmsg = friendErr(e); syncS.ferr = true; }
-  syncS.fbusy = false; syncRender();
+  syncS.fbusy = false; syncRender(); shareSync();
 }
 const friendInvite = () => friendDo(async u => {
   const code = newCode(), exp = Date.now() + INV_TTL;
@@ -2469,9 +2510,94 @@ const friendDel = id => friendDo(async u => {
   syncS.fmsg = '連携を解除しました。'; syncS.ferr = false;
   syncS.links = await FBA.listLinks(u.uid);
 });
+/* ---------- フレンドに見せるコピー（shares）と閲覧 ---------- */
+// フレンドに渡すのは、メモ・画像のハッシュ・名前マスクを除いた試合とシーズン。ヒーローとステージは端末ごとにIDが違うので名前にする
+function buildShare() {
+  const hn = id => id === EMPTY ? EMPTY : ((db.heroes.find(h => h.id === id) || {}).name || null);
+  const sn = id => id ? ((db.stages.find(x => x.id === id) || {}).name || null) : null;
+  return {
+    v: 1, name: (syncS.user && syncS.user.name) || '',
+    matches: db.matches.map(m => {
+      const o = { at: m.at, mode: m.mode, stage: sn(m.stage), b: m.b, r: m.r, side: m.side, idx: m.idx, blue: m.blue.map(hn), red: m.red.map(hn) };
+      for (const k of ['res', 'noSeason', 'rank', 'ranks', 'pt', 'ptAfter']) if (m[k] !== undefined) o[k] = m[k];
+      return o;
+    }),
+    seasons: (db.seasons || []).map(x => ({ start: x.start, pt: x.pt, hero: x.hero || '', name: x.name || '' }))
+  };
+}
+let shareLast = null;
+let shareBusy = false, shareAgain = false;
+async function shareSync() {
+  const u = syncS.user; if (!u || !FBA || !FBA.putShare || view.on) return;
+  if (shareBusy) { shareAgain = true; return; }
+  shareBusy = true;
+  try { await shareRun(u); } finally { shareBusy = false; }
+  if (shareAgain) { shareAgain = false; shareSync(); }
+}
+async function shareRun(u) {
+  const act = (syncS.links || []).some(l => l.status === 'active');
+  try {
+    if (act) { const t = JSON.stringify(buildShare()); if (t !== shareLast) { await FBA.putShare(u.uid, t, db.matches.length); shareLast = t; } }
+    else if (shareLast !== '') { await FBA.delShare(u.uid); shareLast = ''; }
+  } catch (e) { shareLast = null; }
+}
+// 見せるコピー → 閲覧用のdb（IDは名前から作る）
+function friendDB(o) {
+  const d = emptyDB(), hs = new Map(), ss = new Map();
+  const hid = n => { if (n == null || n === EMPTY) return n; if (!hs.has(n)) hs.set(n, { id: 'h-' + n, name: n, refs: [] }); return 'h-' + n; };
+  const sid = n => { if (!n) return null; if (!ss.has(n)) ss.set(n, { id: 's-' + n, name: n, refs: [] }); return 's-' + n; };
+  d.matches = (o.matches || []).map((m, i) => Object.assign({}, m, { id: 'f' + i, stage: sid(m.stage), blue: (m.blue || []).map(hid), red: (m.red || []).map(hid) }));
+  d.heroes = [...hs.values()]; d.stages = [...ss.values()];
+  d.seasons = (o.seasons || []).map((x, i) => Object.assign({}, x, { id: 'fs' + i }));
+  return d;
+}
+function whoRender(msg) {
+  const el = document.getElementById('who-bar'); if (!el) return;
+  const u = syncS.user, fr = u ? (syncS.links || []).filter(l => l.status === 'active') : [];
+  if (!u || (!fr.length && !view.on && !view.pend)) { el.hidden = true; el.innerHTML = ''; return; }
+  const nm = l => l.a === u.uid ? l.bName : l.aName, cur = view.pend ? view.lid : (view.on ? view.lid : '');
+  const tm = view.at ? new Date(view.at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
+  el.hidden = false;
+  el.innerHTML = `<label class="small muted" for="who">見るデータ</label><select id="who"><option value="">自分</option>${fr.map(l => `<option value="${esc(l.id)}"${l.id === cur ? ' selected' : ''}>${esc(nm(l) || '名前なし')}</option>`).join('')}</select>`
+    + (view.on ? `<span class="small vb">閲覧中（閲覧のみ）・最終更新 ${tm}</span>` : (msg ? `<span class="small muted">${esc(msg)}</span>` : ''));
+}
+function viewClose() {
+  if (view.unsub) { try { view.unsub(); } catch (e) {} view.unsub = null; }
+  const was = view.on;
+  if (view.on) { db = view.my; view.my = null; view.on = false; }
+  view.pend = ''; view.lid = ''; view.at = 0; document.body.classList.remove('viewing');
+  if (was) { renderAll(); showTab('stats'); }
+  whoRender();
+  if (was && syncMeta().dirty) syncAuto();
+}
+async function viewOpen(lid) {
+  const u = syncS.user, l = (syncS.links || []).find(x => x.id === lid && x.status === 'active');
+  if (!u || !FBA || !l || !FBA.watchShare) return;
+  const uid = l.a === u.uid ? l.b : l.a, name = (l.a === u.uid ? l.bName : l.aName) || '相手';
+  viewClose(); view.pend = uid; view.lid = lid; whoRender('読み込み中…');
+  let first = true;
+  const fail = m => { viewClose(); friendMsg(m, true); };
+  view.unsub = FBA.watchShare(uid, async meta => {
+    if (view.pend !== uid) return;
+    if (!meta) { fail(`${name}さんのデータは、まだ共有されていません。相手がアプリを開いて同期すると見られます。`); return; }
+    if (view.on && view.at === meta.updatedAt) return;
+    let o = null;
+    for (let t = 0; t < 2 && !o; t++) {
+      try { const c = await FBA.getShare(uid); if (!c) break; o = JSON.parse(c.text); view.at = c.updatedAt; }
+      catch (e) { if (t === 0) await new Promise(r => setTimeout(r, 1000)); else { if (view.pend === uid) fail(friendErr(e)); return; } }
+    }
+    if (view.pend !== uid) return;
+    if (!o || !Array.isArray(o.matches)) { fail(`${name}さんのデータを読み込めませんでした。`); return; }
+    if (!view.on) { view.my = db; view.on = true; }
+    view.uid = uid; view.name = name; db = friendDB(o);
+    document.body.classList.add('viewing');
+    renderAll(); if (first) showTab('stats'); first = false; whoRender();
+  }, e => { if (view.pend === uid) fail(friendErr(e)); });
+}
 function syncRender(msg, err) {
   if (msg !== undefined) { syncS.msg = msg; syncS.err = !!err; }
   const el = document.getElementById('sync-box'); if (el) el.innerHTML = syncHTML();
+  whoRender();
 }
 function syncLoad() {
   if (FBA) return Promise.resolve();
@@ -2479,7 +2605,7 @@ function syncLoad() {
   syncLoading = (async () => {
     try { FBA = window.__FB_MOCK || await fbReal(); }
     catch (e) { syncLoading = null; throw e; }
-    FBA.onUser(u => { syncS.user = u; syncS.links = []; syncS.fmsg = ''; syncS.delAsk = ''; if (!u) { syncS.status = 'out'; syncRender(''); return; } syncRun(); });
+    FBA.onUser(u => { viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = u; syncS.links = []; syncS.fmsg = ''; syncS.delAsk = ''; if (!u) { syncS.status = 'out'; syncRender(''); return; } syncRun(); });
   })();
   return syncLoading;
 }
@@ -2500,11 +2626,11 @@ async function syncLogin() {
 async function syncLogout() {
   if (!FBA) return; clearTimeout(syncTimer);
   try { await FBA.signOut(); } catch (e) {}
-  syncS.user = null; syncS.links = []; syncS.fmsg = ''; syncS.status = 'out'; syncRender('ログアウトしました。この端末の記録は残っています。');
+  viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = null; syncS.links = []; syncS.fmsg = ''; syncS.status = 'out'; syncRender('ログアウトしました。この端末の記録は残っています。');
 }
 // ログイン時・手動・変更後に呼ぶ。クラウドとこの端末の状態を見て、同期するか、選んでもらうかを決める
 async function syncRun() {
-  const u = syncS.user; if (!u || !FBA || syncS.busy) return;
+  const u = syncS.user; if (!u || !FBA || syncS.busy || view.on) return;
   syncS.busy = true; syncS.status = 'in'; syncRender('同期を確認しています…');
   try {
     let m = syncMeta();
@@ -2520,11 +2646,12 @@ async function syncRun() {
     else { syncSaveMeta(m); syncS.status = 'choose'; syncRender(''); }
   } catch (e) { syncRender(syncErr(e), true); }
   syncS.busy = false; syncRender();
+  if (!syncS.lw && FBA.watchLinks) syncS.lw = FBA.watchLinks(u.uid, () => friendRefresh(true));
   friendRefresh(true);
 }
 function syncDone() { return '同期済み（' + new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) + '）'; }
 async function syncPush(force, m0) {
-  const u = syncS.user; if (!u || !FBA) return;
+  const u = syncS.user; if (!u || !FBA || view.on) return;
   const own = !m0; if (own) { if (syncS.busy) return; syncS.busy = true; }
   try {
     let m = m0 || syncMeta(); if (m.uid !== u.uid) m = { uid: u.uid, cloudAt: 0, dirty: true };
@@ -2533,13 +2660,13 @@ async function syncPush(force, m0) {
     else {
       const at = await FBA.putCloud(u.uid, JSON.stringify(db), db.matches.length, cm ? cm.n : 0);
       m.cloudAt = at; m.dirty = false; syncSaveMeta(m); syncS.cm = { updatedAt: at, count: db.matches.length };
-      syncS.status = 'in'; syncRender(syncDone());
+      syncS.status = 'in'; syncRender(syncDone()); shareSync();
     }
   } catch (e) { syncRender(syncErr(e), true); }
   if (own) { syncS.busy = false; syncRender(); }
 }
 async function syncPull(m0) {
-  const u = syncS.user; if (!u || !FBA) return;
+  const u = syncS.user; if (!u || !FBA || view.on) return;
   const own = !m0 || !m0.uid; if (own) { if (syncS.busy) return; syncS.busy = true; }
   try {
     let m = (m0 && m0.uid) ? m0 : syncMeta(); if (m.uid !== u.uid) m = { uid: u.uid, cloudAt: 0, dirty: true };
@@ -2560,7 +2687,7 @@ function syncTouch() {
   if (syncS.user && FBA && syncS.status === 'in') { clearTimeout(syncTimer); syncTimer = setTimeout(syncAuto, 4000); }
 }
 async function syncAuto() {
-  if (!syncS.user || !FBA || syncS.busy || syncS.status !== 'in') return;
+  if (!syncS.user || !FBA || syncS.busy || syncS.status !== 'in' || view.on) return;
   if (!syncHasLocal() && syncS.cm && syncS.cm.count > 0) { syncS.status = 'choose'; syncRender(''); return; }
   await syncPush(false);
 }
