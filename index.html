@@ -1544,17 +1544,17 @@ function medalRecs(list) {
 }
 function medalHeroHTML(list) {
   const el = $('#view-stats'), recs = medalRecs(list), keys = Core.MEDAL_KEYS;
-  if (!recs.length) return '';
-  const view = el.dataset.mv === 'h' ? 'h' : 'm', THIN = 5;
+  if (el.dataset.mv !== 'm' && el.dataset.mv !== 'h') return '';
+  if (!recs.length) return `<div class="section"><div class="panel"><h2>メダルとヒーロー</h2><p class="small muted" style="margin:0">この条件では、メダルが記録された試合がまだありません。メダルは、新しく読み込んだ試合か、スクショを入れ直した試合から記録されます。</p></div></div>`;
+  const view = el.dataset.mv, THIN = 5;
   const hn = id => heroName(id), raw = id => (db.heroes.find(x => x.id === id) || {}).name;
   const byHero = new Map(); for (const r of recs) { const k = String(r.h); if (!byHero.has(k)) byHero.set(k, { h: r.h, rs: [] }); byHero.get(k).rs.push(r); }
   const heroes = [...byHero.values()].sort((a, b) => b.rs.length - a.rs.length);
   const medalN = {}; for (const r of recs) for (const k of r.ks) medalN[k] = (medalN[k] || 0) + 1;
   const medals = keys.filter(k => medalN[k]).sort((a, b) => medalN[b] - medalN[a]);
-  const tab = (v, t) => `<button class="btn${view === v ? ' mon' : ' ghost'}" data-act="mdl-view" data-v="${v}">${t}</button>`;
-  let h = `<div class="section"><div class="panel"><h2>メダルとヒーロー</h2>
+  let h = `<div class="section"><div class="panel"><h2>${view === 'm' ? 'メダルから見る' : 'ヒーローから見る'}</h2>
     <p class="small muted" style="margin:0 0 8px">自分と連携フレンドを除く、味方と敵の全員が対象です。同じメダルは何個付けても1つと数えます。</p>
-    <div class="row" style="gap:6px;margin-bottom:8px">${tab('m', 'メダルから見る')}${tab('h', 'ヒーローから見る')}</div>`;
+    `;
   const bar = (p, thin) => `<div class="mbar${thin ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
   if (view === 'm') {
     const cur = medals.includes(el.dataset.mm) ? el.dataset.mm : medals[0];
@@ -1591,7 +1591,7 @@ function medalHTML(list) {
     <table class="medtbl"><thead><tr><th></th><th>味方（${R.ally.n}人）</th><th>敵（${R.enemy.n}人）</th></tr></thead><tbody>
     ${rows.map(k => `<tr><td class="mi"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"> ${esc(MEDAL_NAME[k] || k)}</td>${cell(R.ally, k)}${cell(R.enemy, k)}</tr>`).join('')}
     </tbody></table>
-    <p class="small muted" style="margin:8px 0 0">読み取れたメダル枠：味方 ${cov(R.ally)}%・敵 ${cov(R.enemy)}%。読み取れなかった枠は、集計に入れていません。</p></div></div>` + medalHeroHTML(list);
+    <p class="small muted" style="margin:8px 0 0">読み取れたメダル枠：味方 ${cov(R.ally)}%・敵 ${cov(R.enemy)}%。読み取れなかった枠は、集計に入れていません。</p></div></div>` + '';
 }
 function renderStats() {
   const el = $('#view-stats');
@@ -1622,7 +1622,7 @@ function renderStats() {
   const allHero = rHero === '__all', allStage = rStage === '__all';
   const title = [heroKey != null ? nm(heroKey) : allHero ? 'すべてのヒーロー' : null, stageKey != null ? sn(stageKey) : allStage ? 'すべてのステージ' : null].filter(Boolean).join(' × ');
   const filtered = fMode !== 'all' || fHero !== 'all' || fStage !== 'all';
-  const anySel = rHero !== '__all' || rStage !== '__all' || rMode !== '__all';
+  const anySel = rHero !== '__all' || rStage !== '__all' || rMode !== '__all' || !!el.dataset.mv;
   // 「すべての○○」の試合数も、ほかの絞り込みを反映した数にする
   const head = (raw, allLabel, n) => `<option value=""${raw === '' ? ' selected' : ''}>未選択</option><option value="__all"${raw === '__all' ? ' selected' : ''}>${allLabel}（${n}）</option>`;
   const nAllHero = ms.filter(m => okMode(m) && okStage(m) && mineOf(m) != null).length, nAllStage = ms.filter(m => okMode(m) && okHero(m)).length, nAllMode = ms.filter(m => okHero(m) && okStage(m)).length;
@@ -1637,6 +1637,7 @@ function renderStats() {
         <select id="stage-filter" data-filter="stage" class="vh" tabindex="-1" aria-hidden="true">${head(rStage, 'すべてのステージ', nAllStage)}${opt(stageOpts, fStage, sn)}</select>
         <button class="pickbtn${el.dataset.pick === 'stage' ? ' open' : ''}" data-pickopen="stage" aria-expanded="${el.dataset.pick === 'stage'}">${rStage === '' ? '未選択' : rStage === '__all' ? `すべてのステージ（${nAllStage}）` : `<span>${esc(sn(stageKey ?? rStage))}（${(stageOpts.find(([k]) => String(k) === rStage) || [0, 0])[1]}）</span>${real && stageThumb(rStage) ? `<img src="${stageThumb(rStage)}" alt="">` : ''}`}<i aria-hidden="true">▾</i></button></div>
       <label class="fl"><span class="label">モード</span><select id="mode-filter" data-filter="mode">${head(rMode, 'すべてのモード', nAllMode)}${opt(modeOpts, fMode, x => x)}</select></label>
+      <label class="fl"><span class="label">メダル</span><select id="mdl-mode"><option value="">未選択</option><option value="m"${el.dataset.mv === 'm' ? ' selected' : ''}>メダルから見る</option><option value="h"${el.dataset.mv === 'h' ? ' selected' : ''}>ヒーローから見る</option></select></label>
       ${anySel ? '<button class="btn ghost" data-act="clear-filter">最初の状態に戻す</button>' : ''}
     </div>
     ${el.dataset.pick === 'hero' ? `<div class="pickpanel hero" role="listbox" aria-label="ヒーローを選ぶ">
@@ -1656,6 +1657,7 @@ function renderStats() {
     ${all.n && all.n < MIN_N ? `<p class="small muted" style="margin:0">まだ${all.n}試合なので、勝率はあまり当てになりません（目安は${MIN_N}試合以上）。</p>` : ''}
     ${real && all.n ? `<button class="drillbtn" data-drill='${esc(JSON.stringify(mkF({ hero: heroKey, stage: stageKey, mode: fMode !== 'all' ? fMode : '' })))}'>この条件の履歴を見る <span aria-hidden="true">›</span></button>` : ''}
   </div>`;
+  if (real) h += medalHeroHTML(base);
   if (stageKey != null || (allStage && !allHero)) {
     // 選んだステージ（すべてのステージなら全試合）で、自分が使ったヒーローの勝率ランキング（モードの絞り込みは反映）
     const sm = ms.filter(m => (allStage || String(m.stage) === String(stageKey)) && (fMode === 'all' || m.mode === fMode));
@@ -2300,7 +2302,6 @@ document.addEventListener('click', e => {
   if (t.dataset.trendn) { sv.dataset.trendN = t.dataset.trendn; renderStats(); return; }
   if (act === 'recent-more') { sv.dataset.recent = Math.max(20, +(sv.dataset.recent || 20)) + 20; renderStats(); return; }
   if (act === 'recent-reset') { sv.dataset.recent = 20; renderStats(); return; }
-  if (act === 'mdl-view') { sv.dataset.mv = t.dataset.v === 'h' ? 'h' : 'm'; renderStats(); return; }
   if (act === 'mdl-all') { sv.dataset.mAll = sv.dataset.mAll === '1' ? '' : '1'; renderStats(); return; }
   if (act === 'mode-all') { sv.dataset.modeAll = sv.dataset.modeAll === '1' ? '' : '1'; renderStats(); return; }
   if (act === 'stage-all') { sv.dataset.stageAll = sv.dataset.stageAll === '1' ? '' : '1'; renderStats(); return; }
@@ -2356,7 +2357,7 @@ document.addEventListener('click', e => {
       if (!o || !Array.isArray(o.matches) || !Array.isArray(o.heroes)) throw 0;
       pendingRestore = o; renderData();
     } catch (_) { $('#restore-msg').textContent = '読み込めませんでした。コピーした文字列を最初から最後まで貼り付けてください。'; }
-  } else if (act === 'clear-filter') { const v = $('#view-stats'); delete v.dataset.mode; delete v.dataset.hero; delete v.dataset.stage; renderStats(); }
+  } else if (act === 'clear-filter') { const v = $('#view-stats'); delete v.dataset.mode; delete v.dataset.hero; delete v.dataset.stage; delete v.dataset.mv; renderStats(); }
   else if (act === 'sync-login') syncLogin();
   else if (act === 'sync-logout') syncLogout();
   else if (act === 'sync-now') syncRun();
@@ -2496,6 +2497,7 @@ document.addEventListener('change', e => {
 const VIEW_BLOCK = '[data-del],[data-ask],[data-unseason],[data-reseason],[data-mptsign],[data-act="season-new"],[data-act="season-start"],[data-act="season-del"],[data-act="season-del-yes"],[data-act="season-del-no"],[data-act="season-cancel"],[data-memo],[data-mdate],[data-season-pt],[data-season-name],[data-season-hero],[data-newhero],[id^="mpt-"]';
 document.addEventListener('click', e => { if (view.on && e.target.closest && e.target.closest(VIEW_BLOCK)) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => { if (view.on && e.target.closest && e.target.closest(VIEW_BLOCK)) e.stopImmediatePropagation(); }, true));
+document.addEventListener('change', e => { if (e.target && e.target.id === 'mdl-mode') { const v = $('#view-stats'); v.dataset.mv = e.target.value; renderStats(); } });
 document.addEventListener('change', e => { if (e.target && e.target.id === 'mdl-pick') { const v = $('#view-stats'); v.dataset[e.target.dataset.kind] = e.target.value; renderStats(); } });
 document.addEventListener('change', e => { if (e.target && e.target.id === 'tog') togSelect(e.target.value); });
 document.addEventListener('change', e => { if (e.target && e.target.id === 'who') { const v = e.target.value; if (v) viewOpen(v); else viewClose(); } });
@@ -2510,7 +2512,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-12h', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-12i', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
