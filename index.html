@@ -2341,7 +2341,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-12c', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -2458,6 +2458,8 @@ function friendHTML() {
   h += `<p class="small" style="margin:12px 0 0"><b>招待コードをもらった</b></p><div class="row" style="align-items:center;gap:8px;margin-top:6px"><input type="text" data-join-code id="join-code" value="${esc(s.joinCode)}" placeholder="8文字のコード" maxlength="12" autocapitalize="characters" autocomplete="off" style="max-width:12em"><button class="btn primary" data-act="friend-join"${dis}>申請する</button></div>`;
   h += `<div class="row"><button class="btn ghost" data-act="friend-refresh"${dis}>フレンドを更新</button></div>`;
   if (s.fmsg) h += `<p class="small${s.ferr ? '' : ' muted'}" style="margin:6px 0 0;${s.ferr ? 'color:var(--lose)' : ''}">${esc(s.fmsg)}</p>`;
+  if (act.length) h += `<p class="small muted" style="margin:6px 0 0">フレンドに見せている記録：${shareInfo ? esc(shareInfo) : '準備中、または未作成'}</p>`;
+  h += `<p class="small muted" style="margin:6px 0 0">アプリの版：${APP_VER}</p>`;
   return h;
 }
 async function friendRefresh(quiet) {
@@ -2526,7 +2528,7 @@ function buildShare() {
   };
 }
 let shareLast = null;
-let shareBusy = false, shareAgain = false;
+let shareBusy = false, shareAgain = false, shareInfo = '';
 async function shareSync() {
   const u = syncS.user; if (!u || !FBA || !FBA.putShare || view.on) return;
   if (shareBusy) { shareAgain = true; return; }
@@ -2537,9 +2539,11 @@ async function shareSync() {
 async function shareRun(u) {
   const act = (syncS.links || []).some(l => l.status === 'active');
   try {
-    if (act) { const t = JSON.stringify(buildShare()); if (t !== shareLast) { await FBA.putShare(u.uid, t, db.matches.length); shareLast = t; } }
-    else if (shareLast !== '') { await FBA.delShare(u.uid); shareLast = ''; }
-  } catch (e) { shareLast = null; }
+    if (act) {
+      const t = JSON.stringify(buildShare());
+      if (t !== shareLast) { await FBA.putShare(u.uid, t, db.matches.length); shareLast = t; shareInfo = `${db.matches.length}試合（${new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}に更新）`; syncRender(); }
+    } else if (shareLast !== '') { await FBA.delShare(u.uid); shareLast = ''; shareInfo = ''; syncRender(); }
+  } catch (e) { shareLast = null; shareInfo = ''; syncS.fmsg = '自分の共有コピーを作れませんでした：' + friendErr(e); syncS.ferr = true; syncRender(); }
 }
 // 見せるコピー → 閲覧用のdb（IDは名前から作る）
 function friendDB(o) {
@@ -2577,6 +2581,7 @@ async function viewOpen(lid) {
   viewClose(); view.pend = uid; view.lid = lid; whoRender('読み込み中…');
   let first = true;
   const fail = m => { viewClose(); friendMsg(m, true); };
+  setTimeout(() => { if (view.pend === uid && !view.on) fail(`${name}さんのデータを読み込めませんでした（時間切れ）。相手がまだ共有していないか、通信が不安定な可能性があります。`); }, 12000);
   view.unsub = FBA.watchShare(uid, async meta => {
     if (view.pend !== uid) return;
     if (!meta) { fail(`${name}さんのデータは、まだ共有されていません。相手がアプリを開いて同期すると見られます。`); return; }
@@ -2589,9 +2594,9 @@ async function viewOpen(lid) {
     if (view.pend !== uid) return;
     if (!o || !Array.isArray(o.matches)) { fail(`${name}さんのデータを読み込めませんでした。`); return; }
     if (!view.on) { view.my = db; view.on = true; }
-    view.uid = uid; view.name = name; db = friendDB(o);
-    document.body.classList.add('viewing');
-    renderAll(); if (first) showTab('stats'); first = false; whoRender();
+    view.uid = uid; view.name = name;
+    try { db = friendDB(o); document.body.classList.add('viewing'); renderAll(); if (first) showTab('stats'); first = false; whoRender(); }
+    catch (e) { fail('表示でエラーが出ました：' + ((e && e.message) || e)); }
   }, e => { if (view.pend === uid) fail(friendErr(e)); });
 }
 function syncRender(msg, err) {
