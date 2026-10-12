@@ -296,9 +296,9 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
   .stat.drill{grid-template-columns:minmax(0,7.4em) 1fr 6em 1em;gap:6px}
   .teams{grid-template-columns:1fr}
 }
-.who{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:4px 0 8px}
-.who select{max-width:12em}
-.who .vb{color:var(--accent);font-weight:700}
+.whobar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:4px 0 8px}
+.whobar select{max-width:12em}
+.whobar .vb{color:var(--accent);font-weight:700}
 body.viewing #tab-add,body.viewing #tab-data,body.viewing #view-add,body.viewing #view-data{display:none!important}
 body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],body.viewing [data-reseason],body.viewing [data-memo],body.viewing [data-mdate],body.viewing [data-act="season-new"],body.viewing #season-new{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -310,7 +310,7 @@ body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],bod
     <p class="lede">リプレイの詳細画面のスクショから、どのステージ・どの相手に負けがちかを集計します。</p>
   </header>
 
-  <div id="who-bar" class="who" hidden></div>
+  <div id="who-bar" class="whobar" hidden></div>
 
   <nav class="tabs" role="tablist" aria-label="ページ切り替え">
     <button role="tab" id="tab-add" aria-selected="true" data-tab="add">読み込み</button>
@@ -1432,7 +1432,7 @@ const SAMPLE = (() => {
 function renderStats() {
   const el = $('#view-stats');
   const real = db.matches.length > 0;
-  const ms = real ? db.matches : SAMPLE;
+  const ms = real ? poolMatches() : SAMPLE;
   const nm = real ? heroName : (x => x), sn = real ? stageName : (x => x);
   const rawHero = k => real ? (db.heroes.find(h => String(h.id) === String(k)) || {}).name : k;
   // 選択肢の値：''＝未選択、'__all'＝すべて、それ以外＝個別。絞り込みとしては未選択とすべては同じ（全試合）
@@ -1462,7 +1462,7 @@ function renderStats() {
   // 「すべての○○」の試合数も、ほかの絞り込みを反映した数にする
   const head = (raw, allLabel, n) => `<option value=""${raw === '' ? ' selected' : ''}>未選択</option><option value="__all"${raw === '__all' ? ' selected' : ''}>${allLabel}（${n}）</option>`;
   const nAllHero = ms.filter(m => okMode(m) && okStage(m) && mineOf(m) != null).length, nAllStage = ms.filter(m => okMode(m) && okHero(m)).length, nAllMode = ms.filter(m => okHero(m) && okStage(m)).length;
-  let h = '';
+  let h = togHTML();
   if (!real) h += `<div class="section"><div class="notice"><span class="sample">サンプル表示</span><br>まだ記録がありません。下はどんな表示になるかの例で、あなたのデータではありません。「読み込み」からスクショを入れると、自分の戦績に切り替わります。</div></div>`;
   h += `<div class="section">
     <div class="filters">
@@ -1979,8 +1979,8 @@ const hfTest = {
 const hfMatch = (m, f, skip) => HF_KEYS.every(k => k === skip || !f[k] || hfTest[k](m, f[k]));
 function renderHist() {
   const el = $('#view-hist');
-  const allMs = [...db.matches].sort((a, b) => b.at - a.at);
-  if (!allMs.length) { el.innerHTML = `<div class="section"><div class="panel"><h2>履歴</h2><p class="muted" style="margin:0">保存した試合がここに並びます。まずは「読み込み」からスクショを入れてください。</p></div></div>`; return; }
+  const allMs = [...poolMatches()].sort((a, b) => b.at - a.at);
+  if (!allMs.length) { el.innerHTML = db.matches.length ? `<div class="section"><div class="panel"><h2>履歴</h2>${togChip()}<p class="muted" style="margin:0">この条件に合う試合はありません。</p></div></div>` : `<div class="section"><div class="panel"><h2>履歴</h2><p class="muted" style="margin:0">保存した試合がここに並びます。まずは「読み込み」からスクショを入れてください。</p></div></div>`; return; }
   const f = hfGet(), ms = allMs.filter(m => hfMatch(m, f));
   // 選択肢：ほかの絞り込みを反映した試合数つき（試合数の多い順）
   const opts = (k, keysOf, label) => {
@@ -1993,7 +1993,7 @@ function renderHist() {
   const sel = (k, title, keysOf, label) => `<label class="fl"><span class="label">${title}</span><select data-hf="${k}" id="hf-${k}">${opts(k, keysOf, label)}</select></label>`;
   const pc = ptCalc();
   const active = HF_KEYS.filter(k => f[k]);
-  el.innerHTML = `<div class="section"><div class="panel"><h2>履歴（${active.length ? `${ms.length} / ${allMs.length}` : allMs.length}試合）</h2>
+  el.innerHTML = `<div class="section"><div class="panel"><h2>履歴（${active.length ? `${ms.length} / ${allMs.length}` : allMs.length}試合）</h2>${togChip()}
     <div class="filters">
       ${sel('hero', '使ったヒーロー', m => [mineOf(m)], hname)}
       ${sel('stage', 'ステージ', m => [m.stage], sname)}
@@ -2204,6 +2204,7 @@ document.addEventListener('click', e => {
   else if (act === 'friend-ask') { syncS.delAsk = t.dataset.id; syncRender(); }
   else if (act === 'friend-ask-no') { syncS.delAsk = ''; syncRender(); }
   else if (act === 'friend-refresh') friendRefresh();
+  else if (act === 'tog-clear') togSelect('');
   else if (act === 'friend-view') { viewOpen(t.dataset.id); window.scrollTo({ top: 0 }); }
   else if (act === 'friend-copy') {
     const code = (friendInv() || {}).code || '', ok = () => friendMsg('コピーしました。', false);
@@ -2329,6 +2330,7 @@ document.addEventListener('change', e => {
 const VIEW_BLOCK = '[data-del],[data-ask],[data-unseason],[data-reseason],[data-mptsign],[data-act="season-new"],[data-act="season-start"],[data-act="season-del"],[data-act="season-del-yes"],[data-act="season-del-no"],[data-act="season-cancel"],[data-memo],[data-mdate],[data-season-pt],[data-season-name],[data-season-hero],[data-newhero],[id^="mpt-"]';
 document.addEventListener('click', e => { if (view.on && e.target.closest && e.target.closest(VIEW_BLOCK)) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => { if (view.on && e.target.closest && e.target.closest(VIEW_BLOCK)) e.stopImmediatePropagation(); }, true));
+document.addEventListener('change', e => { if (e.target && e.target.id === 'tog') togSelect(e.target.value); });
 document.addEventListener('change', e => { if (e.target && e.target.id === 'who') { const v = e.target.value; if (v) viewOpen(v); else viewClose(); } });
 
 /* ---------- ログインと同期（Firebase） ---------- */
@@ -2341,7 +2343,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-12c', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-12d', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -2464,7 +2466,7 @@ function friendHTML() {
 }
 async function friendRefresh(quiet) {
   const u = syncS.user; if (!u || !FBA || !FBA.listLinks) return;
-  try { syncS.links = await FBA.listLinks(u.uid); if (!quiet) syncS.fmsg = ''; syncS.ferr = false; }
+  try { syncS.links = await FBA.listLinks(u.uid); if (!quiet) syncS.fmsg = ''; syncS.ferr = false; if (tg.lid && !syncS.links.some(l => l.id === tg.lid && l.status === 'active')) { togStop(); togRender(); } else if (!view.on) togRender(); }
   catch (e) { syncS.fmsg = friendErr(e); syncS.ferr = true; }
   syncRender(); shareSync();
 }
@@ -2555,6 +2557,72 @@ function friendDB(o) {
   d.seasons = (o.seasons || []).map((x, i) => Object.assign({}, x, { id: 'fs' + i }));
   return d;
 }
+/* ---------- フレンドと一緒に出た試合（突き合わせ） ---------- */
+// 自分とフレンドの両方に同じ試合があれば「一緒に出た」とみなす。ステージ・モード・スコア・自分の側が同じで、味方も敵もヒーロー名が合い、位置が違うもの。
+// 日時は、スクショを撮った時刻なので、2人で違っていてもよい（近いものを優先するだけ）
+const tg = { lid: '', uid: '', name: '', matches: null, err: '', unsub: null };
+function togStop() {
+  if (tg.unsub) { try { tg.unsub(); } catch (e) {} tg.unsub = null; }
+  tg.lid = ''; tg.uid = ''; tg.name = ''; tg.matches = null; tg.err = '';
+}
+function togIds() {
+  const out = new Set(); if (!tg.matches) return out;
+  const hm = new Map(db.heroes.map(h => [h.id, h.name])), sm = new Map(db.stages.map(x => [x.id, x.name]));
+  const nm = id => (id == null || id === EMPTY) ? null : (hm.get(id) || null);
+  const kn = a => a.filter(x => x != null && x !== EMPTY).sort();
+  const sub = (a, b) => { const [sm_, lg] = a.length <= b.length ? [a, b] : [b, a], c = new Map(); for (const x of lg) c.set(x, (c.get(x) || 0) + 1); for (const x of sm_) { const n = c.get(x) || 0; if (!n) return false; c.set(x, n - 1); } return true; };
+  const key = (mode, stage, b, r, side) => [mode, stage || '', b, r, side].join('|');
+  const bk = new Map();
+  tg.matches.forEach((f, i) => { const k = key(f.mode, f.stage, f.b, f.r, f.side); if (!bk.has(k)) bk.set(k, []); bk.get(k).push(i); });
+  const used = new Set();
+  for (const m of [...db.matches].sort((a, b) => a.at - b.at)) {
+    const c = bk.get(key(m.mode, sm.get(m.stage), m.b, m.r, m.side)); if (!c) continue;
+    const mb = kn(m.blue.map(nm)), mr = kn(m.red.map(nm));
+    let best = -1, bd = Infinity;
+    for (const i of c) {
+      if (used.has(i)) continue; const f = tg.matches[i]; if (f.idx === m.idx) continue;
+      const fb = kn(f.blue || []), fr = kn(f.red || []);
+      if (!sub(mb, fb) || !sub(mr, fr)) continue;
+      if (Math.min(mb.length, fb.length) + Math.min(mr.length, fr.length) < 4) continue;
+      const d = Math.abs((f.at || 0) - m.at); if (d < bd) { bd = d; best = i; }
+    }
+    if (best >= 0) { used.add(best); out.add(m.id); }
+  }
+  return out;
+}
+function poolMatches() {
+  if (view.on || !tg.lid) return db.matches;
+  if (!tg.matches) return [];
+  const ids = togIds(); return db.matches.filter(m => ids.has(m.id));
+}
+function togRender() { renderStats(); renderHist(); }
+function togSelect(lid) {
+  togStop();
+  const u = syncS.user, l = (syncS.links || []).find(x => x.id === lid && x.status === 'active');
+  if (!lid || !u || !FBA || !l || !FBA.watchShare) { togRender(); return; }
+  const uid = l.a === u.uid ? l.b : l.a;
+  tg.lid = lid; tg.uid = uid; tg.name = (l.a === u.uid ? l.bName : l.aName) || '相手';
+  togRender();
+  tg.unsub = FBA.watchShare(uid, async meta => {
+    if (tg.uid !== uid) return;
+    if (!meta) { tg.matches = null; tg.err = `${tg.name}さんの記録は、まだ共有されていません。`; togRender(); return; }
+    try { const c = await FBA.getShare(uid); if (tg.uid !== uid) return; const o = JSON.parse(c.text); tg.matches = Array.isArray(o.matches) ? o.matches : []; tg.err = ''; }
+    catch (e) { tg.err = friendErr(e); }
+    togRender();
+  }, e => { if (tg.uid === uid) { tg.err = friendErr(e); togRender(); } });
+}
+function togHTML() {
+  const u = syncS.user; if (!u || view.on) return '';
+  const fr = (syncS.links || []).filter(l => l.status === 'active'); if (!fr.length) return '';
+  const nm = l => l.a === u.uid ? l.bName : l.aName;
+  let note = '';
+  if (tg.lid) note = tg.err ? `<span style="color:var(--lose)">${esc(tg.err)}</span>` : tg.matches ? `${esc(tg.name)}さんの記録と突き合わせて、一緒に出た<b>${togIds().size}試合</b>だけで集計しています。相手も記録している試合だけが対象です。` : '読み込み中…';
+  return `<div class="section"><div class="panel"><label class="fl"><span class="label">フレンドと一緒に出た試合だけで見る</span><select id="tog"><option value="">絞り込まない</option>${fr.map(l => `<option value="${esc(l.id)}"${l.id === tg.lid ? ' selected' : ''}>${esc(nm(l) || '名前なし')}</option>`).join('')}</select></label>${note ? `<p class="small muted" style="margin:6px 0 0">${note}</p>` : ''}</div></div>`;
+}
+function togChip() {
+  if (!tg.lid || view.on) return '';
+  return `<div class="hfbar"><span class="small muted">フレンドと一緒：</span><span class="hfchip">${esc(tg.name)}</span><button class="btn ghost small" data-act="tog-clear">解除</button></div>`;
+}
 function whoRender(msg) {
   const el = document.getElementById('who-bar'); if (!el) return;
   const u = syncS.user, fr = u ? (syncS.links || []).filter(l => l.status === 'active') : [];
@@ -2578,7 +2646,7 @@ async function viewOpen(lid) {
   const u = syncS.user, l = (syncS.links || []).find(x => x.id === lid && x.status === 'active');
   if (!u || !FBA || !l || !FBA.watchShare) return;
   const uid = l.a === u.uid ? l.b : l.a, name = (l.a === u.uid ? l.bName : l.aName) || '相手';
-  viewClose(); view.pend = uid; view.lid = lid; whoRender('読み込み中…');
+  togStop(); viewClose(); view.pend = uid; view.lid = lid; whoRender('読み込み中…');
   let first = true;
   const fail = m => { viewClose(); friendMsg(m, true); };
   setTimeout(() => { if (view.pend === uid && !view.on) fail(`${name}さんのデータを読み込めませんでした（時間切れ）。相手がまだ共有していないか、通信が不安定な可能性があります。`); }, 12000);
@@ -2610,7 +2678,7 @@ function syncLoad() {
   syncLoading = (async () => {
     try { FBA = window.__FB_MOCK || await fbReal(); }
     catch (e) { syncLoading = null; throw e; }
-    FBA.onUser(u => { viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = u; syncS.links = []; syncS.fmsg = ''; syncS.delAsk = ''; if (!u) { syncS.status = 'out'; syncRender(''); return; } syncRun(); });
+    FBA.onUser(u => { togStop(); viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = u; syncS.links = []; syncS.fmsg = ''; syncS.delAsk = ''; if (!u) { syncS.status = 'out'; syncRender(''); return; } syncRun(); });
   })();
   return syncLoading;
 }
@@ -2631,7 +2699,7 @@ async function syncLogin() {
 async function syncLogout() {
   if (!FBA) return; clearTimeout(syncTimer);
   try { await FBA.signOut(); } catch (e) {}
-  viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = null; syncS.links = []; syncS.fmsg = ''; syncS.status = 'out'; syncRender('ログアウトしました。この端末の記録は残っています。');
+  viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; togStop(); syncS.user = null; syncS.links = []; syncS.fmsg = ''; syncS.status = 'out'; syncRender('ログアウトしました。この端末の記録は残っています。');
 }
 // ログイン時・手動・変更後に呼ぶ。クラウドとこの端末の状態を見て、同期するか、選んでもらうかを決める
 async function syncRun() {
