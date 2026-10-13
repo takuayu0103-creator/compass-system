@@ -137,7 +137,7 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .stat.drill:hover,.stat.drill:focus-visible{background:color-mix(in srgb,var(--accent) 10%,transparent);outline:none}
 .stat.drill:active{background:color-mix(in srgb,var(--accent) 18%,transparent)}
 .chev2{color:var(--accent);font-family:var(--f-num);font-weight:800;font-size:1.05rem;text-align:right;opacity:.85}
-.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0}
+.vh{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0}
 .pickbtn{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;font:inherit;font-size:.9rem;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:5px 9px;cursor:pointer;text-align:left}
 .pickbtn img{width:110px;height:22px;object-fit:cover;border-radius:3px;flex:0 0 auto}
 .fl.wide{grid-column:1/-1}
@@ -1548,19 +1548,22 @@ function statRows(rows, nameOf, order) {
 function wilson(w, n) {
   if (!n) return null;
   const z = 1.96, p = w / n, d = 1 + z * z / n, c = (p + z * z / (2 * n)) / d, h = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d;
-  return { lo: Math.max(0, Math.round((c - h) * 100)), hi: Math.min(100, Math.round((c + h) * 100)) };
+  return { lo: Math.max(0, Math.round((c - h) * 10000) / 100), hi: Math.min(100, Math.round((c + h) * 10000) / 100) };
 }
-const ciText = (w, n) => { const c = wilson(w, n); return c ? `${c.lo}〜${c.hi}%` : ''; };
+const ciText = (w, n) => { const c = wilson(w, n); return c ? `${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%` : ''; };
 // 履歴へのドリルダウン：描画中の一覧ごとに「この行の条件」を返す関数を入れておく（nullなら押せない行）
 let curDrill = null;
 const mkF = o => { const f = {}; for (const k in o) if (o[k] != null && o[k] !== '' && o[k] !== EMPTY) f[k] = String(o[k]); return f; };
 const drillAttr = (f, label) => f ? ` data-drill='${esc(JSON.stringify(f))}' role="button" tabindex="0" aria-label="${esc(label)}の履歴を見る"` : '';
 function withDrill(fn, html) { const prev = curDrill; curDrill = fn; try { return html(); } finally { curDrill = prev; } }
+// 勝率は小数点第2位まで（例 54.32%）
+const pct2 = (w, n) => n ? Math.round(w / n * 10000) / 100 : null;
+const f2 = v => v == null ? '-' : v.toFixed(2);
 function statRow(r, nameOf, cls, rank) {
-  const p = Math.round(r.w / r.n * 100), c = wilson(r.w, r.n), f = curDrill ? curDrill(r.k) : null;
+  const p = pct2(r.w, r.n), c = wilson(r.w, r.n), f = curDrill ? curDrill(r.k) : null;
   return `<div class="stat ${cls}${f ? ' drill' : ''}"${drillAttr(f, nameOf(r.k))}><span class="nm" title="${esc(nameOf(r.k))}">${rank ? `<span class="rank">${rank}</span>` : ''}${esc(nameOf(r.k))}</span>
-    <span class="bar" role="img" aria-label="勝率${p}%（95%の範囲 ${c.lo}〜${c.hi}%）"><b class="ci" style="left:${c.lo}%;width:${c.hi - c.lo}%"></b><i class="${p >= 50 ? 'w' : 'l'}" style="width:${p}%"></i></span>
-    <span class="num">${p}% <span class="muted">${r.w}/${r.n}</span><span class="cir">${c.lo}〜${c.hi}%</span></span>${f ? '<span class="chev2" aria-hidden="true">›</span>' : ''}</div>`;
+    <span class="bar" role="img" aria-label="勝率${f2(p)}%（95%の範囲 ${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%）"><b class="ci" style="left:${c.lo}%;width:${c.hi - c.lo}%"></b><i class="${p >= 50 ? 'w' : 'l'}" style="width:${p}%"></i></span>
+    <span class="num">${f2(p)}% <span class="muted">${r.w}/${r.n}</span><span class="cir">${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%</span></span>${f ? '<span class="chev2" aria-hidden="true">›</span>' : ''}</div>`;
 }
 // 上位k件。dir=1で勝率が高い順、-1で低い順。5試合以上を優先し、足りなければ少ないものを薄く表示
 function pickTop(rows, dir, k, skip) {
@@ -1671,7 +1674,7 @@ function medalHeroHTML(list) {
     const rows = [...cnt.entries()].sort((a, b) => b[1] - a[1]), all = el.dataset.mAll === '1', shown = all ? rows : rows.slice(0, 10);
     h += `<label class="fl"><span class="label">メダル</span><select id="mdl-pick" data-kind="mm">${medals.map(k => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(MEDAL_NAME[k] || k)}（${medalN[k]}人）</option>`).join('')}</select></label>
       <p class="small muted" style="margin:8px 0 4px">「${esc(MEDAL_NAME[cur] || cur)}」を付けていた${N}人のうち、そのヒーローを使っていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
-      <div class="mlist">${shown.map(([k, n]) => { const o = byHero.get(k), p = Math.round(n / N * 100), thin = n < THIN; return `<div class="mrow${thin ? ' thin' : ''}"><span class="mh">${heroIco(raw(o.h))}<span class="pn">${esc(hn(o.h))}</span></span>${bar(p, thin)}<b>${p}%</b><span class="small muted">${n}/${N}人</span></div>`; }).join('')}</div>
+      <div class="mlist">${shown.map(([k, n]) => { const o = byHero.get(k), p = pct2(n, N), thin = n < THIN; return `<div class="mrow${thin ? ' thin' : ''}"><span class="mh">${heroIco(raw(o.h))}<span class="pn">${esc(hn(o.h))}</span></span>${bar(p, thin)}<b>${f2(p)}%</b><span class="small muted">${n}/${N}人</span></div>`; }).join('')}</div>
       ${rows.length > 10 ? `<div class="row"><button class="btn ghost" data-act="mdl-all">${all ? '上位10体だけにする' : `全${rows.length}体を表示`}</button></div>` : ''}
       <p class="small muted" style="margin:6px 0 0">薄い行は、${THIN}人未満です。</p>`;
   } else {
@@ -1681,7 +1684,7 @@ function medalHeroHTML(list) {
     const rows = keys.filter(k => cnt[k]).sort((a, b) => cnt[b] - cnt[a]);
     h += `<label class="fl"><span class="label">ヒーロー</span><select id="mdl-pick" data-kind="mh">${heroes.map(x => `<option value="${esc(String(x.h))}"${String(x.h) === cur ? ' selected' : ''}>${esc(hn(x.h))}（${x.rs.length}人）</option>`).join('')}</select></label>
       <p class="small muted" style="margin:8px 0 4px">「${esc(hn(o.h))}」を使っていた${N}人のうち、そのメダルを付けていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
-      <div class="mlist">${rows.map(k => { const p = Math.round(cnt[k] / N * 100), thin = N < THIN; return `<div class="mrow${thin ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, thin)}<b>${p}%</b><span class="small muted">${cnt[k]}/${N}人</span></div>`; }).join('')}</div>
+      <div class="mlist">${rows.map(k => { const p = pct2(cnt[k], N), thin = N < THIN; return `<div class="mrow${thin ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, thin)}<b>${f2(p)}%</b><span class="small muted">${cnt[k]}/${N}人</span></div>`; }).join('')}</div>
       <p class="small muted" style="margin:6px 0 0">1人が複数の絵柄を付けるので、合計は100%になりません。${THIN}人未満のヒーローは全体が薄く表示されます。</p>`;
   }
   return h + `</div></div>`;
@@ -1690,10 +1693,10 @@ function medalHTML(list) {
   const nm = list.filter(m => m.medals).length;
   if (!nm) return `<div class="section"><div class="panel"><h2>メダルの使用率</h2><p class="small muted" style="margin:0">まだメダルの記録がありません。新しく読み込んだ試合から記録されます。前に読み込んだ試合は、同じスクショをもう一度「読み込み」に入れると、メダルだけが書き足されます。</p></div></div>`;
   const R = medalStats(list), keys = Core.MEDAL_KEYS;
-  const pct = (b, k) => b.n ? Math.round((b.users[k] || 0) / b.n * 100) : 0;
+  const pct = (b, k) => f2(pct2(b.users[k] || 0, b.n) ?? 0);
   const rows = keys.filter(k => (R.ally.users[k] || 0) + (R.enemy.users[k] || 0) > 0).sort((a, b) => (R.ally.users[b] || 0) + (R.enemy.users[b] || 0) - (R.ally.users[a] || 0) - (R.enemy.users[a] || 0));
   const cell = (b, k) => `<td class="mn"><b>${pct(b, k)}%</b><span class="small muted"> ${b.n ? ((b.tot[k] || 0) / b.n).toFixed(1) : '0.0'}個</span></td>`;
-  const cov = b => b.slots ? Math.round(b.known / b.slots * 100) : 0;
+  const cov = b => f2(pct2(b.known, b.slots) ?? 0);
   return `<div class="section"><div class="panel"><h2>メダルの使用率（自分と連携フレンドを除く）</h2>
     <p class="small muted" style="margin:0 0 8px">${nm}試合分。自分と、連携しているフレンド（一緒に出た試合のみ）は集計に入れていません。「使う人の割合」は、その絵柄を1個以上つけていた人の割合です。右の小さい数字は、1人あたりの平均個数です。</p>
     <table class="medtbl"><thead><tr><th></th><th>味方（${R.ally.n}人）</th><th>敵（${R.enemy.n}人）</th></tr></thead><tbody>
@@ -1723,7 +1726,7 @@ function renderStats() {
   const opt = (list, cur, label) => list.map(([k, n]) => `<option value="${esc(k)}"${String(k) === cur ? ' selected' : ''}>${esc(label(k))}（${n}）</option>`).join('');
   const base = ms.filter(m => (fMode === 'all' || m.mode === fMode) && (fStage === 'all' || String(m.stage) === fStage));
   const use = base.filter(m => fHero === 'all' || String(mineOf(m)) === fHero);
-  const sum = list => { const r = list.map(matchResult).filter(x => x !== 'u'); const w = r.filter(x => x === 'w').length; return { n: r.length, w, l: r.filter(x => x === 'l').length, rate: r.length ? Math.round(w / r.length * 100) : null }; };
+  const sum = list => { const r = list.map(matchResult).filter(x => x !== 'u'); const w = r.filter(x => x === 'w').length; return { n: r.length, w, l: r.filter(x => x === 'l').length, rate: r.length ? pct2(w, r.length) : null }; };
   const all = sum(use);
   const heroKey = fHero === 'all' ? null : heroOpts.map(x => x[0]).find(k => String(k) === fHero);
   const stageKey = fStage === 'all' ? null : stageOpts.map(x => x[0]).find(k => String(k) === fStage);
@@ -1761,7 +1764,7 @@ function renderStats() {
     <h2>${title ? esc(title) + ' の戦績' : (real ? '戦績' : '戦績（例）')}</h2>
     <div class="kpis"><div class="kpi"><div class="label">試合数</div><div class="v">${all.n}</div></div>
       <div class="kpi"><div class="label">勝利-敗北</div><div class="v">${all.w}<small>-</small>${all.l}</div></div>
-      <div class="kpi"><div class="label">勝率</div><div class="v">${all.rate == null ? '-' : all.rate}<small>${all.rate == null ? '' : '%'}</small></div></div></div>
+      <div class="kpi"><div class="label">勝率</div><div class="v">${f2(all.rate)}<small>${all.rate == null ? '' : '%'}</small></div></div></div>
     ${all.n && all.n < MIN_N ? `<p class="small muted" style="margin:0">まだ${all.n}試合なので、勝率はあまり当てになりません（目安は${MIN_N}試合以上）。</p>` : ''}
     ${real && all.n ? `<button class="drillbtn" data-drill='${esc(JSON.stringify(mkF({ hero: heroKey, stage: stageKey, mode: fMode !== 'all' ? fMode : '' })))}'>この条件の履歴を見る <span aria-hidden="true">›</span></button>` : ''}
   </div>`;
@@ -1821,7 +1824,7 @@ function enemyRankPanel(list) {
     ${none ? `<p class="small muted" style="margin:0">全員のランクの記録がない試合：${none}試合（スクショを入れ直すと補えます）</p>` : ''}</div></div>`;
 }
 function heroSections(ms, hk, nm, sn, el) {
-  const sum = list => { const r = list.map(matchResult).filter(x => x !== 'u'); const w = r.filter(x => x === 'w').length; return { n: r.length, w, l: r.filter(x => x === 'l').length, rate: r.length ? Math.round(w / r.length * 100) : null }; };
+  const sum = list => { const r = list.map(matchResult).filter(x => x !== 'u'); const w = r.filter(x => x === 'w').length; return { n: r.length, w, l: r.filter(x => x === 'l').length, rate: r.length ? pct2(w, r.length) : null }; };
   const allMode = hk === null, hname = allMode ? 'すべてのヒーロー' : nm(hk), real = db.matches.length > 0;
   const D = fn => real ? fn : null;
   const hm = ms.filter(m => allMode ? mineOf(m) != null : mineOf(m) === hk).sort((a, b) => (a.at || 0) - (b.at || 0));
@@ -1831,17 +1834,17 @@ function heroSections(ms, hk, nm, sn, el) {
   const pnl = (title, body, note) => `<div class="section"><div class="panel"><h2>${title}</h2>${note ? `<p class="small muted" style="margin:0">${note}</p>` : ''}${body}</div></div>`;
   let h = '';
   // 1-2. 使用率・勝率
-  const use = total ? Math.round(hm.length / total * 100) : 0;
+  const use = f2(pct2(hm.length, total) ?? 0);
   h += `<div class="section"><h2 style="margin-top:6px">${esc(hname)} の分析</h2><div class="kpis" style="grid-template-columns:repeat(2,1fr)">
     ${allMode ? kpi('試合数', hm.length, '試合', `使ったヒーロー ${new Set(hm.map(mineOf)).size}体`) : kpi('使用率', use, '%', `${hm.length} / ${total}試合`)}
-    ${kpi('勝率', all.rate == null ? '-' : all.rate, all.rate == null ? '' : '%', `${all.w}勝${all.l}敗${all.n ? `<br>95%の範囲 ${ciText(all.w, all.n)}` : ''}`)}</div>
+    ${kpi('勝率', f2(all.rate), all.rate == null ? '' : '%', `${all.w}勝${all.l}敗${all.n ? `<br>95%の範囲 ${ciText(all.w, all.n)}` : ''}`)}</div>
     <p class="small muted" style="margin:0">ここから下は、ステージ・モードの絞り込みに関係なく、${allMode ? '保存したすべての試合' : esc(hname) + 'を使った全試合'}で計算しています。</p>
     <p class="ci-note" style="margin:0">「95%の範囲」と棒の薄い帯は、試合数から見た本当の勝率がおよそ入っている範囲です（ウィルソンの信頼区間）。試合数が少ないほど広くなります。右に「›」がある行を押すと、その条件の試合を履歴で見られます。</p></div>`;
   // 3. 直近勝率（20試合ずつ広げる）
   const N = Math.max(20, +(el.dataset.recent || 20));
   const recent = hm.slice(-N), rs = sum(recent);
   const shown = Math.min(N, hm.length);
-  h += pnl(`直近${shown}試合の勝率`, `<div class="kpis" style="grid-template-columns:repeat(2,1fr)">${kpi('勝率', rs.rate == null ? '-' : rs.rate, rs.rate == null ? '' : '%', `${rs.w}勝${rs.l}敗${rs.n ? `<br>95%の範囲 ${ciText(rs.w, rs.n)}` : ''}`)}${kpi('全体との差', rs.rate == null || all.rate == null ? '-' : (rs.rate - all.rate > 0 ? '+' : rs.rate - all.rate < 0 ? '−' : '±') + Math.abs(rs.rate - all.rate), rs.rate == null || all.rate == null ? '' : '%', '全体の勝率と比べて')}</div>
+  h += pnl(`直近${shown}試合の勝率`, `<div class="kpis" style="grid-template-columns:repeat(2,1fr)">${kpi('勝率', f2(rs.rate), rs.rate == null ? '' : '%', `${rs.w}勝${rs.l}敗${rs.n ? `<br>95%の範囲 ${ciText(rs.w, rs.n)}` : ''}`)}${kpi('全体との差', rs.rate == null || all.rate == null ? '-' : (rs.rate - all.rate > 0 ? '+' : rs.rate - all.rate < 0 ? '−' : '±') + Math.abs(rs.rate - all.rate).toFixed(2), rs.rate == null || all.rate == null ? '' : '%', '全体の勝率と比べて')}</div>
     <div class="row">${hm.length > N ? `<button class="btn" data-act="recent-more">＋20試合（直近${N + 20}試合）</button>` : `<span class="small muted">${hm.length <= 20 ? `まだ${hm.length}試合なので、全試合の勝率です。` : '全試合まで広げました。'}</span>`}${N > 20 ? '<button class="btn ghost" data-act="recent-reset">直近20試合に戻す</button>' : ''}</div>`);
   // 4. 勝率推移（25日区切り、30試合以上の期間だけ）
   const per = new Map();
@@ -1850,7 +1853,7 @@ function heroSections(ms, hk, nm, sn, el) {
   const label = p => `${p.m + 1}/25〜`;
   const ok = periods.filter(p => p.s.n >= 30);
   let tr = '';
-  if (ok.length) tr += lineChart(ok.map(p => ({ v: p.s.rate, x1: label(p), x2: `${p.s.n}試合`, top: p.s.rate + '%', tip: `${p.y}/${p.m + 1}/25〜 勝率${p.s.rate}% ${p.s.n}試合` })), { min: 0, max: 100, step: 25, mid: 50, fmt: v => v + '%', label: '期間ごとの勝率の推移' });
+  if (ok.length) tr += lineChart(ok.map(p => ({ v: p.s.rate, x1: label(p), x2: `${p.s.n}試合`, top: f2(p.s.rate) + '%', tip: `${p.y}/${p.m + 1}/25〜 勝率${f2(p.s.rate)}% ${p.s.n}試合` })), { min: 0, max: 100, step: 25, mid: 50, fmt: v => v.toFixed(2) + '%', label: '期間ごとの勝率の推移' });
   else tr += `<div class="small muted">30試合以上使った期間がまだないので、グラフは出せません。</div>`;
   const thinP = periods.filter(p => p.s.n < 30);
   if (thinP.length) tr += `<div class="small muted">対象外（30試合未満）：${thinP.map(p => `${label(p)} ${p.s.n}試合`).join('、')}</div>`;
@@ -1861,11 +1864,11 @@ function heroSections(ms, hk, nm, sn, el) {
     for (let a = 0; a < hm.length; a += k) {
       const part = hm.slice(a, a + k), x = sum(part), c = wilson(x.w, x.n);
       if (!x.n) continue;
-      cps.push({ v: x.rate, x1: `${a + 1}-${a + part.length}`, x2: part.length < k ? `${part.length}試合` : '', top: x.rate + '%', tip: `${a + 1}〜${a + part.length}試合目 勝率${x.rate}%`,
-        html: `<b>${a + 1}〜${a + part.length}試合目</b>${part.length < k ? `（${part.length}試合・途中）` : ''}<br>勝率<span class="pt2">${x.rate}%</span><br>95%の範囲 ${c.lo}〜${c.hi}%・${x.w}勝${x.l}敗` });
+      cps.push({ v: x.rate, x1: `${a + 1}-${a + part.length}`, x2: part.length < k ? `${part.length}試合` : '', top: f2(x.rate) + '%', tip: `${a + 1}〜${a + part.length}試合目 勝率${f2(x.rate)}%`,
+        html: `<b>${a + 1}〜${a + part.length}試合目</b>${part.length < k ? `（${part.length}試合・途中）` : ''}<br>勝率<span class="pt2">${f2(x.rate)}%</span><br>95%の範囲 ${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%・${x.w}勝${x.l}敗` });
     }
     const segs = `<div class="row segs" role="group" aria-label="まとめる試合数">${[10, 20, 50].map(v => `<button class="seg${k === v ? ' on' : ''}" data-trendn="${v}">${v}試合ごと</button>`).join('')}</div>`;
-    const body = cps.length ? lineChart(cps, { min: 0, max: 100, step: 25, mid: 50, fmt: v => v + '%', label: `${k}試合ごとの勝率の推移`, maxLabels: 6, h: 200, note: '○を押すと、その区切りの勝率と範囲が出ます。' }) : '<div class="small muted">まだ試合がありません。</div>';
+    const body = cps.length ? lineChart(cps, { min: 0, max: 100, step: 25, mid: 50, fmt: v => v.toFixed(2) + '%', label: `${k}試合ごとの勝率の推移`, maxLabels: 6, h: 200, note: '○を押すと、その区切りの勝率と範囲が出ます。' }) : '<div class="small muted">まだ試合がありません。</div>';
     h += pnl('全体勝率推移（試合数）', segs + body, `使った順に${k}試合ずつ区切った勝率です。使い込むほど勝てるようになっているか（慣れ）を見るのに向いています。${hm.length % k ? '最後の区切りは途中までの試合数です。' : ''}`);
   }
   // 5. ステージ勝率
@@ -2134,7 +2137,7 @@ function renderSeason() {
               <input type="number" class="rng" min="1" max="${n}" value="${a}" data-srange="${se.id}" data-k="a" id="ra-${se.id}" aria-label="何試合目から">試合目〜<input type="number" class="rng" min="1" max="${n}" value="${b}" data-srange="${se.id}" data-k="b" id="rb-${se.id}" aria-label="何試合目まで">試合目
               ${a !== 1 || b !== n ? `<button class="btn ghost small" data-srange-reset="${se.id}">全試合に戻す</button>` : ''}</div>
               <div class="gainv"><span class="ptv ${avg > 0 ? 'plus' : avg < 0 ? 'minus' : ''}">${avgS}</span><small>pt / 試合</small></div>
-              <div class="small muted">${cnt}試合で ${fmtPt(gain)}pt（${before}→${after}pt）・${w}勝${l}敗${cnt ? `・勝率${Math.round(w / Math.max(1, w + l) * 100)}%` : ''}</div></div>
+              <div class="small muted">${cnt}試合で ${fmtPt(gain)}pt（${before}→${after}pt）・${w}勝${l}敗${cnt ? `・勝率${f2(pct2(w, w + l) ?? 0)}%` : ''}</div></div>
             ${(() => {
               // k試合ごとの平均pt（1〜k試合目、k+1〜2k試合目…）。数百試合でも見やすいように
               const k = seasonChunk[se.id] || 10, chunks = [];
@@ -2209,13 +2212,13 @@ function renderOut() {
   const fm = el.dataset.mode || '';
   const list = fm ? all.filter(m => m.mode === fm) : all;
   const rs = list.map(matchResult), w = rs.filter(r => r === 'w').length, l = rs.filter(r => r === 'l').length, d = rs.filter(r => r === 'd').length, n = rs.filter(r => r !== 'u').length;
-  const rate = n ? Math.round(w / n * 100) : null;
+  const rate = pct2(w, n);
   let h = `<div class="section"><div class="panel"><h2>シーズン外の試合</h2>
     <p class="small muted" style="margin:0">シーズンpt推移に入っていない試合です。フリーバトル・カスタムバトルなどと、シーズン期間外のバトルアリーナ、「シーズンに入れない」にしたバトルアリーナが入ります。</p>
     <div class="row segs" role="group" aria-label="モードで絞り込み"><button class="seg${fm ? '' : ' on'}" data-outmode="">すべて（${all.length}）</button>${modes.map(md2 => `<button class="seg${fm === md2 ? ' on' : ''}" data-outmode="${esc(md2)}">${esc(md2)}（${all.filter(m => m.mode === md2).length}）</button>`).join('')}</div>
     <div class="kpis"><div class="kpi"><div class="label">試合数</div><div class="v">${list.length}<small>試合</small></div></div>
       <div class="kpi"><div class="label">勝利-敗北${d ? '-DRAW' : ''}</div><div class="v">${w}<small>-</small>${l}${d ? `<small>-</small>${d}` : ''}</div></div>
-      <div class="kpi"><div class="label">勝率</div><div class="v">${rate == null ? '-' : rate}<small>${rate == null ? '' : '%'}</small></div>${n ? `<div class="small muted">95%の範囲 ${ciText(w, n)}</div>` : ''}</div></div>
+      <div class="kpi"><div class="label">勝率</div><div class="v">${f2(rate)}<small>${rate == null ? '' : '%'}</small></div>${n ? `<div class="small muted">95%の範囲 ${ciText(w, n)}</div>` : ''}</div></div>
   </div></div>`;
   const on = Math.max(PAGE_N, +(el.dataset.n || 0)), rest = list.length - on;
   h += `<div class="section"><div class="plist">${list.length ? list.slice(0, on).map(outRow).join('') : '<div class="small muted">シーズン外の試合はまだありません。</div>'}</div>
@@ -2799,7 +2802,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-13j', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-13l', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
