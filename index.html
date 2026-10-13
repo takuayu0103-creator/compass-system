@@ -399,11 +399,13 @@ const Core = (() => {
     const { width: W, height: H, data: D } = img;
     let best = -1, yrow = 0;
     for (let y = 0; y < H; y++) {
-      let c = 0;
+      // 青と赤の両方がある行を選ぶ（片方だけの色の帯、例えば一覧画面のオレンジの見出しを拾わないように）
+      let cb = 0, cr = 0;
       for (let x = 0; x < W; x++) {
         const i = (y * W + x) * 4, r = D[i], g = D[i + 1], b = D[i + 2];
-        if (clsB(r, g, b) || clsR(r, g, b)) c++;
+        if (clsB(r, g, b)) cb++; else if (clsR(r, g, b)) cr++;
       }
+      const c = Math.min(cb, cr);
       if (c > best) { best = c; yrow = y; }
     }
     const bRow = [], rRow = [];
@@ -2797,7 +2799,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-13i', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-13j', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
