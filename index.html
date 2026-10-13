@@ -2331,6 +2331,47 @@ function renderGuide() {
     <p>データタブのフレンド欄の一番下に「アプリの版」が出ます。新しい機能が出ない時は、ページを再読み込みしてください。</p>
     <h4>このツールについて</h4>
     <p>非公式のファンツールです。ゲームの開発・運営会社とは関係ありません。スクショは保存せず、照合用の特徴データだけをこのブラウザに保存します。</p>`)}
+  ${acc('6. 利用規約とプライバシー', `
+    <p class="note">最終更新 2026年10月13日</p>
+    <h4>このツールについて</h4>
+    <p>【戦績摂理◆解析システム】（以下「本ツール」）は、スマートフォン向けゲーム「#コンパス」のリプレイ画面のスクショから戦績を集計する、個人が運営する非公式のファンツールです。ゲームの開発・運営会社とは一切関係ありません。</p>
+    <h4>取得する情報と使い道</h4>
+    <ul>
+      <li><b>スクショ：</b>読み取りはすべて利用者の端末の中で行い、画像そのものはどこにも送らず、保存もしません。照合に使う特徴データ（縮小した形の情報など）だけを、このブラウザに保存します。</li>
+      <li><b>戦績：</b>利用者が保存した試合の記録（ヒーロー・ステージ・スコア・ランク・メダル・pt・メモなど）です。集計と表示のためだけに使います。</li>
+      <li><b>Googleアカウントの情報（ログインした場合のみ）：</b>表示名と、アカウントを見分けるためのIDを使います。表示名は、フレンド連携の相手の画面に表示されます。メールアドレスは、本ツールの画面に表示したり、ほかの人に見せたりすることはありません。</li>
+    </ul>
+    <h4>保存する場所</h4>
+    <ul>
+      <li>ログインしない場合、記録はこのブラウザの中にだけ保存されます。</li>
+      <li>ログインした場合、記録はGoogleのサービス（Firebase）のサーバーにも保存されます。</li>
+    </ul>
+    <h4>ほかの利用者に見える範囲</h4>
+    <ul>
+      <li>フレンド連携をした相手だけが、あなたの戦績を見られます（メモは見えません）。連携していない人には見えません。</li>
+      <li>連携を解除すると、お互いに見えなくなります。</li>
+    </ul>
+    <h4>記録の削除</h4>
+    <ul>
+      <li>この端末の記録は、データタブの「全部消す」で削除できます。</li>
+      <li>サーバーに保存した記録は、データタブの「クラウドの記録を削除」で削除できます。フレンド連携と招待コードも一緒に消えます。</li>
+    </ul>
+    <h4>禁止事項</h4>
+    <ul>
+      <li>本ツールやサーバーへの不正なアクセス、過度な負荷をかける行為</li>
+      <li>ほかの利用者の記録を、本人の同意なく取得・公開する行為</li>
+      <li>法令または公序良俗に反する行為</li>
+    </ul>
+    <h4>免責</h4>
+    <ul>
+      <li>読み取りや集計は自動で行うため、間違いが含まれることがあります。結果の正確さは保証しません。</li>
+      <li>記録の消失、本ツールの停止・変更・終了によって生じた損害について、運営者の故意または重大な過失による場合を除き、責任を負いません。大切な記録は、データタブの「バックアップ」で保存してください。</li>
+      <li>本ツールは、予告なく内容を変更し、または提供を終了することがあります。</li>
+    </ul>
+    <h4>規約の変更</h4>
+    <p>運営者は、この内容を変更することがあります。変更後の内容は、このページに掲載した時点から効力を生じます。</p>
+    <h4>お問い合わせ</h4>
+    <p>X（旧Twitter）：<a href="https://x.com/26_Spring_Peach" target="_blank" rel="noopener">@26_Spring_Peach</a></p>`)}
   </div>`;
 }
 function guideFirst() {
@@ -2499,6 +2540,9 @@ document.addEventListener('click', e => {
   } else if (act === 'clear-filter') { const v = $('#view-stats'); delete v.dataset.mode; delete v.dataset.hero; delete v.dataset.stage; delete v.dataset.mv; renderStats(); }
   else if (act === 'sync-login') syncLogin();
   else if (act === 'sync-logout') syncLogout();
+  else if (act === 'cloud-del') { syncS.cdAsk = true; syncRender(); }
+  else if (act === 'cloud-del-no') { syncS.cdAsk = false; syncRender(); }
+  else if (act === 'cloud-del-yes') cloudDelete();
   else if (act === 'sync-now') syncRun();
   else if (act === 'sync-pull') syncPull();
   else if (act === 'sync-push') syncPush(true);
@@ -2651,7 +2695,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-13d', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-13e', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -2686,6 +2730,10 @@ async function fbReal() {
       for (let i = parts.length; i < (prevN || 0); i++) b.delete(F.doc(fs, 'users', uid, 'chunks', String(i)));
       b.set(F.doc(fs, 'users', uid), { updatedAt: at, n: parts.length, count });
       await b.commit(); return at;
+    },
+    async delCloud(uid) {
+      const q = await F.getDocs(F.collection(fs, 'users', uid, 'chunks')), b = F.writeBatch(fs);
+      q.forEach(d => b.delete(d.ref)); b.delete(F.doc(fs, 'users', uid)); await b.commit();
     },
     async createInvite(uid, name, code, exp) { await F.setDoc(F.doc(fs, 'invites', code), { owner: uid, ownerName: name, expiresAt: exp }); },
     async delInvite(code) { await F.deleteDoc(F.doc(fs, 'invites', code)); },
@@ -2734,7 +2782,7 @@ function syncHTML() {
     const cc = s.cm ? s.cm.count : 0;
     choose = `<div class="panel" style="margin-top:10px"><p class="small" style="margin:0"><b>この端末の記録（${db.matches.length}試合）</b>と<b>クラウドの記録（${cc}試合）</b>が違っています。どちらを残すか選んでください。選ばなかった方の記録は消えます。迷うときは、先にバックアップを取ってください。</p><div class="row"><button class="btn" data-act="sync-pull">クラウドの記録にする</button><button class="btn danger" data-act="sync-push">この端末の記録でクラウドを上書きする</button></div></div>`;
   }
-  return `<h2>ログインと同期</h2><p class="small" style="margin:0">ログイン中：<b>${esc(u.name || 'Googleアカウント')}</b></p>${choose}<div class="row"><button class="btn" data-act="sync-now"${s.busy ? ' disabled' : ''}>今すぐ同期</button><button class="btn ghost" data-act="sync-logout">ログアウト</button></div>${msg}${friendHTML()}`;
+  return `<h2>ログインと同期</h2><p class="small" style="margin:0">ログイン中：<b>${esc(u.name || 'Googleアカウント')}</b></p>${choose}<div class="row"><button class="btn" data-act="sync-now"${s.busy ? ' disabled' : ''}>今すぐ同期</button><button class="btn ghost" data-act="sync-logout">ログアウト</button></div>${msg}${friendHTML()}${cloudDelHTML()}`;
 }
 /* ---------- フレンド連携 ---------- */
 // 招待コード方式：Aがコードを発行 → Bが入力して申請 → Aが承認すると連携が成立。どちらからでも解除できる。
@@ -3050,6 +3098,30 @@ async function syncLogin() {
   try { await syncLoad(); syncS.busy = false; await FBA.signIn(); }
   catch (e) { syncRender(/Failed to fetch|import|Load failed|dynamically/i.test((e && e.message) || '') && !(e && e.code) ? 'ログイン機能を読み込めませんでした。ネットワークを確認してください。このページの種類では使えない場合もあります。' : syncErr(e), true); }
   syncS.busy = false; syncRender();
+}
+// クラウドの記録を消す（自分のバックアップ・フレンド用のコピー・連携・招待コード）。この端末の記録は残し、最後にログアウトする
+function cloudDelHTML() {
+  if (!syncS.user || view.on) return '';
+  const ask = syncS.cdAsk;
+  return `<div class="subh" style="margin-top:14px">クラウドの記録の削除</div>
+    <p class="small muted" style="margin:0">サーバーに保存した戦績・フレンドに見せている記録・フレンド連携・招待コードをすべて消して、ログアウトします。この端末の中の記録は残ります。</p>
+    ${ask ? `<div class="warnbox" role="alert"><b>⚠ クラウドの記録を削除しますか？</b><span>フレンド連携もすべて解除されます。<b>元に戻せません。</b>別の端末では、この記録を使えなくなります。</span>
+      <div class="row"><button class="btn danger" data-act="cloud-del-yes"${syncS.busy ? ' disabled' : ''}>削除する</button><button class="btn" data-act="cloud-del-no">やめる</button></div></div>`
+    : `<div class="row"><button class="btn danger" data-act="cloud-del">クラウドの記録を削除</button></div>`}`;
+}
+async function cloudDelete() {
+  const u = syncS.user; if (!u || !FBA || !FBA.delCloud || syncS.busy) return;
+  syncS.busy = true; clearTimeout(syncTimer); syncRender('クラウドの記録を削除しています…');
+  try {
+    try { await FBA.delShare(u.uid); } catch (e) {}
+    let links = []; try { links = await FBA.listLinks(u.uid); } catch (e) {}
+    for (const l of links) { try { await FBA.delLink(l.id); } catch (e) {} }
+    const m = syncMeta(); if (m.inv) { try { await FBA.delInvite(m.inv.code); } catch (e) {} }
+    await FBA.delCloud(u.uid);
+    syncSaveMeta({}); syncS.cdAsk = false; syncS.busy = false;
+    await syncLogout();
+    syncRender('クラウドの記録を削除して、ログアウトしました。この端末の記録は残っています。');
+  } catch (e) { syncS.busy = false; syncS.cdAsk = false; syncRender('削除できませんでした：' + ((e && (e.code || e.message)) || '不明なエラー') + '。もう一度試してください。', true); }
 }
 async function syncLogout() {
   if (!FBA) return; clearTimeout(syncTimer);
