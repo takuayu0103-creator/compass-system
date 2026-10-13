@@ -333,7 +333,7 @@ body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],bod
         <h2>スクショを入れる</h2>
         <ol class="steps">
           <li>#コンパスのリプレイ一覧で試合を開く（右上の <b>ⓘ</b> を押した画面でも、押さない画面でもOK）</li>
-          <li>その画面をスクショする（直近15試合ぶん、まとめて選べます）</li>
+          <li>その画面をスクショする（リプレイ選択の画面全体でもOK。画面の端で切れた試合は読み取りません）</li>
           <li>下に入れると、スコア・ステージ・6人のヒーローを読み取ります</li>
         </ol>
         <div class="drop" id="drop">
@@ -440,11 +440,40 @@ const Core = (() => {
       out[side] = panels;
     }
     const nb = [...out.blue, ...out.red].filter(p => p.band).length;
-    if (nb !== 0 && nb !== 6) throw err('panel', '画面の一部が欠けているようです。リプレイの1試合ぶんが全部入るようにスクショしてください。');
+    if (nb !== 0 && nb !== 6) throw err('panel', '画面の一部が欠けているようです。リプレイの1試合分が全部入るようにスクショしてください。');
     out.detail = nb === 6;
     return out;
   }
 
+  // 縦長のスクショ（リプレイ選択の画面など）から、3対3が全部映っている試合を探して、1試合ずつの範囲を返す。端で切れた試合は数えて飛ばす
+  function splitCards(img) {
+    const { width: W, height: H, data: D } = img, k = W / 1080;
+    // 試合の枠の左端は、上から下まで青（赤）が続く列になる。その列を、左半分（青）と右半分（赤）から探す
+    const cb = new Int32Array(W), cr = new Int32Array(W);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4, r = D[i], g = D[i + 1], b = D[i + 2]; if (clsB(r, g, b)) cb[x]++; else if (clsR(r, g, b)) cr[x]++; }
+    const pick = (arr, a, b) => { let m = 0; for (let x = a; x < b; x++) if (arr[x] > m) m = arr[x]; if (m < 100 * k) return -1; for (let x = a; x < b; x++) if (arr[x] >= m * 0.9) return x; return -1; };
+    const bx = pick(cb, 0, Math.floor(W / 2)), rx = pick(cr, Math.floor(W / 2), W);
+    if (bx < 0 || rx < 0 || rx - bx < W * 0.3 || rx - bx > W * 0.6) return { cards: [], skipped: 0 };
+    const sc = (rx - bx) / 455;
+    const vr = (xs, cls) => {
+      const m = [];
+      for (let y = 0; y < H; y++) { let ok = true; for (let dx = 0; dx < 3 && ok; dx++) { const i = (y * W + xs + dx) * 4; if (!cls(D[i], D[i + 1], D[i + 2])) ok = false; } m.push(ok); }
+      return runs(m, 40 * sc);
+    };
+    const bv = vr(bx, clsB), rv = vr(rx, clsR), groups = [];
+    for (const r of bv) { const g = groups[groups.length - 1]; if (g && r[0] - g[g.length - 1][1] <= 120 * sc) g.push(r); else groups.push([r]); }
+    const cards = []; let skipped = 0;
+    for (const g of groups) {
+      const hs = g.map(([a, b]) => b - a), med = [...hs].sort((a, b) => a - b)[Math.floor(hs.length / 2)];
+      const gaps = g.slice(1).map((r, i) => r[0] - g[i][1]);
+      const good = g.length === 3 && med >= 100 * sc && gaps.every(d => d >= 60 * sc && d <= 110 * sc) && hs.every(h => Math.abs(h - med) <= med * 0.08) && g[0][0] > 2 && g[2][1] < H - 3
+        && g.every(([a, b]) => rv.some(([ra, rb]) => Math.abs(ra - a) <= 6 * sc && Math.abs(rb - b) <= 6 * sc))
+        && g[0][0] - 125 * sc >= -8 * sc && g[2][1] + 230 * sc <= H;
+      if (good) cards.push({ y0: Math.max(0, Math.round(g[0][0] - 125 * sc)), y1: Math.min(H, Math.round(g[2][1] + 273 * sc)) });
+      else if (med >= 40 * sc) skipped++;
+    }
+    return { cards, skipped };
+  }
   function bgPix(r, g, b, side) {
     if (side === 'blue') return b > 225 && b - r > 35 && r > 110 && g > 140;
     return r > 225 && r - b > 40 && g > 120 && g < 225 && Math.abs(g - b) < 40;
@@ -790,7 +819,7 @@ const Core = (() => {
     return { det, detail: det.detail, panels, score: { b: b.v, r: r.v, db: b.d, dr: r.d }, stage: sf, stageBox: stageBox(img, det), mode: modeMask(img, det) };
   }
   const T = { hero: 35, top: 42, stage: 30, name: 0.3, mode: 0.5 };
-  return { analyze, heroDist, maskDist, stageDist, T, GW, GH, HERO_NAMES: ICON.names, MEDAL_KEYS, medalEdge, medalGuess };
+  return { analyze, splitCards, heroDist, maskDist, stageDist, T, GW, GH, HERO_NAMES: ICON.names, MEDAL_KEYS, medalEdge, medalGuess };
 })();
 </script>
 
@@ -1001,34 +1030,51 @@ function handleFiles(files) {
 }
 async function readFiles(files) {
   $('#prog-wrap').hidden = false;
-  const shots = [];
+  const shots = []; let skippedN = 0;
   for (let i = 0; i < files.length; i++) {
     $('#prog-text').textContent = `${i + 1} / ${files.length} 枚目を読み取り中…`;
     $('#prog').style.width = `${(i / files.length) * 100}%`;
     await new Promise(r => setTimeout(r, 0));
-    const f = files[i];
-    const shot = { id: uid(), fileName: f.name, at: f.lastModified || Date.now() };
+    const f = files[i], at0 = f.lastModified || Date.now(), units = [];
+    let url = null;
     try {
-      const { im, url } = await loadImage(f);
+      const L = await loadImage(f); url = L.url; const im = L.im;
       const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
       const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(im, 0, 0);
       const img = ctx.getImageData(0, 0, c.width, c.height);
-      const a = Core.analyze(img, f => !nearestHero(f));
-      Object.assign(shot, a);
-      shot.ok = true;
-      shot.panels.forEach(p => { p.artURL = cropURL(im, p.art, 120); p.nameURL = cropURL(im, p.nameBox, 260); if (!p.empty) p.faceURL = cropURL(im, faceBox(p.art), 64); });
-      shot.stageURL = a.stage ? cropURL(im, a.stageBox, 240) : null;
-      shot.hash = shotHash(im, a.panels);
-      URL.revokeObjectURL(url);
-    } catch (e) { shot.ok = false; shot.err = e.message; }
-    shots.push(shot);
+      if (c.height / c.width > 1.3) {
+        // 縦長（リプレイ選択の画面など）：3対3が全部映っている試合を1つずつ切り出す。上の試合ほど新しいので、時刻を少しずつ古くする
+        const sp = Core.splitCards(img); skippedN += sp.skipped;
+        if (!sp.cards.length) throw new Error('6人全員とメダルが映っている試合が見つかりませんでした。試合の上から下まで全部が画面に入るようにスクショしてください。');
+        sp.cards.forEach((k, j) => {
+          const sc = document.createElement('canvas'); sc.width = c.width; sc.height = k.y1 - k.y0;
+          sc.getContext('2d').drawImage(c, 0, k.y0, c.width, k.y1 - k.y0, 0, 0, c.width, k.y1 - k.y0);
+          units.push({ im: sc, img: ctx.getImageData(0, k.y0, c.width, k.y1 - k.y0), name: `${f.name}（${j + 1}試合目）`, at: at0 - j * 1000 });
+        });
+      } else units.push({ im, img, name: f.name, at: at0 });
+    } catch (e) { shots.push({ id: uid(), fileName: f.name, at: at0, ok: false, err: e.message }); if (url) URL.revokeObjectURL(url); continue; }
+    for (const u of units) {
+      const shot = { id: uid(), fileName: u.name, at: u.at };
+      try {
+        const a = Core.analyze(u.img, f => !nearestHero(f));
+        Object.assign(shot, a);
+        shot.ok = true;
+        shot.panels.forEach(p => { p.artURL = cropURL(u.im, p.art, 120); p.nameURL = cropURL(u.im, p.nameBox, 260); if (!p.empty) p.faceURL = cropURL(u.im, faceBox(p.art), 64); });
+        shot.stageURL = a.stage ? cropURL(u.im, a.stageBox, 240) : null;
+        shot.hash = shotHash(u.im, a.panels);
+      } catch (e) { shot.ok = false; shot.err = e.message; }
+      shots.push(shot);
+    }
+    if (url) URL.revokeObjectURL(url);
   }
   $('#prog').style.width = '100%';
   const old = batch;
   const all = (old ? old.shots : []).concat(shots);
-  $('#prog-text').textContent = old
-    ? `${files.length} 枚を追加しました（合計${all.length}枚）。下で内容を確認して保存してください。`
-    : `${files.length} 枚の読み取りが終わりました。下で内容を確認して保存してください。`;
+  const nm = shots.length === files.length ? `${files.length} 枚` : `${files.length} 枚から${shots.length}試合分`;
+  const sk = skippedN ? `画面の端で切れていた試合が${skippedN}件あったため、読み取っていません。` : '';
+  $('#prog-text').textContent = (old
+    ? `${nm}を追加しました（合計${all.length}件）。下で内容を確認して保存してください。`
+    : `${nm}の読み取りが終わりました。下で内容を確認して保存してください。`) + sk;
   prepareBatch(all, old);
 }
 
@@ -1591,7 +1637,7 @@ function medalHTML(list) {
   const cell = (b, k) => `<td class="mn"><b>${pct(b, k)}%</b><span class="small muted"> ${b.n ? ((b.tot[k] || 0) / b.n).toFixed(1) : '0.0'}個</span></td>`;
   const cov = b => b.slots ? Math.round(b.known / b.slots * 100) : 0;
   return `<div class="section"><div class="panel"><h2>メダルの使用率（自分と連携フレンドを除く）</h2>
-    <p class="small muted" style="margin:0 0 8px">${nm}試合ぶん。自分と、連携しているフレンド（一緒に出た試合のみ）は集計に入れていません。「使う人の割合」は、その絵柄を1個以上つけていた人の割合です。右の小さい数字は、1人あたりの平均個数です。</p>
+    <p class="small muted" style="margin:0 0 8px">${nm}試合分。自分と、連携しているフレンド（一緒に出た試合のみ）は集計に入れていません。「使う人の割合」は、その絵柄を1個以上つけていた人の割合です。右の小さい数字は、1人あたりの平均個数です。</p>
     <table class="medtbl"><thead><tr><th></th><th>味方（${R.ally.n}人）</th><th>敵（${R.enemy.n}人）</th></tr></thead><tbody>
     ${rows.map(k => `<tr><td class="mi"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"> ${esc(MEDAL_NAME[k] || k)}</td>${cell(R.ally, k)}${cell(R.enemy, k)}</tr>`).join('')}
     </tbody></table>
@@ -2216,10 +2262,10 @@ function renderGuide() {
   $('#view-guide').innerHTML = `<div class="section"><div class="panel"><h2>使い方</h2>
     <p class="small muted" style="margin:0">#コンパスのリプレイ画面のスクショから、勝率やヒーロー・ステージ・メダルの傾向を集計するツールです。知りたい項目をタップすると開きます。</p></div></div>
   <div class="section" style="display:flex;flex-direction:column;gap:8px">
-  ${acc('1. はじめかた', `
+  ${acc('1. 始め方', `
     <ol>
-      <li><b>スクショを撮る：</b>#コンパスのリプレイ一覧で試合を開き、6人全員とそのメダルが映る画面をスクショします。</li>
-      <li><b>読み込みタブで選ぶ：</b>「スクショを選ぶ」を押して、撮った画像を選びます（複数枚OK）。画像はこの端末の中だけで処理され、サーバーには送られません。選べないときは、写真アプリで画像をコピーして、「貼り付け」の欄に貼れます。</li>
+      <li><b>スクショを撮る：</b>#コンパスのリプレイ選択の画面で、6人全員とそのメダルが映っている試合をスクショします。1試合だけを切り取る必要はなく、画面全体でも読み取れます（複数の試合が映っていれば、全部読み取ります）。ただし、画面の上下の端で切れている試合は読み取りません。</li>
+      <li><b>読み込みタブで選ぶ：</b>「スクショを選ぶ」を押して、撮った画像を選びます（複数枚OK）。画像はこの端末の中だけで処理され、サーバーには送られません。選べない時は、写真アプリで画像をコピーして、「貼り付け」の欄に貼れます。</li>
       <li><b>読み取り結果を確認する：</b>
         <ul>
           <li>最初に「あなたの名前はこれですか？」と聞かれます。「はい、これが自分」を選ぶと、次からは自動で判定します。</li>
@@ -2227,7 +2273,7 @@ function renderGuide() {
           <li>初めて見るステージは、名前を入力します。</li>
           <li>「スコア要確認」「モード要確認」などの表示が出た試合は、内容を見て直してください。</li>
         </ul></li>
-      <li><b>「この内容で保存」を押します。</b>似た試合があるときは、「登録する」か「登録しない」を選びます。</li>
+      <li><b>「この内容で保存」を押します。</b>似た試合がある時は、「登録する」か「登録しない」を選びます。</li>
       <li><b>分析タブで見ます。</b>勝率やヒーロー別の傾向が出ます。</li>
     </ol>
     <p class="note">読み取りは自動なので、ごくまれに間違えます。保存前に、ヒーロー・スコア・ステージだけは目で確認するのがおすすめです。</p>`, true)}
@@ -2248,7 +2294,7 @@ function renderGuide() {
       <li>もう片方が「招待コードをもらった」の欄にコードを入れて、「申請する」を押します。</li>
       <li>最初の人の画面に承認ボタンが出るので、「承認」を押します。</li>
     </ol>
-    <h4>連携したあとにできること</h4>
+    <h4>連携した後にできること</h4>
     <ul>
       <li><b>相手のデータを見る：</b>画面上部の「見るデータ」から相手を選びます。相手が記録を増やすと、画面にも反映されます。</li>
       <li><b>固定した試合だけ表示：</b>分析タブの「固定した試合だけ表示」で相手を選ぶと、その人と味方で出た試合だけで集計します。分析と履歴の両方に反映されます。</li>
@@ -2268,21 +2314,21 @@ function renderGuide() {
       <li>人数が5人未満のものは、数字が安定しないので、薄く表示します。</li>
     </ul>
     <p class="note">メダルは、この機能を入れた後に読み込んだ試合から記録されます。それ以前の試合は、同じスクショをもう一度読み込むと、メダルだけを書き足せます（勝敗などの記録は変わりません）。</p>`)}
-  ${acc('5. 困ったとき', `
-    <h4>読み取りが間違っていたとき</h4>
+  ${acc('5. 困った時', `
+    <h4>読み取りが間違っていた時</h4>
     <ul>
       <li>保存する前なら、読み込みの画面で、ヒーロー・スコア・モード・ステージを選び直せます。</li>
-      <li>ヒーロー名の打ち間違いは、データタブの「ヒーロー名の修正」で直せます。すでにある名前に変えると、ふたつがまとまります。</li>
-      <li>試合そのものが間違っているときは、履歴タブで削除してから、入れ直してください。</li>
+      <li>ヒーロー名の打ち間違いは、データタブの「ヒーロー名の修正」で直せます。既にある名前に変えると、2つがまとまります。</li>
+      <li>試合そのものが間違っている時は、履歴タブで削除してから、入れ直してください。</li>
     </ul>
     <h4>データの保存とバックアップ</h4>
     <ul>
       <li>記録は、このブラウザの中に保存されます。ブラウザのデータを消すと、戦績も消えます。</li>
-      <li>Googleでログインすると、記録がクラウドにも保存され、別の端末でも同じ記録を使えます。機種を変えるときは、先にログインして、新しい端末で同じアカウントでログインしてください。</li>
+      <li>Googleでログインすると、記録がクラウドにも保存され、別の端末でも同じ記録を使えます。機種を変える時は、先にログインして、新しい端末で同じアカウントでログインしてください。</li>
       <li>ログインしない場合は、データタブの「バックアップ」の文字列をコピーして、メモ帳などに保存してください。復元は、同じ画面の「復元」の欄に貼り付けます（今の記録は上書きされます）。</li>
     </ul>
-    <h4>画面が古いかもしれないとき</h4>
-    <p>データタブのフレンド欄の一番下に「アプリの版」が出ます。新しい機能が出ないときは、ページを再読み込みしてください。</p>
+    <h4>画面が古いかもしれない時</h4>
+    <p>データタブのフレンド欄の一番下に「アプリの版」が出ます。新しい機能が出ない時は、ページを再読み込みしてください。</p>
     <h4>このツールについて</h4>
     <p>非公式のファンツールです。ゲームの開発・運営会社とは関係ありません。スクショは保存せず、照合用の特徴データだけをこのブラウザに保存します。</p>`)}
   </div>`;
@@ -2292,7 +2338,7 @@ function guideFirst() {
   if (seen || db.matches.length) return;
   try { localStorage.setItem(DBKEY + '-guide', '1'); } catch (e) {}
   const d = document.createElement('div'); d.className = 'gfirst'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true');
-  d.innerHTML = `<div class="box"><h2>はじめての方へ</h2><p style="margin:0;font-size:.92rem;line-height:1.7">#コンパスのリプレイのスクショから、勝率やヒーロー・メダルの傾向を集計するツールです。使い方を先に見ておきますか？</p><div class="row" style="gap:8px"><button class="btn" data-gf="go">使い方を見る</button><button class="btn ghost" data-gf="skip">あとで</button></div><p class="small muted" style="margin:0">使い方は、いつでも右端の「使い方」タブで見られます。</p></div>`;
+  d.innerHTML = `<div class="box"><h2>初めての方へ</h2><p style="margin:0;font-size:.92rem;line-height:1.7">#コンパスのリプレイのスクショから、勝率やヒーロー・メダルの傾向を集計するツールです。使い方を先に見ておきますか？</p><div class="row" style="gap:8px"><button class="btn" data-gf="go">使い方を見る</button><button class="btn ghost" data-gf="skip">後で</button></div><p class="small muted" style="margin:0">使い方は、いつでも右端の「使い方」タブで見られます。</p></div>`;
   d.addEventListener('click', e => { const b = e.target.closest('[data-gf]'); if (!b) return; if (b.dataset.gf === 'go') showTab('guide'); d.remove(); });
   document.body.appendChild(d);
 }
@@ -2605,7 +2651,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-13c', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-13d', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
