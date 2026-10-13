@@ -456,7 +456,9 @@ const Core = (() => {
     const cb = new Int32Array(W), cr = new Int32Array(W);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4, r = D[i], g = D[i + 1], b = D[i + 2]; if (clsB(r, g, b)) cb[x]++; else if (clsR(r, g, b)) cr[x]++; }
     const pick = (arr, a, b) => { let m = 0; for (let x = a; x < b; x++) if (arr[x] > m) m = arr[x]; if (m < 100 * k) return -1; for (let x = a; x < b; x++) if (arr[x] >= m * 0.9) return x; return -1; };
-    const bx = pick(cb, 0, Math.floor(W / 2)), rx = pick(cr, Math.floor(W / 2), W);
+    const bx = pick(cb, 0, Math.floor(W / 2));
+    // 赤の枠の左端：右半分で、青の枠の左端と同じくらい赤が続く最初の列（立ち絵の赤やピンクに引っ張られないように、青の列を基準にする）
+    let rx = -1; if (bx >= 0) for (let x = Math.floor(W / 2); x < W; x++) if (cr[x] >= cb[bx] * 0.85) { rx = x; break; }
     if (bx < 0 || rx < 0 || rx - bx < W * 0.3 || rx - bx > W * 0.6) return { cards: [], skipped: 0 };
     const sc = (rx - bx) / 455;
     const vr = (xs, cls) => {
@@ -2802,7 +2804,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-13n', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-13o', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
