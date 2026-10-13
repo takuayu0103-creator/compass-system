@@ -2292,6 +2292,7 @@ function renderGuide() {
     <p>連携すると、お互いの戦績を見られます（見るだけで、編集はできません）。メモは共有されません。どちらからでも、いつでも解除できます。</p>
     <ol>
       <li>データタブで、Googleでログインします（ログインが必要です）。</li>
+      <li>「ニックネーム」を決めて保存します。フレンドには、Googleの名前ではなく、このニックネームが表示されます。本名は避けてください。</li>
       <li>片方が「招待コードを発行」を押して、出てきた8文字のコードを相手に渡します（24時間有効）。</li>
       <li>もう片方が「招待コードをもらった」の欄にコードを入れて、「申請する」を押します。</li>
       <li>最初の人の画面に承認ボタンが出るので、「承認」を押します。</li>
@@ -2342,13 +2343,16 @@ function renderGuide() {
       <li><b>スクショ：</b>読み取りはすべて利用者の端末の中で行い、画像そのものはどこにも送らず、保存もしません。照合に使う特徴データ（縮小した形の情報など）だけを、このブラウザに保存します。</li>
       <li><b>戦績：</b>利用者が保存した試合の記録（ヒーロー・ステージ・スコア・ランク・メダル・pt・メモなど）です。集計と表示のためだけに使います。</li>
       <li><b>フィードバック：</b>送った文章と、送った日時・アプリの版を、サーバー（Firebase）に保存します。運営者だけが読み、不具合の修正や機能の改善のためだけに使います。名前やアカウントの情報は付けません。</li>
-      <li><b>Googleアカウントの情報（ログインした場合のみ）：</b>表示名と、アカウントを見分けるためのIDを使います。表示名は、フレンド連携の相手の画面に表示されます。メールアドレスは、本ツールの画面に表示したり、ほかの人に見せたりすることはありません。</li>
+      <li><b>ニックネーム（ログインした場合のみ）：</b>利用者が自分で決めた名前で、フレンド連携の相手の画面に表示されます。本名は登録しないでください。</li>
+      <li><b>Googleアカウントの情報（ログインした場合のみ）：</b>ログインの仕組み（Firebase Authentication）により、アカウントを見分けるためのID・メールアドレス・Googleの表示名がGoogleのサービスに記録されます。本ツールは、これらをほかの利用者に表示しません。</li>
     </ul>
     <h4>保存する場所</h4>
     <ul>
       <li>ログインしない場合、記録はこのブラウザの中にだけ保存されます。</li>
       <li>ログインした場合、記録はGoogleのサービス（Firebase）のサーバーにも保存されます。</li>
     </ul>
+    <h4>運営者が見られる範囲</h4>
+    <p>ログインした人の記録は、仕組み上、運営者がFirebaseの管理画面から見られる状態にあります（ログインに使ったメールアドレスも含みます）。運営者は、不具合の調査など必要な場合を除いて、これらを見ません。また、ほかの目的に使ったり、第三者に渡したりしません。これが気になる場合は、ログインせずに使ってください（記録は端末の中だけにあり、運営者を含めて誰にも見えません）。</p>
     <h4>ほかの利用者に見える範囲</h4>
     <ul>
       <li>フレンド連携をした相手だけが、あなたの戦績を見られます（メモは見えません）。連携していない人には見えません。</li>
@@ -2574,6 +2578,7 @@ document.addEventListener('click', e => {
   else if (act === 'sync-login') syncLogin();
   else if (act === 'sync-logout') syncLogout();
   else if (act === 'fb-send') feedbackSend();
+  else if (act === 'nick-save') nickSave();
   else if (act === 'go-feedback') { e.preventDefault(); guideGo('feedback'); }
   else if (act === 'go-terms') { e.preventDefault(); guideGo('terms'); }
   else if (act === 'cloud-del') { syncS.cdAsk = true; syncRender(); }
@@ -2731,7 +2736,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-13g', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-13h', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -2812,14 +2817,15 @@ async function fbReal() {
 function syncHTML() {
   const s = syncS, u = s.user;
   const msg = s.msg ? `<p class="small${s.err ? '' : ' muted'}" style="margin:6px 0 0;${s.err ? 'color:var(--lose)' : ''}">${esc(s.msg)}</p>` : '';
-  const intro = '<p class="small muted" style="margin:0">ログインすると、戦績のデータがGoogle（Firebase）のサーバーに保存され、別の端末でも同じ記録を使えます。ログインしなくても、今まで通りこの端末の中だけで使えます。</p>';
+  const intro = '<p class="small muted" style="margin:0"><b>ログインしなくても、フレンド連携以外の機能はすべて使えます。</b>その場合、記録はこの端末の中だけにあり、どこにも送られません。<br>ログインは、別の端末でも同じ記録を使いたい人と、フレンド連携をしたい人向けです。ログインすると、戦績のデータがGoogle（Firebase）のサーバーにも保存されます。</p>';
   if (!u) return `<h2>ログインと同期</h2>${intro}<div class="row"><button class="btn primary" data-act="sync-login"${s.busy ? ' disabled' : ''}>Googleでログイン</button></div>${msg}`;
   let choose = '';
   if (s.status === 'choose') {
     const cc = s.cm ? s.cm.count : 0;
     choose = `<div class="panel" style="margin-top:10px"><p class="small" style="margin:0"><b>この端末の記録（${db.matches.length}試合）</b>と<b>クラウドの記録（${cc}試合）</b>が違っています。どちらを残すか選んでください。選ばなかった方の記録は消えます。迷うときは、先にバックアップを取ってください。</p><div class="row"><button class="btn" data-act="sync-pull">クラウドの記録にする</button><button class="btn danger" data-act="sync-push">この端末の記録でクラウドを上書きする</button></div></div>`;
   }
-  return `<h2>ログインと同期</h2><p class="small" style="margin:0">ログイン中：<b>${esc(u.name || 'Googleアカウント')}</b></p>${choose}<div class="row"><button class="btn" data-act="sync-now"${s.busy ? ' disabled' : ''}>今すぐ同期</button><button class="btn ghost" data-act="sync-logout">ログアウト</button></div>${msg}${friendHTML()}${cloudDelHTML()}`;
+  return `<h2>ログインと同期</h2><p class="small" style="margin:0">Googleアカウントでログイン中です（このアカウントの名前やメールアドレスは、ほかの人には表示されません）。</p>
+    <label class="fl"><span class="label">ニックネーム（フレンドに表示される名前）</span><div class="row" style="flex-wrap:nowrap"><input type="text" id="nick-in" maxlength="20" value="${esc(myNick())}" placeholder="ゲーム内の名前など（本名は避けてください）" style="flex:1;min-width:0"><button class="btn" data-act="nick-save">保存</button></div></label>${choose}<div class="row"><button class="btn" data-act="sync-now"${s.busy ? ' disabled' : ''}>今すぐ同期</button><button class="btn ghost" data-act="sync-logout">ログアウト</button></div>${msg}${friendHTML()}${cloudDelHTML()}`;
 }
 /* ---------- フレンド連携 ---------- */
 // 招待コード方式：Aがコードを発行 → Bが入力して申請 → Aが承認すると連携が成立。どちらからでも解除できる。
@@ -2870,9 +2876,19 @@ async function friendDo(fn) {
   catch (e) { syncS.fmsg = friendErr(e); syncS.ferr = true; }
   syncS.fbusy = false; syncRender(); shareSync();
 }
+// フレンドに見せる名前は、Googleの表示名（本名のことがある）ではなく、自分で決めたニックネームにする
+const myNick = () => (((view.on ? view.my : db) || {}).nick || '').trim();
+const needNick = () => { if (myNick()) return false; syncS.fmsg = '先に、上の「ニックネーム」を決めて保存してください。フレンドには、この名前が表示されます。'; syncS.ferr = true; return true; };
+function nickSave() {
+  const el = document.getElementById('nick-in'); if (!el || view.on) return;
+  const v = el.value.replace(/\s+/g, ' ').trim().slice(0, 20);
+  if (!v) { syncS.msg = 'ニックネームを入力してください。'; syncS.err = true; syncRender(syncS.msg, true); return; }
+  db.nick = v; persist(); syncRender('ニックネームを保存しました。'); shareSync();
+}
 const friendInvite = () => friendDo(async u => {
+  if (needNick()) return;
   const code = newCode(), exp = Date.now() + INV_TTL;
-  await FBA.createInvite(u.uid, u.name || '', code, exp);
+  await FBA.createInvite(u.uid, myNick(), code, exp);
   const m = syncMeta(); m.inv = { code, exp }; syncSaveMeta(m);
   syncS.fmsg = '招待コードを発行しました。相手に伝えてください。'; syncS.ferr = false;
 });
@@ -2882,6 +2898,7 @@ const friendInviteDel = () => friendDo(async () => {
   syncS.fmsg = '招待コードを消しました。'; syncS.ferr = false;
 });
 const friendJoin = () => friendDo(async u => {
+  if (needNick()) return;
   const code = (syncS.joinCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (code.length !== 8) { syncS.fmsg = 'コードは8文字です。入力を確認してください。'; syncS.ferr = true; return; }
   const inv = await FBA.getInvite(code);
@@ -2890,7 +2907,7 @@ const friendJoin = () => friendDo(async u => {
   if (inv.owner === u.uid) { syncS.fmsg = '自分のコードです。相手に渡してください。'; syncS.ferr = true; return; }
   const id = linkId(u.uid, inv.owner);
   if ((syncS.links || []).some(l => l.id === id)) { syncS.fmsg = 'この人とは、すでに申請中かフレンドです。'; syncS.ferr = true; return; }
-  await FBA.askLink(id, { a: inv.owner, b: u.uid, aName: inv.ownerName || '', bName: u.name || '', code, status: 'pending', at: Date.now() });
+  await FBA.askLink(id, { a: inv.owner, b: u.uid, aName: inv.ownerName || '', bName: myNick(), code, status: 'pending', at: Date.now() });
   syncS.joinCode = ''; syncS.fmsg = `${inv.ownerName || '相手'}さんに申請しました。承認されるとフレンドになります。`; syncS.ferr = false;
   syncS.links = await FBA.listLinks(u.uid);
 });
@@ -2913,7 +2930,7 @@ function buildShare() {
   const hn = id => id === EMPTY ? EMPTY : ((db.heroes.find(h => h.id === id) || {}).name || null);
   const sn = id => id ? ((db.stages.find(x => x.id === id) || {}).name || null) : null;
   return {
-    v: 1, name: (syncS.user && syncS.user.name) || '',
+    v: 1, name: myNick(),
     matches: db.matches.map(m => {
       const o = { at: m.at, mode: m.mode, stage: sn(m.stage), b: m.b, r: m.r, side: m.side, idx: m.idx, blue: m.blue.map(hn), red: m.red.map(hn) };
       for (const k of ['res', 'noSeason', 'rank', 'ranks', 'pt', 'ptAfter', 'medals']) if (m[k] !== undefined) o[k] = m[k];
