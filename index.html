@@ -892,7 +892,8 @@ function seedHeroes() {
 }
 seedHeroes();
 // 前の版で自分で選んだシーズン画像は使わなくなったので消す（公式画像に戻す）
-if (db.seasons && db.seasons.some(x => x.img)) { db.seasons.forEach(x => delete x.img); try { localStorage.setItem(DBKEY, JSON.stringify(db)); } catch (e) {} }
+function dbFix() { if (db.seasons && db.seasons.some(x => x.img)) db.seasons.forEach(x => delete x.img); }
+dbFix();
 function rebuildCache() {
   cache = {
     me: db.me.map(enc.unmask),
@@ -919,9 +920,62 @@ function saveWarn() {
 let pendingRestore = null;
 // フレンドのデータを見ている間（閲覧のみ）。この間は保存も同期もしない
 const view = { on: false, my: null, pend: '', lid: '', uid: '', name: '', at: 0, unsub: null };
+/* ---------- 保存先：IndexedDB（容量が大きい）。使えないブラウザでは localStorage ---------- */
+// 古い試合の「同じスクショか」を見分ける縮小画像は消す（リプレイ一覧に出るのは直近の試合だけ。メダルを書き足せる試合は残す）
+const HASH_KEEP = 200;
+function pruneHash() {
+  const ms = db.matches.filter(m => m.hash); if (ms.length <= HASH_KEEP) return;
+  const keep = new Set([...db.matches].sort((a, b) => b.at - a.at).slice(0, HASH_KEEP).map(m => m.id));
+  for (const m of ms) if (!keep.has(m.id) && m.medals) delete m.hash;
+}
+const store = { db: null, ready: false, useLS: false, timer: 0, busy: false, again: false };
+function idbOpen() {
+  return new Promise((res, rej) => {
+    if (!window.indexedDB) { rej(new Error('no idb')); return; }
+    const r = indexedDB.open('cps-senseki', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error('blocked'));
+  });
+}
+function idbReq(mode, fn) {
+  return new Promise((res, rej) => {
+    const t = store.db.transaction('kv', mode), q = fn(t.objectStore('kv'));
+    t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error || new Error('abort'));
+  });
+}
+// 起動時に1回：IndexedDBから読む。まだ無ければ localStorage の記録を移して、移せたら localStorage から消す
+async function storeInit() {
+  try {
+    store.db = await idbOpen();
+    const v = await idbReq('readonly', o => o.get('db'));
+    if (typeof v === 'string' && v) { db = Object.assign(emptyDB(), JSON.parse(v)); }
+    else {
+      let ls = null; try { ls = localStorage.getItem(DBKEY); } catch (e) {}
+      if (ls) { await idbReq('readwrite', o => o.put(ls, 'db')); try { localStorage.removeItem(DBKEY); } catch (e) {} }
+    }
+  } catch (e) { store.useLS = true; }
+  seedHeroes(); dbFix(); rebuildCache();
+  store.ready = true;
+}
+async function storeWrite() {
+  store.timer = 0;
+  if (store.busy) { store.again = true; return; }
+  store.busy = true;
+  try {
+    pruneHash();
+    const t = JSON.stringify(db);
+    if (store.useLS) localStorage.setItem(DBKEY, t); else await idbReq('readwrite', o => o.put(t, 'db'));
+    saveOK = true;
+  } catch (e) { saveOK = false; }
+  store.busy = false; saveWarn();
+  if (store.again) { store.again = false; storeWrite(); }
+}
+function storeSave() { if (!store.ready) return; clearTimeout(store.timer); store.timer = setTimeout(storeWrite, 200); }
+// 画面を閉じる・切り替える時は、待たずにすぐ書く
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && store.timer) { clearTimeout(store.timer); store.timer = 0; storeWrite(); } });
 function persist() {
   if (view.on) return;
-  try { localStorage.setItem(DBKEY, JSON.stringify(db)); saveOK = true; } catch (e) { saveOK = false; }
+  storeSave();
   saveWarn();
   rebuildCache();
   try { syncTouch(); } catch (e) {}
@@ -2145,6 +2199,7 @@ function seasonRow(m, pc) {
 
 /* ---------- シーズン外 ---------- */
 // シーズンに入っていない試合（フリーバトル・カスタムなど全部と、シーズン期間外・外したバトルアリーナ）
+const PAGE_N = 50;
 function renderOut() {
   const el = $('#view-out');
   const all = db.matches.filter(m => !inSeason(m)).sort((a, b) => b.at - a.at);
@@ -2160,7 +2215,9 @@ function renderOut() {
       <div class="kpi"><div class="label">勝利-敗北${d ? '-DRAW' : ''}</div><div class="v">${w}<small>-</small>${l}${d ? `<small>-</small>${d}` : ''}</div></div>
       <div class="kpi"><div class="label">勝率</div><div class="v">${rate == null ? '-' : rate}<small>${rate == null ? '' : '%'}</small></div>${n ? `<div class="small muted">95%の範囲 ${ciText(w, n)}</div>` : ''}</div></div>
   </div></div>`;
-  h += `<div class="section"><div class="plist">${list.length ? list.map(outRow).join('') : '<div class="small muted">シーズン外の試合はまだありません。</div>'}</div></div>`;
+  const on = Math.max(PAGE_N, +(el.dataset.n || 0)), rest = list.length - on;
+  h += `<div class="section"><div class="plist">${list.length ? list.slice(0, on).map(outRow).join('') : '<div class="small muted">シーズン外の試合はまだありません。</div>'}</div>
+    ${rest > 0 ? `<div class="row" style="margin-top:8px"><button class="btn ghost" data-act="out-more">もっと見る（残り${rest}試合）</button></div>` : ''}</div>`;
   el.innerHTML = h;
   fitAllMemos();
 }
@@ -2220,7 +2277,7 @@ function renderHist() {
       ${sel('rank', '自分のランク', m => [m.rank], x => x)}
     </div>
     ${active.length ? `<div class="hfbar"><span class="small muted">絞り込み中：</span>${active.map(k => `<span class="hfchip">${esc({ hero: '使用', stage: 'ステージ', mode: 'モード', enemy: '敵', rank: 'ランク' }[k])}：${esc(k === 'hero' || k === 'enemy' ? heroName(f[k]) : k === 'stage' ? stageName(f[k]) : f[k])}</span>`).join('')}<button class="btn ghost small" data-act="hf-clear">解除</button></div>` : ''}
-    <div class="hist">${ms.length ? ms.map(m => {
+    <div class="hist">${ms.length ? ms.slice(0, Math.max(PAGE_N, +(el.dataset.n || 0))).map(m => {
     const r = matchResult(m);
     const delAsk = el.dataset.ask === m.id;
     return `<div class="hrow"><span class="res ${r}">${RES_LABEL[r]}</span>
@@ -2231,18 +2288,20 @@ function renderHist() {
         <span>${esc(heroName(mineOf(m)))}・${m.side === 'blue' ? m.b : m.r}-${m.side === 'blue' ? m.r : m.b}・${esc(stageName(m.stage))}・${new Date(m.at).toLocaleDateString('ja-JP')}</span>
         <span>分析・シーズンpt・シーズン外からも消えます。入力したptとコメントも消えます。<b>元に戻せません。</b></span>
         <div class="row"><button class="btn danger" data-del="${m.id}">削除する</button><button class="btn" data-ask="">やめる</button></div></div>` : ''}</div>`;
-  }).join('') : '<div class="small muted" style="padding:10px 0">この条件の試合はありません。</div>'}</div></div></div>`;
+  }).join('') : '<div class="small muted" style="padding:10px 0">この条件の試合はありません。</div>'}</div>
+    ${ms.length > Math.max(PAGE_N, +(el.dataset.n || 0)) ? `<div class="row" style="margin-top:8px"><button class="btn ghost" data-act="hist-more">もっと見る（残り${ms.length - Math.max(PAGE_N, +(el.dataset.n || 0))}試合）</button></div>` : ''}</div></div>`;
 }
 
 function renderData() {
   const el = $('#view-data');
-  const used = new Set(db.matches.flatMap(m => m.blue.concat(m.red)));
+  const hcnt = new Map(); for (const m of db.matches) for (const x of new Set(m.blue.concat(m.red))) hcnt.set(x, (hcnt.get(x) || 0) + 1);
+  const used = new Set(hcnt.keys());
   const hs = db.heroes.filter(h => used.has(h.id)).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
   el.innerHTML = `
   <div class="section"><div class="panel" id="sync-box">${syncHTML()}</div></div>
   <div class="section"><div class="panel"><h2>バックアップ</h2>
     <p class="small muted" style="margin:0">記録はこのブラウザの中にだけあります。ブラウザのデータを消すと戦績も消えるので、ときどき下の文字列をコピーしてメモ帳などに保存してください。</p>
-    <textarea id="backup-out" readonly aria-label="バックアップ用の文字列">${esc(JSON.stringify(db))}</textarea>
+    <textarea id="backup-out" readonly aria-label="バックアップ用の文字列" placeholder="「コピー」を押すと、ここにバックアップの文字列が入ります"></textarea>
     <div class="row"><button class="btn" data-act="copy">コピー</button><span class="small muted" id="copy-msg"></span></div>
     <h3>復元</h3>
     <textarea id="backup-in" placeholder="保存しておいた文字列を貼り付け" aria-label="復元する文字列"></textarea>
@@ -2250,7 +2309,7 @@ function renderData() {
   </div></div>
   <div class="section"><div class="panel"><h2>ヒーロー名の修正</h2>
     <p class="small muted" style="margin:0">名前を打ち間違えたときはここで直せます。すでにある名前に変えると、ふたつがまとまります。</p>
-    <div class="hlist">${hs.length ? hs.map(x => `<div class="hero-item"><input type="text" id="rn-${x.id}" data-rename="${x.id}" value="${esc(x.name)}" aria-label="${esc(x.name)}の名前"><span class="small muted">${db.matches.filter(m => m.blue.includes(x.id) || m.red.includes(x.id)).length}試合</span></div>`).join('') : '<span class="small muted">まだ登録されたヒーローはいません。</span>'}</div>
+    <div class="hlist">${hs.length ? hs.map(x => `<div class="hero-item"><input type="text" id="rn-${x.id}" data-rename="${x.id}" value="${esc(x.name)}" aria-label="${esc(x.name)}の名前"><span class="small muted">${hcnt.get(x.id) || 0}試合</span></div>`).join('') : '<span class="small muted">まだ登録されたヒーローはいません。</span>'}</div>
   </div></div>
   <div class="section"><div class="panel"><h2>全部消す</h2>
     <p class="small muted" style="margin:0">試合・ヒーロー名・自分の名前の学習をすべて消します。元に戻せません。${syncS.user ? 'ログイン中でも、クラウドの記録は自動では消えません（この端末が空のまま同期しようとすると、確認が出ます）。' : ''}</p>
@@ -2565,6 +2624,7 @@ document.addEventListener('click', e => {
   else if (t.dataset.del) { db.matches = db.matches.filter(m => m.id !== t.dataset.del); $('#view-hist').dataset.ask = ''; persist(); renderAll(); }
   else if (act === 'copy') {
     const ta = $('#backup-out');
+    if (!ta.value) ta.value = JSON.stringify(db);
     const done = m => { $('#copy-msg').textContent = m; };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(() => done('コピーしました'), () => { ta.select(); done('選択しました。長押しかCtrl+Cでコピーしてください'); });
     else { ta.select(); done('選択しました。長押しかCtrl+Cでコピーしてください'); }
@@ -2578,6 +2638,7 @@ document.addEventListener('click', e => {
   else if (act === 'sync-login') syncLogin();
   else if (act === 'sync-logout') syncLogout();
   else if (act === 'fb-send') feedbackSend();
+  else if (act === 'hist-more' || act === 'out-more') { const v = $(act === 'hist-more' ? '#view-hist' : '#view-out'); v.dataset.n = Math.max(PAGE_N, +(v.dataset.n || 0)) + PAGE_N; act === 'hist-more' ? renderHist() : renderOut(); }
   else if (act === 'nick-save') nickSave();
   else if (act === 'go-feedback') { e.preventDefault(); guideGo('feedback'); }
   else if (act === 'go-terms') { e.preventDefault(); guideGo('terms'); }
@@ -2736,7 +2797,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-13h', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-13i', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -3245,11 +3306,14 @@ async function syncAuto() {
   if (!syncHasLocal() && syncS.cm && syncS.cm.count > 0) { syncS.status = 'choose'; syncRender(''); return; }
   await syncPush(false);
 }
-if (syncMeta().uid) { syncLoad().catch(() => {}); }
-renderAll();
 renderGuide();
 try { const t = localStorage.getItem(DBKEY + '-tab'); if (t && document.getElementById('view-' + t)) showTab(t); } catch (e) {}
-guideFirst();
+// 記録を読み終わってから、表示・同期・初回案内を始める（読む前に同期すると、空の記録と勘違いするため）
+storeInit().then(() => {
+  renderAll();
+  if (syncMeta().uid) { syncLoad().catch(() => {}); }
+  guideFirst();
+});
 </script>
 
 </body></html>
