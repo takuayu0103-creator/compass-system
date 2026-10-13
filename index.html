@@ -299,6 +299,8 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
 .medtbl{width:100%;border-collapse:collapse;font-size:.85rem}.medtbl th{text-align:left;font-weight:700;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--line,#444)}.medtbl td{padding:5px 6px;border-bottom:1px solid rgba(128,128,128,.18)}.medtbl .mi{display:flex;align-items:center;gap:6px;white-space:nowrap}.medtbl .mn b{font-size:1rem}
 .btn.mon{background:var(--accent);color:var(--accent-ink);border-color:transparent}.mlist{display:flex;flex-direction:column;gap:2px}.mrow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) 3em auto;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(128,128,128,.18);font-size:.85rem}.mrow.thin{opacity:.5}.mrow .mh{display:flex;align-items:center;gap:6px;min-width:0}.mrow .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mrow b{text-align:right}.mbar{height:8px;border-radius:4px;background:rgba(128,128,128,.22);overflow:hidden}.mbar i{display:block;height:100%;background:var(--accent,#4da3ff);border-radius:4px}
 .acc{border:1px solid var(--line);border-radius:8px;background:var(--surface)}.acc>summary{cursor:pointer;list-style:none;padding:12px 14px;font-family:var(--f-ui);font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:8px}.acc>summary::-webkit-details-marker{display:none}.acc>summary::after{content:'＋';margin-left:auto;color:var(--muted)}.acc[open]>summary::after{content:'－'}.acc .accb{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;font-size:.9rem;line-height:1.7}.acc .accb h4{margin:6px 0 0;font-size:.9rem;font-family:var(--f-ui)}.acc .accb p,.acc .accb ul,.acc .accb ol{margin:0}.acc .accb ul,.acc .accb ol{padding-left:1.3em;display:flex;flex-direction:column;gap:4px}.acc .note{font-size:.82rem;color:var(--muted)}
+.flinks{display:inline-flex;gap:14px;margin:6px 0}.flinks a{color:var(--ink);font-weight:700}
+#fb-text{width:100%;min-height:120px;resize:vertical;font:inherit;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);box-sizing:border-box}
 .gfirst{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}.gfirst .box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;max-width:380px;display:flex;flex-direction:column;gap:12px}
 .whobar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:4px 0 8px}
 .whobar select{max-width:12em}
@@ -364,7 +366,7 @@ body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],bod
 
   <footer><div class="support"><span class="label">開発者の応援コード</span>
     <div class="row"><button class="code" data-copy="C-zUgt">C-zUgt</button><button class="code" data-copy="C-sEuU">C-sEuU</button><button class="code" data-copy="C-MQWL">C-MQWL</button><span class="small muted" id="code-msg">タップでコピー</span></div></div>
-    非公式のファンツールです。ゲームの開発・運営会社とは関係ありません。読み取りに使ったスクショは保存せず、照合用の特徴データだけをこのブラウザに保存します。<br>ゲーム内の画像・名称などの著作権は各権利者に帰属します。©NHN PlayArt Corp. ©DWANGO Co., Ltd.</footer>
+    非公式のファンツールです。ゲームの開発・運営会社とは関係ありません。読み取りに使ったスクショは保存せず、照合用の特徴データだけをこのブラウザに保存します。<br><span class="flinks"><a href="#" data-act="go-feedback">フィードバック</a><a href="#" data-act="go-terms">利用規約とプライバシー</a></span><br>ゲーム内の画像・名称などの著作権は各権利者に帰属します。©NHN PlayArt Corp. ©DWANGO Co., Ltd.</footer>
 </div>
 
 <script id="core">
@@ -2339,6 +2341,7 @@ function renderGuide() {
     <ul>
       <li><b>スクショ：</b>読み取りはすべて利用者の端末の中で行い、画像そのものはどこにも送らず、保存もしません。照合に使う特徴データ（縮小した形の情報など）だけを、このブラウザに保存します。</li>
       <li><b>戦績：</b>利用者が保存した試合の記録（ヒーロー・ステージ・スコア・ランク・メダル・pt・メモなど）です。集計と表示のためだけに使います。</li>
+      <li><b>フィードバック：</b>送った文章と、送った日時・アプリの版を、サーバー（Firebase）に保存します。運営者だけが読み、不具合の修正や機能の改善のためだけに使います。名前やアカウントの情報は付けません。</li>
       <li><b>Googleアカウントの情報（ログインした場合のみ）：</b>表示名と、アカウントを見分けるためのIDを使います。表示名は、フレンド連携の相手の画面に表示されます。メールアドレスは、本ツールの画面に表示したり、ほかの人に見せたりすることはありません。</li>
     </ul>
     <h4>保存する場所</h4>
@@ -2372,8 +2375,38 @@ function renderGuide() {
     <p>運営者は、この内容を変更することがあります。変更後の内容は、このページに掲載した時点から効力を生じます。</p>
     <h4>お問い合わせ</h4>
     <p>X（旧Twitter）：<a href="https://x.com/26_SpringPeach" target="_blank" rel="noopener">@26_SpringPeach</a></p>`)}
-  </div>`;
+  </div>
+  <div class="section" id="fb-box"><div class="panel"><h2>フィードバック</h2>
+    <p class="small muted" style="margin:0">不具合や欲しい機能を、運営者に送れます。名前は付かず、こちらから返信することはできません。返事が欲しい時は、X（<a href="https://x.com/26_SpringPeach" target="_blank" rel="noopener">@26_SpringPeach</a>）へ連絡してください。</p>
+    <textarea id="fb-text" maxlength="1000" placeholder="不具合や欲しい機能など（個人情報は書かないでください）" aria-label="フィードバックの内容"></textarea>
+    <div class="row" style="justify-content:space-between"><span class="small muted" id="fb-count">0 / 1000</span><button class="btn primary" data-act="fb-send">送信する</button></div>
+    <p class="small" id="fb-msg" style="margin:0" hidden></p></div></div>`;
 }
+const FB_WAIT = 60 * 1000;
+async function feedbackSend() {
+  const ta = $('#fb-text'), msg = $('#fb-msg'), btn = document.querySelector('[data-act="fb-send"]');
+  const say = (t, bad) => { msg.hidden = false; msg.textContent = t; msg.style.color = bad ? 'var(--lose)' : ''; };
+  const text = (ta.value || '').trim();
+  if (!text) { say('内容を入力してください。', true); return; }
+  let last = 0; try { last = +localStorage.getItem(DBKEY + '-fb') || 0; } catch (e) {}
+  if (Date.now() - last < FB_WAIT) { say(`続けて送る時は、少し時間をあけてください（あと${Math.ceil((FB_WAIT - (Date.now() - last)) / 1000)}秒）。`, true); return; }
+  btn.disabled = true; say('送信しています…');
+  try {
+    await syncLoad();
+    if (!FBA || !FBA.sendFeedback) throw new Error('送信の機能を読み込めませんでした');
+    await FBA.sendFeedback(text.slice(0, 1000), APP_VER);
+    try { localStorage.setItem(DBKEY + '-fb', String(Date.now())); } catch (e) {}
+    ta.value = ''; $('#fb-count').textContent = '0 / 1000'; say('送信しました。ありがとうございます。');
+  } catch (e) { say('送信できませんでした。通信を確認して、もう一度試してください。（' + ((e && (e.code || e.message)) || '不明なエラー') + '）', true); }
+  btn.disabled = false;
+}
+function guideGo(which) {
+  showTab('guide');
+  const el = which === 'terms' ? document.querySelectorAll('#view-guide .acc')[5] : $('#fb-box');
+  if (!el) return; if (el.tagName === 'DETAILS') el.open = true;
+  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+}
+document.addEventListener('input', e => { if (e.target && e.target.id === 'fb-text') $('#fb-count').textContent = `${e.target.value.length} / 1000`; });
 function guideFirst() {
   let seen = false; try { seen = !!localStorage.getItem(DBKEY + '-guide'); } catch (e) {}
   if (seen || db.matches.length) return;
@@ -2540,6 +2573,9 @@ document.addEventListener('click', e => {
   } else if (act === 'clear-filter') { const v = $('#view-stats'); delete v.dataset.mode; delete v.dataset.hero; delete v.dataset.stage; delete v.dataset.mv; renderStats(); }
   else if (act === 'sync-login') syncLogin();
   else if (act === 'sync-logout') syncLogout();
+  else if (act === 'fb-send') feedbackSend();
+  else if (act === 'go-feedback') { e.preventDefault(); guideGo('feedback'); }
+  else if (act === 'go-terms') { e.preventDefault(); guideGo('terms'); }
   else if (act === 'cloud-del') { syncS.cdAsk = true; syncRender(); }
   else if (act === 'cloud-del-no') { syncS.cdAsk = false; syncRender(); }
   else if (act === 'cloud-del-yes') cloudDelete();
@@ -2695,7 +2731,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-13f', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-13g', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -2735,6 +2771,7 @@ async function fbReal() {
       const q = await F.getDocs(F.collection(fs, 'users', uid, 'chunks')), b = F.writeBatch(fs);
       q.forEach(d => b.delete(d.ref)); b.delete(F.doc(fs, 'users', uid)); await b.commit();
     },
+    async sendFeedback(text, ver) { await F.addDoc(F.collection(fs, 'feedback'), { text, ver, at: F.serverTimestamp() }); },
     async createInvite(uid, name, code, exp) { await F.setDoc(F.doc(fs, 'invites', code), { owner: uid, ownerName: name, expiresAt: exp }); },
     async delInvite(code) { await F.deleteDoc(F.doc(fs, 'invites', code)); },
     async getInvite(code) { const d = await F.getDoc(F.doc(fs, 'invites', code)); return d.exists() ? d.data() : null; },
