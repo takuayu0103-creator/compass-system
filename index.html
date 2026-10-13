@@ -296,7 +296,7 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
   .stat.drill{grid-template-columns:minmax(0,7.4em) 1fr 6em 1em;gap:6px}
   .teams{grid-template-columns:1fr}
 }
-.medtbl{width:100%;border-collapse:collapse;font-size:.85rem}.medtbl th{text-align:left;font-weight:700;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--line,#444)}.medtbl td{padding:5px 6px;border-bottom:1px solid rgba(128,128,128,.18)}.medtbl .mi{display:flex;align-items:center;gap:6px;white-space:nowrap}.medtbl .mn b{font-size:1rem}
+.medtbl{width:100%;border-collapse:collapse;font-size:.85rem}.medtbl th{text-align:left;font-weight:700;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--line,#444)}.medtbl td{padding:5px 6px;border-bottom:1px solid rgba(128,128,128,.18)}.medtbl .mic{display:flex;align-items:center;gap:6px;min-width:0}.medtbl .mic img{flex:0 0 auto}.medtbl .mic span{overflow-wrap:anywhere;line-height:1.3}.medtbl td{vertical-align:middle}.medtbl .mn{white-space:nowrap;width:1%}.medtbl .mn .avg{display:block;font-size:.75rem;color:var(--muted)}.medtbl th .thn{display:block;font-size:.72rem;font-weight:400}.medtbl .mn b{font-size:1rem}
 .btn.mon{background:var(--accent);color:var(--accent-ink);border-color:transparent}.mlist{display:flex;flex-direction:column;gap:2px}.mrow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) 3em auto;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(128,128,128,.18);font-size:.85rem}.mrow.thin{opacity:.5}.mrow .mh{display:flex;align-items:center;gap:6px;min-width:0}.mrow .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mrow b{text-align:right}.mbar{height:8px;border-radius:4px;background:rgba(128,128,128,.22);overflow:hidden}.mbar i{display:block;height:100%;background:var(--accent,#4da3ff);border-radius:4px}
 .acc{border:1px solid var(--line);border-radius:8px;background:var(--surface)}.acc>summary{cursor:pointer;list-style:none;padding:12px 14px;font-family:var(--f-ui);font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:8px}.acc>summary::-webkit-details-marker{display:none}.acc>summary::after{content:'＋';margin-left:auto;color:var(--muted)}.acc[open]>summary::after{content:'－'}.acc .accb{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;font-size:.9rem;line-height:1.7}.acc .accb h4{margin:6px 0 0;font-size:.9rem;font-family:var(--f-ui)}.acc .accb p,.acc .accb ul,.acc .accb ol{margin:0}.acc .accb ul,.acc .accb ol{padding-left:1.3em;display:flex;flex-direction:column;gap:4px}.acc .note{font-size:.82rem;color:var(--muted)}
 .flinks{display:inline-flex;gap:14px;margin:6px 0}.flinks a{color:var(--ink);font-weight:700}
@@ -1695,12 +1695,12 @@ function medalHTML(list) {
   const R = medalStats(list), keys = Core.MEDAL_KEYS;
   const pct = (b, k) => f2(pct2(b.users[k] || 0, b.n) ?? 0);
   const rows = keys.filter(k => (R.ally.users[k] || 0) + (R.enemy.users[k] || 0) > 0).sort((a, b) => (R.ally.users[b] || 0) + (R.enemy.users[b] || 0) - (R.ally.users[a] || 0) - (R.enemy.users[a] || 0));
-  const cell = (b, k) => `<td class="mn"><b>${pct(b, k)}%</b><span class="small muted"> ${b.n ? ((b.tot[k] || 0) / b.n).toFixed(1) : '0.0'}個</span></td>`;
+  const cell = (b, k) => `<td class="mn"><b>${pct(b, k)}%</b><span class="avg">${b.n ? ((b.tot[k] || 0) / b.n).toFixed(1) : '0.0'}個</span></td>`;
   const cov = b => f2(pct2(b.known, b.slots) ?? 0);
   return `<div class="section"><div class="panel"><h2>メダルの使用率（自分と連携フレンドを除く）</h2>
     <p class="small muted" style="margin:0 0 8px">${nm}試合分。自分と、連携しているフレンド（一緒に出た試合のみ）は集計に入れていません。「使う人の割合」は、その絵柄を1個以上つけていた人の割合です。右の小さい数字は、1人あたりの平均個数です。</p>
-    <table class="medtbl"><thead><tr><th></th><th>味方（${R.ally.n}人）</th><th>敵（${R.enemy.n}人）</th></tr></thead><tbody>
-    ${rows.map(k => `<tr><td class="mi"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"> ${esc(MEDAL_NAME[k] || k)}</td>${cell(R.ally, k)}${cell(R.enemy, k)}</tr>`).join('')}
+    <table class="medtbl"><thead><tr><th></th><th>味方<span class="thn">（${R.ally.n}人）</span></th><th>敵<span class="thn">（${R.enemy.n}人）</span></th></tr></thead><tbody>
+    ${rows.map(k => `<tr><td class="mi"><div class="mic"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span>${esc(MEDAL_NAME[k] || k)}</span></div></td>${cell(R.ally, k)}${cell(R.enemy, k)}</tr>`).join('')}
     </tbody></table>
     <p class="small muted" style="margin:8px 0 0">読み取れたメダル枠：味方 ${cov(R.ally)}%・敵 ${cov(R.enemy)}%。読み取れなかった枠は、集計に入れていません。</p></div></div>` + '';
 }
@@ -2802,7 +2802,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-13l', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-13m', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
