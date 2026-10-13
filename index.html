@@ -2802,7 +2802,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-13m', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-13n', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -3008,7 +3008,7 @@ function buildShare() {
 let shareLast = null;
 let shareBusy = false, shareAgain = false, shareInfo = '';
 async function shareSync() {
-  const u = syncS.user; if (!u || !FBA || !FBA.putShare || view.on) return;
+  const u = syncS.user; if (!u || !FBA || !FBA.putShare || view.on || syncS.deleting) return;
   if (shareBusy) { shareAgain = true; return; }
   shareBusy = true;
   try { await shareRun(u); } finally { shareBusy = false; }
@@ -3229,19 +3229,33 @@ function cloudDelHTML() {
       <div class="row"><button class="btn danger" data-act="cloud-del-yes"${syncS.busy ? ' disabled' : ''}>削除する</button><button class="btn" data-act="cloud-del-no">やめる</button></div></div>`
     : `<div class="row"><button class="btn danger" data-act="cloud-del">クラウドの記録を削除</button></div>`}`;
 }
+// 消したあとに、本当に消えたかを読み直して確かめる。1つでも残っていたら「削除完了」にせず、ログインしたまま、もう一度押してもらう
 async function cloudDelete() {
   const u = syncS.user; if (!u || !FBA || !FBA.delCloud || syncS.busy) return;
-  syncS.busy = true; clearTimeout(syncTimer); syncRender('クラウドの記録を削除しています…');
-  try {
-    try { await FBA.delShare(u.uid); } catch (e) {}
-    let links = []; try { links = await FBA.listLinks(u.uid); } catch (e) {}
-    for (const l of links) { try { await FBA.delLink(l.id); } catch (e) {} }
-    const m = syncMeta(); if (m.inv) { try { await FBA.delInvite(m.inv.code); } catch (e) {} }
-    await FBA.delCloud(u.uid);
-    syncSaveMeta({}); syncS.cdAsk = false; syncS.busy = false;
-    await syncLogout();
-    syncRender('クラウドの記録を削除して、ログアウトしました。この端末の記録は残っています。');
-  } catch (e) { syncS.busy = false; syncS.cdAsk = false; syncRender('削除できませんでした：' + ((e && (e.code || e.message)) || '不明なエラー') + '。もう一度試してください。', true); }
+  syncS.busy = true; syncS.deleting = true; clearTimeout(syncTimer); syncRender('クラウドの記録を削除しています…');
+  // 送信中の共有コピーがあれば、終わるのを待つ（消した直後に書き戻されないように）
+  for (let i = 0; i < 50 && shareBusy; i++) await new Promise(r => setTimeout(r, 100));
+  const fail = [];
+  try { await FBA.delShare(u.uid); } catch (e) {}
+  let links = []; try { links = await FBA.listLinks(u.uid); } catch (e) {}
+  for (const l of links) { try { await FBA.delLink(l.id); } catch (e) {} }
+  const m = syncMeta(); if (m.inv) { try { await FBA.delInvite(m.inv.code); } catch (e) {} }
+  try { await FBA.delCloud(u.uid); } catch (e) {}
+  // 確認
+  try { if (await FBA.getShare(u.uid)) fail.push('フレンドに見せている記録'); } catch (e) { fail.push('フレンドに見せている記録（確認できませんでした）'); }
+  try { if ((await FBA.listLinks(u.uid)).length) fail.push('フレンド連携'); } catch (e) { fail.push('フレンド連携（確認できませんでした）'); }
+  try { if (m.inv && m.inv.exp > Date.now() && await FBA.getInvite(m.inv.code)) fail.push('招待コード'); } catch (e) {}
+  try { if (await FBA.getMeta(u.uid)) fail.push('自分の戦績のバックアップ'); } catch (e) { fail.push('自分の戦績のバックアップ（確認できませんでした）'); }
+  syncS.busy = false; syncS.cdAsk = false;
+  if (fail.length) {
+    syncS.deleting = false;
+    syncRender(`一部を削除できませんでした：${fail.join('、')}。通信を確認して、もう一度「クラウドの記録を削除」を押してください（消えた部分はそのままです）。`, true);
+    return;
+  }
+  const mm = syncMeta(); delete mm.inv; delete mm.uid; delete mm.cloudAt; syncSaveMeta(mm);
+  await syncLogout();
+  syncS.deleting = false;
+  syncRender('クラウドの記録を削除して、ログアウトしました（削除できたことを確認済みです）。この端末の記録は残っています。');
 }
 async function syncLogout() {
   if (!FBA) return; clearTimeout(syncTimer);
@@ -3250,7 +3264,7 @@ async function syncLogout() {
 }
 // ログイン時・手動・変更後に呼ぶ。クラウドとこの端末の状態を見て、同期するか、選んでもらうかを決める
 async function syncRun() {
-  const u = syncS.user; if (!u || !FBA || syncS.busy || view.on) return;
+  const u = syncS.user; if (!u || !FBA || syncS.busy || view.on || syncS.deleting) return;
   syncS.busy = true; syncS.status = 'in'; syncRender('同期を確認しています…');
   try {
     let m = syncMeta();
@@ -3271,7 +3285,7 @@ async function syncRun() {
 }
 function syncDone() { return '同期済み（' + new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) + '）'; }
 async function syncPush(force, m0) {
-  const u = syncS.user; if (!u || !FBA || view.on) return;
+  const u = syncS.user; if (!u || !FBA || view.on || syncS.deleting) return;
   const own = !m0; if (own) { if (syncS.busy) return; syncS.busy = true; }
   try {
     let m = m0 || syncMeta(); if (m.uid !== u.uid) m = { uid: u.uid, cloudAt: 0, dirty: true };
