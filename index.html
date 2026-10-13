@@ -2371,7 +2371,7 @@ function renderGuide() {
     <h4>規約の変更</h4>
     <p>運営者は、この内容を変更することがあります。変更後の内容は、このページに掲載した時点から効力を生じます。</p>
     <h4>お問い合わせ</h4>
-    <p>X（旧Twitter）：<a href="https://x.com/26_Spring_Peach" target="_blank" rel="noopener">@26_Spring_Peach</a></p>`)}
+    <p>X（旧Twitter）：<a href="https://x.com/26_SpringPeach" target="_blank" rel="noopener">@26_SpringPeach</a></p>`)}
   </div>`;
 }
 function guideFirst() {
@@ -2695,7 +2695,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-13e', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-13f', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
