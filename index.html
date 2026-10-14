@@ -306,7 +306,7 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
 .whobar select{max-width:12em}
 .whobar .vb{color:var(--accent);font-weight:700}
 body.viewing .grip,body.viewing [data-act="season-new"],body.viewing [data-act="season-del"],body.viewing [data-ask],body.viewing [data-unseason],body.viewing [data-reseason]{display:none!important}
-body.viewing input:disabled,body.viewing textarea:disabled,body.viewing .sgn:disabled{opacity:.75;cursor:default}
+body.viewing input:disabled,body.viewing textarea:disabled,body.viewing select:disabled,body.viewing .sgn:disabled{opacity:.75;cursor:default}
 body.viewing #tab-add,body.viewing #tab-data,body.viewing #view-add,body.viewing #view-data{display:none!important}
 body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],body.viewing [data-reseason],body.viewing [data-memo],body.viewing [data-mdate],body.viewing [data-act="season-new"],body.viewing #season-new{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -2799,7 +2799,7 @@ document.addEventListener('change', e => {
 // フレンドのデータを見ている間は、入力欄をすべて触れないようにする（見るだけ。試合数の範囲など、表示を切り替える欄は残す）
 function viewLock() {
   if (!view.on) return;
-  document.querySelectorAll('#view-season input:not(.rng), #view-season textarea, #view-out input, #view-out textarea, #view-hist input, #view-hist textarea, #view-season .sgn, #view-out .sgn')
+  document.querySelectorAll('#view-season input:not(.rng), #view-season textarea, #view-season select, #view-out input, #view-out textarea, #view-hist input, #view-hist textarea, #view-season .sgn, #view-out .sgn')
     .forEach(e => { if (!e.disabled) { e.disabled = true; e.title = 'フレンドのデータは見るだけです'; } });
 }
 ['#view-season', '#view-out', '#view-hist', '#view-stats'].forEach(q => { const el = document.querySelector(q); if (el) new MutationObserver(viewLock).observe(el, { childList: true, subtree: true }); });
@@ -2821,7 +2821,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-14a', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-14b', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
