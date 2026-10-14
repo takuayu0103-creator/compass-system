@@ -305,6 +305,8 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
 .whobar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:4px 0 8px}
 .whobar select{max-width:12em}
 .whobar .vb{color:var(--accent);font-weight:700}
+body.viewing .grip,body.viewing [data-act="season-new"],body.viewing [data-act="season-del"],body.viewing [data-ask],body.viewing [data-unseason],body.viewing [data-reseason]{display:none!important}
+body.viewing input:disabled,body.viewing textarea:disabled,body.viewing .sgn:disabled{opacity:.75;cursor:default}
 body.viewing #tab-add,body.viewing #tab-data,body.viewing #view-add,body.viewing #view-data{display:none!important}
 body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],body.viewing [data-reseason],body.viewing [data-memo],body.viewing [data-mdate],body.viewing [data-act="season-new"],body.viewing #season-new{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -381,8 +383,9 @@ const Core = (() => {
     DIGIT_T[k] = { r: DIGITS[k].r, m: a };
   }
   const clsK = (r, g, b) => r < 40 && g < 40 && b < 40;
-  const clsB = (r, g, b) => b > 200 && r < 200 && b - r > 40;
-  const clsR = (r, g, b) => r > 200 && b < 210 && r - b > 30;
+  // 明るさや圧縮で色が少しずれても拾えるように、「どの色が一番強いか」で判定する
+  const clsB = (r, g, b) => b > 170 && b - r > 35 && b >= g;
+  const clsR = (r, g, b) => r > 170 && r - b > 28 && r >= g;
 
   function runs(arr, minlen) {
     const out = []; let s = -1;
@@ -421,17 +424,21 @@ const Core = (() => {
     const sc = pitch / 455, pw = Math.round(pitch * 447 / 455);
     const out = { sc, pw };
     for (const [side, x0, cls] of [['blue', bx0, clsB], ['red', rx0, clsR]]) {
-      const xs = x0 + Math.round(5 * sc);
+      // 枠の左端と、中のアイコンの間の細い余白を縦に見る（解像度が低いと余白も細いので、幅に合わせて位置と本数を決める）
+      const xs = x0 + Math.max(1, Math.round(3 * sc)), nx = sc < 0.75 ? 2 : 3;
       const cm = [], km = [];
       for (let y = 0; y < H; y++) {
         let allc = true, allk = true;
-        for (let dx = 0; dx < 3; dx++) {
+        for (let dx = 0; dx < nx; dx++) {
           const i = (y * W + xs + dx) * 4, r = D[i], g = D[i + 1], b = D[i + 2];
           if (!cls(r, g, b)) allc = false;
           if (!clsK(r, g, b)) allk = false;
         }
         cm.push(allc); km.push(allk);
       }
+      // 圧縮のノイズで1〜2画素だけ途切れた所はつなぐ（枠と枠の間の隙間は消さない）
+      const gapFill = arr => { const g = Math.max(1, Math.min(2, Math.round(2 * sc))); for (let y = 1; y < arr.length; y++) if (!arr[y] && arr[y - 1]) { let e = y; while (e < arr.length && !arr[e] && e - y < g) e++; if (e < arr.length && arr[e] && e - y <= g) for (let q = y; q < e; q++) arr[q] = true; } return arr; };
+      gapFill(cm); gapFill(km);
       let cr = runs(cm, 40 * sc); const kr = runs(km, 30 * sc);
       const tallest = Math.max(0, ...cr.map(([a, b]) => b - a));
       cr = cr.filter(([a, b]) => b - a >= tallest * 0.8).slice(0, 3);
@@ -461,9 +468,11 @@ const Core = (() => {
     let rx = -1; if (bx >= 0) for (let x = Math.floor(W / 2); x < W; x++) if (cr[x] >= cb[bx] * 0.85) { rx = x; break; }
     if (bx < 0 || rx < 0 || rx - bx < W * 0.3 || rx - bx > W * 0.6) return { cards: [], skipped: 0 };
     const sc = (rx - bx) / 455;
-    const vr = (xs, cls) => {
-      const m = [];
+    const vr = (x0, cls) => {
+      const xs = x0 + Math.max(1, Math.round(2 * sc)), m = [];
       for (let y = 0; y < H; y++) { let ok = true; for (let dx = 0; dx < 3 && ok; dx++) { const i = (y * W + xs + dx) * 4; if (!cls(D[i], D[i + 1], D[i + 2])) ok = false; } m.push(ok); }
+      const g = Math.max(1, Math.min(2, Math.round(2 * sc)));
+      for (let y = 1; y < H; y++) if (!m[y] && m[y - 1]) { let e = y; while (e < H && !m[e] && e - y < g) e++; if (e < H && m[e] && e - y <= g) for (let q = y; q < e; q++) m[q] = true; }
       return runs(m, 40 * sc);
     };
     const bv = vr(bx, clsB), rv = vr(rx, clsR), groups = [];
@@ -1949,6 +1958,7 @@ function pEnd() {
   persist(); renderSeason(); renderHist(); renderStats();
 }
 document.addEventListener('pointerdown', e => {
+  if (view.on) return; // フレンドのデータを見ている間は並べ替えない
   const row = e.target.closest && e.target.closest('.plist[data-season] .prow');
   if (!row || pdrag || (e.pointerType === 'mouse' && e.button !== 0)) return;
   const onGrip = e.target.closest('.grip');
@@ -2786,6 +2796,13 @@ document.addEventListener('change', e => {
 
 
 // 閲覧中は、書き換える操作を受け付けない（保存もされないが、見た目も変わらないようにする）
+// フレンドのデータを見ている間は、入力欄をすべて触れないようにする（見るだけ。試合数の範囲など、表示を切り替える欄は残す）
+function viewLock() {
+  if (!view.on) return;
+  document.querySelectorAll('#view-season input:not(.rng), #view-season textarea, #view-out input, #view-out textarea, #view-hist input, #view-hist textarea, #view-season .sgn, #view-out .sgn')
+    .forEach(e => { if (!e.disabled) { e.disabled = true; e.title = 'フレンドのデータは見るだけです'; } });
+}
+['#view-season', '#view-out', '#view-hist', '#view-stats'].forEach(q => { const el = document.querySelector(q); if (el) new MutationObserver(viewLock).observe(el, { childList: true, subtree: true }); });
 const VIEW_BLOCK = '[data-del],[data-ask],[data-unseason],[data-reseason],[data-mptsign],[data-act="season-new"],[data-act="season-start"],[data-act="season-del"],[data-act="season-del-yes"],[data-act="season-del-no"],[data-act="season-cancel"],[data-memo],[data-mdate],[data-season-pt],[data-season-name],[data-season-hero],[data-newhero],[id^="mpt-"]';
 document.addEventListener('click', e => { if (view.on && e.target.closest && e.target.closest(VIEW_BLOCK)) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => { if (view.on && e.target.closest && e.target.closest(VIEW_BLOCK)) e.stopImmediatePropagation(); }, true));
@@ -2804,7 +2821,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-13o', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-14a', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
