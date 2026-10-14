@@ -211,6 +211,7 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .ctip .res{font-size:.72rem;padding:1px 8px;margin-right:6px}
 .ctip .sc{font-family:var(--f-display);font-weight:900;font-size:1rem}
 .ctip .sc .b{color:#6f8dff} .ctip .sc .r{color:#ff6b6b}
+.ctip .tn{font-family:var(--f-num);font-weight:800;font-size:.78rem;margin-right:6px}
 .ctip .tmemo{margin-left:8px;font-size:.74rem;font-weight:700;color:#ffb36b}
 .ctip .pt2{font-family:var(--f-num);font-weight:700;margin-left:8px}
 .ptbox{display:inline-flex;align-items:center;gap:4px;font-size:.85rem}
@@ -2120,7 +2121,7 @@ function renderSeason() {
       sm.done.forEach((m, i) => {
         const x = pc[m.id]; cur = x.after; const r = matchResult(m);
         const my = m.side === 'blue' ? m.b : m.r, op = m.side === 'blue' ? m.r : m.b, mc = m.side === 'blue' ? 'b' : 'r', oc = m.side === 'blue' ? 'r' : 'b';
-        const html = `<span class="res ${r}">${RES_LABEL[r]}</span><span class="sc"><span class="${mc}">${my}</span> - <span class="${oc}">${op}</span></span>${m.memo ? '<span class="tmemo">💬 コメントあり</span>' : ''}<br>${esc(heroName(mineOf(m)))}<span class="pt2">${cur}pt（${fmtPt(x.d)}）</span>`;
+        const html = `<span class="tn">${i + 1}試合目</span><span class="res ${r}">${RES_LABEL[r]}</span><span class="sc"><span class="${mc}">${my}</span> - <span class="${oc}">${op}</span></span>${m.memo ? '<span class="tmemo">💬 コメントあり</span>' : ''}<br>${esc(heroName(mineOf(m)))}<span class="pt2">${cur}pt（${fmtPt(x.d)}）</span>`;
         pts.push({ v: cur, x1: String(i + 1), x2: md(m.at), tip: `${i + 1}試合目 ${md(m.at)} ${fmtPt(x.d)} → ${cur}pt`, html });
       });
       pts[pts.length - 1].top = cur + 'pt';
@@ -2821,7 +2822,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-14b', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-14c', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
