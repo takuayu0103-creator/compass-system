@@ -265,6 +265,8 @@ textarea.memo{display:block;width:100%;box-sizing:border-box;min-height:0;margin
 .pteam{display:flex;flex-direction:column;gap:4px;padding:8px;border-radius:8px;border:1.5px solid var(--line)}
 .pteam.blue{border-color:var(--blue);background:color-mix(in srgb,var(--blue) 14%,#fff)}
 .pteam.red{border-color:var(--red);background:color-mix(in srgb,var(--red) 14%,#fff)}
+.noside .pteam.blue,.noside .pteam.red{border-color:#9aa1b3;background:color-mix(in srgb,#9aa1b3 16%,#fff)}
+.noside .pscore .b,.noside .pscore .r,.ctip .sc.noside .b,.ctip .sc.noside .r{color:#8a90a0}
 .pteam .label{display:flex;justify-content:space-between}
 .pteam .hn{font-size:.84rem}
 .pteam .hn.me{font-weight:900}
@@ -2400,7 +2402,7 @@ function renderSeason() {
       sm.done.forEach((m, i) => {
         const x = pc[m.id]; cur = x.after; const r = matchResult(m);
         const my = m.side === 'blue' ? m.b : m.r, op = m.side === 'blue' ? m.r : m.b, mc = m.side === 'blue' ? 'b' : 'r', oc = m.side === 'blue' ? 'r' : 'b';
-        const html = `<span class="tn">${i + 1}試合目</span><span class="res ${r}">${RES_LABEL[r]}</span><span class="sc"><span class="${mc}">${my}</span> - <span class="${oc}">${op}</span></span>${m.memo ? '<span class="tmemo">💬 コメントあり</span>' : ''}<br>${esc(heroName(mineOf(m)))}<span class="pt2">${cur}pt（${fmtPt(x.d)}）</span>`;
+        const html = `<span class="tn">${i + 1}試合目</span><span class="res ${r}">${RES_LABEL[r]}</span><span class="sc${m.noSide ? ' noside' : ''}"><span class="${mc}">${my}</span> - <span class="${oc}">${op}</span></span>${m.memo ? '<span class="tmemo">💬 コメントあり</span>' : ''}<br>${esc(heroName(mineOf(m)))}<span class="pt2">${cur}pt（${fmtPt(x.d)}）</span>`;
         pts.push({ v: cur, x1: String(i + 1), x2: md(m.at), tip: `${i + 1}試合目 ${md(m.at)} ${fmtPt(x.d)} → ${cur}pt`, html });
       });
       pts[pts.length - 1].top = cur + 'pt';
@@ -2478,8 +2480,8 @@ function seasonRow(m, pc) {
   const r = matchResult(m), x = pc[m.id];
   const sign = x ? (x.d < 0 ? '-' : '+') : (ptSignTmp[m.id] || (r === 'l' ? '-' : '+'));
   const mine = m.side, other = mine === 'blue' ? 'red' : 'blue';
-  const team = (side, label) => `<div class="pteam ${side}"><div class="label"><span>${label}</span><span>${side === 'blue' ? '青' : '赤'}チーム</span></div>${m[side].map((hid, i) => `<div class="hn${side === mine && i === m.idx ? ' me' : ''}">${esc(heroName(hid))}</div>`).join('')}</div>`;
-  return `<div class="prow ${r === 'w' ? 'win' : r === 'l' ? 'lose' : r === 'd' ? 'draw' : ''}${x ? '' : ' todo'}" data-mid="${m.id}">
+  const team = (side, label) => `<div class="pteam ${side}"><div class="label"><span>${label}</span><span>${m.noSide ? '' : side === 'blue' ? '青チーム' : '赤チーム'}</span></div>${m[side].map((hid, i) => `<div class="hn${side === mine && i === m.idx ? ' me' : ''}">${esc(heroName(hid))}</div>`).join('')}</div>`;
+  return `<div class="prow ${r === 'w' ? 'win' : r === 'l' ? 'lose' : r === 'd' ? 'draw' : ''}${x ? '' : ' todo'}${m.noSide ? ' noside' : ''}" data-mid="${m.id}">
     <div class="phead"><span class="grip" aria-hidden="true">⋮⋮</span>
       ${(() => { const my = mine === 'blue' ? m.b : m.r, op = mine === 'blue' ? m.r : m.b, mc = mine === 'blue' ? 'b' : 'r', oc = mine === 'blue' ? 'r' : 'b';
         return `<span class="pscore" aria-label="自分${my}対相手${op}"><span class="${mc}">${my}</span><span class="vs">-</span><span class="${oc}">${op}</span></span>`; })()}
@@ -2521,11 +2523,11 @@ function renderOut() {
 }
 function outRow(m) {
   const r = matchResult(m), mine = m.side, other = mine === 'blue' ? 'red' : 'blue';
-  const team = (side, label) => `<div class="pteam ${side}"><div class="label"><span>${label}</span><span>${side === 'blue' ? '青' : '赤'}チーム</span></div>${m[side].map((hid, i) => `<div class="hn${side === mine && i === m.idx ? ' me' : ''}">${esc(heroName(hid))}</div>`).join('')}</div>`;
+  const team = (side, label) => `<div class="pteam ${side}"><div class="label"><span>${label}</span><span>${m.noSide ? '' : side === 'blue' ? '青チーム' : '赤チーム'}</span></div>${m[side].map((hid, i) => `<div class="hn${side === mine && i === m.idx ? ' me' : ''}">${esc(heroName(hid))}</div>`).join('')}</div>`;
   const my = mine === 'blue' ? m.b : m.r, op = mine === 'blue' ? m.r : m.b, mc = mine === 'blue' ? 'b' : 'r', oc = mine === 'blue' ? 'r' : 'b';
   const back = m.mode === ARENA && m.noSeason && seasonOfAt(m.at);
   const why = m.mode === ARENA ? (m.noSeason ? 'シーズンに入れない' : 'シーズン期間外') : '';
-  return `<div class="prow ${r === 'w' ? 'win' : r === 'l' ? 'lose' : r === 'd' ? 'draw' : ''}" data-oid="${m.id}">
+  return `<div class="prow ${r === 'w' ? 'win' : r === 'l' ? 'lose' : r === 'd' ? 'draw' : ''}${m.noSide ? ' noside' : ''}" data-oid="${m.id}">
     <div class="phead" style="grid-template-columns:auto 1fr"><span class="pscore"><span class="${mc}">${my}</span><span class="vs">-</span><span class="${oc}">${op}</span></span>
       <div class="pinfo"><div><span class="res ${r}">${RES_LABEL[r]}</span> <b>${esc(heroName(mineOf(m)))}</b></div><div class="stg">${esc(stageName(m.stage))}</div>
         <div class="small muted">${esc(m.mode)}${why ? `・${why}` : ''}${m.rank ? `・${esc(m.rank)}` : ''}</div></div></div>
@@ -2822,7 +2824,7 @@ function mfOpen(id) {
   if (view.on) return;
   const m = id ? db.matches.find(x => x.id === id) : null;
   if (id && !m) return;
-  mf = { id, side: m ? m.side : 'blue', idx: m ? m.idx : 0 };
+  mf = { id, side: m ? m.side : 'blue', idx: m ? m.idx : 0, ns: m ? !!m.noSide : true };
   const sl = mfSlots(mf.side, mf.idx);
   const hn = hid => hid === EMPTY ? '空き' : hid ? ((db.heroes.find(h => h.id === hid) || {}).name || '') : '';
   const val = (sd, i, key) => { if (!m) return ''; if (key === 'h') return hn(m[sd][i]); if (key === 'r') { if (sd === m.side && i === m.idx && m.rank) return m.rank; return (m.ranks && m.ranks[sd] && m.ranks[sd][i]) || ''; } return ''; };
@@ -2839,8 +2841,8 @@ function mfOpen(id) {
       <label class="fl"><span class="label">試合日</span><input type="date" id="mf-date" value="${ymd(m ? m.at : Date.now())}"></label>
       <label class="fl"><span class="label">モード</span><select id="mf-mode">${MODES.map(x => `<option${(m ? m.mode : 'バトルアリーナ') === x ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
       <label class="fl" style="grid-column:1/-1"><span class="label">ステージ</span><input type="text" id="mf-stage" list="mf-stages" value="${esc(sn)}" placeholder="ステージ名" autocomplete="off"></label>
-      <label class="fl"><span class="label">自分のチーム</span><select id="mf-side"><option value="blue"${mf.side === 'blue' ? ' selected' : ''}>青</option><option value="red"${mf.side === 'red' ? ' selected' : ''}>赤</option></select></label>
-      <div class="fl"><span class="label">スコア（青 - 赤）</span><div class="mfnum"><input type="number" min="0" max="99" inputmode="numeric" id="mf-b" value="${m && m.b != null ? m.b : ''}"><span>-</span><input type="number" min="0" max="99" inputmode="numeric" id="mf-r" value="${m && m.r != null ? m.r : ''}"></div></div>
+      <label class="fl"><span class="label">自分のチーム（任意）</span><select id="mf-side"><option value=""${mf.ns ? ' selected' : ''}>指定しない</option><option value="blue"${!mf.ns && mf.side === 'blue' ? ' selected' : ''}>青</option><option value="red"${!mf.ns && mf.side === 'red' ? ' selected' : ''}>赤</option></select></label>
+      <div class="fl"><span class="label" id="mf-sclab">${mf.ns ? 'スコア（自分 - 相手）' : 'スコア（青 - 赤）'}</span><div class="mfnum"><input type="number" min="0" max="99" inputmode="numeric" id="mf-b" value="${m && m.b != null ? m.b : ''}"><span>-</span><input type="number" min="0" max="99" inputmode="numeric" id="mf-r" value="${m && m.r != null ? m.r : ''}"></div></div>
       <label class="fl"><span class="label">勝敗</span><select id="mf-res"><option value="">スコアから決める</option>${['w', 'l', 'd'].map(r => `<option value="${r}"${m && m.res === r ? ' selected' : ''}>${RES_LABEL[r]}</option>`).join('')}</select></label>
       <label class="fl"><span class="label">増減pt（バトルアリーナ）</span><input type="number" inputmode="numeric" id="mf-pt" value="${pv}" placeholder="例 40 / -30"></label>
       <label class="row" style="grid-column:1/-1;gap:6px;align-items:center"><input type="checkbox" id="mf-nos"${m && m.noSeason ? ' checked' : ''}><span class="small">シーズンに入れない（バトルアリーナのみ）</span></label>
@@ -2856,14 +2858,22 @@ function mfOpen(id) {
   </div>`;
   document.body.appendChild(d);
 }
+// 青赤の指定を変えた時は、スコア欄の並び（自分-相手 か 青-赤）に合わせて入れ替える
+document.addEventListener('change', e => {
+  if (!mf || !e.target || e.target.id !== 'mf-side') return;
+  const v = e.target.value, prev = mf.cur ?? (mf.ns ? '' : mf.side), myFirst = x => x !== 'red';
+  if (myFirst(prev) !== myFirst(v)) { const a = document.getElementById('mf-b'), c = document.getElementById('mf-r'); [a.value, c.value] = [c.value, a.value]; }
+  mf.cur = v; document.getElementById('mf-sclab').textContent = v ? 'スコア（青 - 赤）' : 'スコア（自分 - 相手）';
+});
 function mfClose() { const d = document.getElementById('mf'); if (d) d.remove(); mf = null; }
 function mfSave() {
   if (!mf || view.on) return;
   const g = id => document.getElementById(id), msg = t => { const e = g('mf-msg'); e.hidden = false; e.textContent = t; };
   const old = mf.id ? db.matches.find(x => x.id === mf.id) : null;
   const oldSl = old ? mfSlots(old.side, old.idx) : null;
-  const side = g('mf-side').value;
-  const sl = mfSlots(side, old && side === old.side ? old.idx : (old ? old.idx : 0));
+  // 青赤を指定しない時は、内部では青として保存し、表示だけ灰色にする（スコアは 自分 - 相手 の順で入っている）
+  const noSide = !g('mf-side').value, side = g('mf-side').value || 'blue';
+  const sl = mfSlots(side, old ? old.idx : 0);
   const num = v => v === '' ? null : Math.max(0, Math.min(99, Math.round(+v)));
   const b = num(g('mf-b').value), r = num(g('mf-r').value);
   if ((g('mf-b').value !== '' && isNaN(+g('mf-b').value)) || (g('mf-r').value !== '' && isNaN(+g('mf-r').value))) { msg('スコアは数字で入れてください。'); return; }
@@ -2883,6 +2893,7 @@ function mfSave() {
   const t0 = dayStart(dv), at = old && ymd(old.at) === dv ? old.at : t0 + 12 * 3600e3;
   const m = old || { id: uid(), manual: true };
   Object.assign(m, { at, mode: g('mf-mode').value, stage: st ? st.id : null, b, r, side, idx: sl[0].idx, blue, red });
+  if (noSide) m.noSide = true; else delete m.noSide;
   const res = g('mf-res').value; if (res) m.res = res; else delete m.res;
   if (m.mode === ARENA && g('mf-nos').checked) m.noSeason = true; else delete m.noSeason;
   const ptv = g('mf-pt').value.trim();
@@ -3240,7 +3251,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-17d', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-17e', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -3437,7 +3448,7 @@ function buildShare() {
     v: 1, name: myNick(),
     matches: db.matches.map(m => {
       const o = { at: m.at, mode: m.mode, stage: sn(m.stage), b: m.b, r: m.r, side: m.side, idx: m.idx, blue: m.blue.map(hn), red: m.red.map(hn) };
-      for (const k of ['res', 'noSeason', 'rank', 'ranks', 'pt', 'ptAfter', 'medals']) if (m[k] !== undefined) o[k] = m[k];
+      for (const k of ['res', 'noSeason', 'rank', 'ranks', 'pt', 'ptAfter', 'medals', 'noSide']) if (m[k] !== undefined) o[k] = m[k];
       // カードは名前を付けたものだけ、名前で渡す（絵は渡さない）
       if (m.cards) { const cn = id => { const c = id && cardById(id); return c && c.name ? c.name : null; }; const c = {}; let any = false;
         for (const sd of ['blue', 'red']) c[sd] = (m.cards[sd] || []).map(r => { const x = r ? r.map(cn) : null; if (x && x.some(Boolean)) { any = true; return x; } return null; });
@@ -3500,6 +3511,7 @@ function pairMatches(fms) {
   tg.matches.forEach((f, i) => { const k = key(f.mode, f.stage, f.b, f.r, f.side); if (!bk.has(k)) bk.set(k, []); bk.get(k).push(i); });
   const used = new Set();
   for (const m of [...db.matches].sort((a, b) => a.at - b.at)) {
+    if (m.noSide) continue;   // 青赤が分からない試合は突き合わせない
     const c = bk.get(key(m.mode, sm.get(m.stage), m.b, m.r, m.side)); if (!c) continue;
     const mb = kn(m.blue.map(nm)), mr = kn(m.red.map(nm));
     let best = -1, bd = Infinity;
