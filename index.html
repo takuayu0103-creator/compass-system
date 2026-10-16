@@ -2302,8 +2302,19 @@ async function seasonShareCanvas(se) {
     const im = icons[i];
     if (im) { x.save(); rr(hx + 10, hy + 10, 44, 44, 8); x.clip(); x.drawImage(im, hx + 12, hy + 12, 40, 40); x.restore(); }
     else txt([...heroName(h.k)][0] || '?', hx + 32, hy + 42, `900 24px ${JP}`, C.ink, 'center');
-    txt(heroName(h.k), hx + 62, hy + 30, fit(heroName(h.k), 110, 18, 700, JP), C.ink);
-    txt(`${h.n}回`, hx + 62, hy + 54, `700 17px ${JP}`, C.muted);
+    // 名前は枠（幅108px）に収める：1行で入らなければ字を小さくし、それでも入らなければ2行に分ける
+    { const nm = heroName(h.k), W0 = 108, one = s0 => { x.font = `700 ${s0}px ${JP}`; return x.measureText(nm).width <= W0; };
+      let s0 = 18; while (s0 > 14 && !one(s0)) s0--;
+      if (one(s0)) { txt(nm, hx + 62, hy + 30, `700 ${s0}px ${JP}`, C.ink); txt(`${h.n}回`, hx + 62, hy + 54, `700 17px ${JP}`, C.muted); }
+      else {
+        // 区切り（・＝ 空白）の中で、なるべく真ん中に近い所で分ける。なければ文字数の真ん中
+        const ch = [...nm], seps = ch.map((c, i) => /[・＝= 　]/.test(c) ? i : -1).filter(i => i > 0 && i < ch.length - 1);
+        const cut = seps.length ? seps.reduce((a, b) => Math.abs(b - ch.length / 2) < Math.abs(a - ch.length / 2) ? b : a) + 1 : Math.ceil(ch.length / 2);
+        const l1 = ch.slice(0, cut).join(''), l2 = ch.slice(cut).join('');
+        const f2 = (() => { let z = 15; x.font = `700 ${z}px ${JP}`; while (z > 10 && Math.max(x.measureText(l1).width, x.measureText(l2).width) > W0) { z--; x.font = `700 ${z}px ${JP}`; } return `700 ${z}px ${JP}`; })();
+        txt(l1, hx + 62, hy + 25, f2, C.ink); txt(l2, hx + 62, hy + 43, f2, C.ink);
+        txt(`${h.n}回`, hx + 62, hy + 64, `700 15px ${JP}`, C.muted);
+      } }
     const hr = h.w + h.l ? f2(pct2(h.w, h.w + h.l)) + '%' : '−';
     txt('勝率', hx + 14, hy + 90, `700 17px ${JP}`, C.muted); txt(hr, hx + 166, hy + 92, `800 24px ${NUM}`, C.ink, 'right');
   });
@@ -3251,7 +3262,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-17e', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-17f', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
