@@ -307,6 +307,7 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
 .acc{border:1px solid var(--line);border-radius:8px;background:var(--surface)}.acc>summary{cursor:pointer;list-style:none;padding:12px 14px;font-family:var(--f-ui);font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:8px}.acc>summary::-webkit-details-marker{display:none}.acc>summary::after{content:'＋';margin-left:auto;color:var(--muted)}.acc[open]>summary::after{content:'－'}.acc .accb{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;font-size:.9rem;line-height:1.7}.acc .accb h4{margin:6px 0 0;font-size:.9rem;font-family:var(--f-ui)}.acc .accb p,.acc .accb ul,.acc .accb ol{margin:0}.acc .accb ul,.acc .accb ol{padding-left:1.3em;display:flex;flex-direction:column;gap:4px}.acc .note{font-size:.82rem;color:var(--muted)}
 .flinks{display:inline-flex;gap:14px;margin:6px 0}.flinks a{color:var(--ink);font-weight:700}
 #fb-text{width:100%;min-height:120px;resize:vertical;font:inherit;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);box-sizing:border-box}
+#pwa-bar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.25);max-width:560px;margin:0 auto}#pwa-bar img{border-radius:8px;flex:none}#pwa-bar span{flex:1;font-size:.85rem;line-height:1.4}#pwa-bar .btn{flex:none}
 .shimg{width:100%;height:auto;border-radius:8px;border:1px solid var(--line);display:block}.mfback{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);overflow-y:auto;padding:16px}.mfbox{max-width:560px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .mfgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}.mfgrid .fl input,.mfgrid .fl select,.mfp input,.mfp select{width:100%;min-width:0;box-sizing:border-box}
 .mfp{display:grid;grid-template-columns:4.2em minmax(0,1fr) 5.2em;gap:6px;align-items:center;font-size:.85rem}.mfp .rl{font-weight:700;font-family:var(--f-ui)}.mfp .rl.e{color:var(--red)}.mfp .rl.a{color:var(--blue)}
@@ -3311,7 +3312,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-17i', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-17j', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -3847,11 +3848,23 @@ renderGuide();
 // GitHub Pages（https）でだけ、オフライン用の仕組みを登録する。Claudeのプレビューなどでは何もしない
 try { if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost') && !/claude|claudeusercontent/.test(location.hostname)) navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {}
 let pwaPrompt = null;
-function pwaShow() { const r = document.getElementById('pwa-row'); if (r) r.hidden = !pwaPrompt; }
+function pwaShow() {
+  const r = document.getElementById('pwa-row'); if (r) r.hidden = !pwaPrompt;
+  // 入れられる状態の時だけ、画面の下に案内を出す（×で閉じたら次からは出さない。アプリとして開いている時は出さない）
+  let bar = document.getElementById('pwa-bar'), off = false;
+  try { off = localStorage.getItem(DBKEY + '-pwa-x') === '1'; } catch (e) {}
+  const standalone = matchMedia('(display-mode: standalone)').matches;
+  if (pwaPrompt && !off && !standalone) {
+    if (!bar) { bar = document.createElement('div'); bar.id = 'pwa-bar'; bar.setAttribute('role', 'region'); bar.setAttribute('aria-label', 'アプリとして入れる');
+      bar.innerHTML = '<img src="icon-192.png" alt="" width="36" height="36"><span>ホーム画面に入れると、アプリとして開けます</span><button class="btn primary" type="button" id="pwa-install2">入れる</button><button class="btn ghost" type="button" id="pwa-x" aria-label="閉じる">×</button>';
+      document.body.appendChild(bar); }
+  } else if (bar) bar.remove();
+}
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); pwaPrompt = e; pwaShow(); });
 addEventListener('appinstalled', () => { pwaPrompt = null; pwaShow(); });
 document.addEventListener('click', async e => {
-  if (!e.target.closest || !e.target.closest('#pwa-install') || !pwaPrompt) return;
+  if (e.target.closest && e.target.closest('#pwa-x')) { try { localStorage.setItem(DBKEY + '-pwa-x', '1'); } catch (err) {} pwaShow(); return; }
+  if (!e.target.closest || !e.target.closest('#pwa-install,#pwa-install2') || !pwaPrompt) return;
   const p = pwaPrompt; pwaPrompt = null; pwaShow();
   try { await p.prompt(); } catch (err) {}
 });
