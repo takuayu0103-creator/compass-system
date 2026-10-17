@@ -1795,65 +1795,57 @@ function medalRecs(list) {
   }
   return out;
 }
+// 分析の「メダル/カード」：ヒーローを選ぶと、そのヒーローを使っていた人（自分と連携フレンドを除く味方・敵）のメダル／カード使用率
 function medalHeroHTML(list) {
-  const el = $('#view-stats'), recs = medalRecs(list), keys = Core.MEDAL_KEYS;
-  if (el.dataset.mv !== 'm' && el.dataset.mv !== 'h') return '';
-  if (!recs.length) return `<div class="section"><div class="panel"><h2>メダルとヒーロー</h2><p class="small muted" style="margin:0">この条件では、メダルが記録された試合がまだありません。メダルは、新しく読み込んだ試合か、スクショを入れ直した試合から記録されます。</p></div></div>`;
-  const view = el.dataset.mv, THIN = 5;
-  const hn = id => heroName(id), raw = id => (db.heroes.find(x => x.id === id) || {}).name;
+  const el = $('#view-stats'), mv = el.dataset.mv === 'h' ? 'm' : el.dataset.mv;
+  if (mv === 'c') return cardPanelHTML(list, el);
+  if (mv !== 'm') return '';
+  const recs = medalRecs(list), keys = Core.MEDAL_KEYS;
+  if (!recs.length) return `<div class="section"><div class="panel"><h2>メダル</h2><p class="small muted" style="margin:0">この条件では、メダルが記録された試合がまだありません。メダルは、新しく読み込んだ試合か、スクショを入れ直した試合から記録されます。</p></div></div>`;
+  const THIN = 5, hn = id => heroName(id);
   const byHero = new Map(); for (const r of recs) { const k = String(r.h); if (!byHero.has(k)) byHero.set(k, { h: r.h, rs: [] }); byHero.get(k).rs.push(r); }
   const heroes = [...byHero.values()].sort((a, b) => b.rs.length - a.rs.length);
-  const medalN = {}; for (const r of recs) for (const k of r.ks) medalN[k] = (medalN[k] || 0) + 1;
-  const medals = keys.filter(k => medalN[k]).sort((a, b) => medalN[b] - medalN[a]);
-  let h = `<div class="section"><div class="panel"><h2>${view === 'm' ? 'メダルから見る' : 'ヒーローから見る'}</h2>
-    <p class="small muted" style="margin:0 0 8px">自分と連携フレンドを除く、味方と敵の全員が対象です。同じ絵柄は、何個付けていても1つと数えます。</p>
-    `;
   const bar = (p, thin) => `<div class="mbar${thin ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
-  if (view === 'm') {
-    const cur = medals.includes(el.dataset.mm) ? el.dataset.mm : medals[0];
-    const wear = recs.filter(r => r.ks.has(cur)), N = wear.length;
-    const cnt = new Map(); for (const r of wear) cnt.set(String(r.h), (cnt.get(String(r.h)) || 0) + 1);
-    const rows = [...cnt.entries()].sort((a, b) => b[1] - a[1]), all = el.dataset.mAll === '1', shown = all ? rows : rows.slice(0, 10);
-    h += `<label class="fl"><span class="label">メダル</span><select id="mdl-pick" data-kind="mm">${medals.map(k => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(MEDAL_NAME[k] || k)}（${medalN[k]}人）</option>`).join('')}</select></label>
-      <p class="small muted" style="margin:8px 0 4px">「${esc(MEDAL_NAME[cur] || cur)}」を付けていた${N}人のうち、そのヒーローを使っていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
-      <div class="mlist">${shown.map(([k, n]) => { const o = byHero.get(k), p = pct2(n, N), thin = n < THIN; return `<div class="mrow${thin ? ' thin' : ''}"><span class="mh">${heroIco(raw(o.h))}<span class="pn">${esc(hn(o.h))}</span></span>${bar(p, thin)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${n}/${N}人</span></span></div>`; }).join('')}</div>
-      ${rows.length > 10 ? `<div class="row"><button class="btn ghost" data-act="mdl-all">${all ? '上位10体だけにする' : `全${rows.length}体を表示`}</button></div>` : ''}
-      <p class="small muted" style="margin:6px 0 0">薄い行は、${THIN}人未満です。</p>`;
-  } else {
-    const cur = byHero.has(String(el.dataset.mh)) ? String(el.dataset.mh) : String(heroes[0].h);
-    const o = byHero.get(cur), N = o.rs.length, cnt = {};
-    for (const r of o.rs) for (const k of r.ks) cnt[k] = (cnt[k] || 0) + 1;
-    const rows = keys.filter(k => cnt[k]).sort((a, b) => cnt[b] - cnt[a]);
-    h += `<label class="fl"><span class="label">ヒーロー</span><select id="mdl-pick" data-kind="mh">${heroes.map(x => `<option value="${esc(String(x.h))}"${String(x.h) === cur ? ' selected' : ''}>${esc(hn(x.h))}（${x.rs.length}人）</option>`).join('')}</select></label>
-      <p class="small muted" style="margin:8px 0 4px">「${esc(hn(o.h))}」を使っていた${N}人のうち、そのメダルを付けていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
-      <div class="mlist">${rows.map(k => { const p = pct2(cnt[k], N), thin = N < THIN; return `<div class="mrow${thin ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, thin)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${cnt[k]}/${N}人</span></span></div>`; }).join('')}</div>
-      <p class="small muted" style="margin:6px 0 0">1人が複数の絵柄を付けるので、合計は100%になりません。${THIN}人未満のヒーローは全体が薄く表示されます。</p>`;
-  }
-  return h + `</div></div>`;
+  const cur = byHero.has(String(el.dataset.mh)) ? String(el.dataset.mh) : String(heroes[0].h);
+  const o = byHero.get(cur), N = o.rs.length, cnt = {};
+  for (const r of o.rs) for (const k of r.ks) cnt[k] = (cnt[k] || 0) + 1;
+  const rows = keys.filter(k => cnt[k]).sort((a, b) => cnt[b] - cnt[a]);
+  return `<div class="section"><div class="panel"><h2>メダル</h2>
+    <p class="small muted" style="margin:0 0 8px">自分と連携フレンドを除く、味方と敵の全員が対象です。同じ絵柄は、何個付けていても1つと数えます。</p>
+    <label class="fl"><span class="label">ヒーロー</span><select id="mdl-pick" data-kind="mh">${heroes.map(x => `<option value="${esc(String(x.h))}"${String(x.h) === cur ? ' selected' : ''}>${esc(hn(x.h))}（${x.rs.length}人）</option>`).join('')}</select></label>
+    <p class="small muted" style="margin:8px 0 4px">「${esc(hn(o.h))}」を使っていた${N}人のうち、そのメダルを付けていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
+    <div class="mlist">${rows.map(k => { const p = pct2(cnt[k], N), thin = N < THIN; return `<div class="mrow${thin ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, thin)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${cnt[k]}/${N}人</span></span></div>`; }).join('')}</div>
+    <p class="small muted" style="margin:6px 0 0">1人が複数の絵柄を付けるので、合計は100%になりません。${THIN}人未満のヒーローは全体が薄く表示されます。</p></div></div>`;
 }
-// 選んだヒーローを使っていた人（自分と連携フレンドを除く味方・敵）のカード使用率。同じカードは1人1回と数える
-function cardHeroHTML(list, hk, el) {
-  const recs = [];
+// カード：ヒーローを選ぶと、そのヒーローを使っていた人のカード使用率（同じカードは1人1回）。種類が多いので上位10枚から広げる
+function cardPanelHTML(list, el) {
+  const byHero = new Map();
   for (const m of list) {
     if (!m.cards) continue;
     const fxs = fxSlots(m);
     for (const side of ['blue', 'red']) (m.cards[side] || []).forEach((row, i) => {
       if (side === m.side && (i === m.idx || fxs.includes(i))) return;
-      if (!row || String((side === 'blue' ? m.blue : m.red)[i]) !== String(hk)) return;
-      const ks = new Set(row.filter(Boolean).map(cardKey)); if (ks.size) recs.push(ks);
+      const h = (side === 'blue' ? m.blue : m.red)[i];
+      if (!row || h == null || h === EMPTY) return;
+      const ks = new Set(row.filter(Boolean).map(cardKey)); if (!ks.size) return;
+      const k = String(h); if (!byHero.has(k)) byHero.set(k, { h, rs: [] }); byHero.get(k).rs.push(ks);
     });
   }
-  const THIN = 5, N = recs.length;
-  if (!N) return `<div class="section"><div class="panel"><h2>カードの使用率</h2><p class="small muted" style="margin:0">このヒーローを使っていた人のカードは、まだ記録がありません。カードは、新しく読み込んだ試合から記録されます。前に読み込んだ試合は、同じスクショをもう一度「読み込み」に入れると書き足せます。</p></div></div>`;
+  if (!byHero.size) return `<div class="section"><div class="panel"><h2>カード</h2><p class="small muted" style="margin:0">この条件では、カードが記録された試合がまだありません。カードは、新しく読み込んだ試合から記録されます。前に読み込んだ試合は、同じスクショをもう一度「読み込み」に入れると書き足せます。</p></div></div>`;
+  const heroes = [...byHero.values()].sort((a, b) => b.rs.length - a.rs.length);
+  const cur = byHero.has(String(el.dataset.ch)) ? String(el.dataset.ch) : String(heroes[0].h);
+  const o = byHero.get(cur), recs = o.rs, THIN = 5, N = recs.length;
   const cnt = new Map(); for (const ks of recs) for (const k of ks) cnt.set(k, (cnt.get(k) || 0) + 1);
   const rows = [...cnt.entries()].sort((a, b) => b[1] - a[1]), all = el.dataset.cardAll === '1', shown = all ? rows : rows.slice(0, 10);
   const unnamed = rows.filter(([k]) => !k.startsWith('n:')).length;
   const bar = p => `<div class="mbar${N < THIN ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
-  return `<div class="section"><div class="panel"><h2>カードの使用率</h2>
-    <p class="small muted" style="margin:0 0 8px">${esc(heroName(hk))}を使っていた${N}人（自分と連携フレンドを除く味方・敵）のうち、そのカードを入れていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
+  return `<div class="section"><div class="panel"><h2>カード</h2>
+    <p class="small muted" style="margin:0 0 8px">自分と連携フレンドを除く、味方と敵の全員が対象です。同じカードは1人1回と数えます。</p>
+    <label class="fl"><span class="label">ヒーロー</span><select id="mdl-pick" data-kind="ch">${heroes.map(x => `<option value="${esc(String(x.h))}"${String(x.h) === cur ? ' selected' : ''}>${esc(heroName(x.h))}（${x.rs.length}人）</option>`).join('')}</select></label>
+    <p class="small muted" style="margin:8px 0 4px">「${esc(heroName(o.h))}」を使っていた${N}人のうち、そのカードを入れていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
     <div class="mlist">${shown.map(([k, n]) => { const p = pct2(n, N), u = cardThumb(k); return `<div class="mrow${N < THIN ? ' thin' : ''}"><span class="mh">${u ? `<img class="cthumb" src="${u}" alt="">` : '<span class="cthumb"></span>'}<span class="pn${k.startsWith('n:') ? '' : ' muted'}">${esc(cardLabel(k))}</span></span>${bar(p)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${n}/${N}人</span></span></div>`; }).join('')}</div>
     ${rows.length > 10 ? `<div class="row"><button class="btn ghost" data-act="card-all">${all ? '上位10枚だけにする' : `全${rows.length}枚を表示`}</button></div>` : ''}
-    <p class="small muted" style="margin:6px 0 0">1人4枚なので、合計は100%になりません。${unnamed && !view.on ? `名前のないカードが${unnamed}枚あります。名前は「データ」タブの「カードの名前」で付けられます。` : ''}</p></div></div>`;
+    <p class="small muted" style="margin:6px 0 0">1人4枚なので、合計は100%になりません。${N < THIN ? `${THIN}人未満のヒーローは全体が薄く表示されます。` : ''}${unnamed && !view.on ? `名前のないカードが${unnamed}枚あります。名前は「データ」タブの「カードの名前」で付けられます。` : ''}</p></div></div>`;
 }
 function medalHTML(list) {
   const nm = list.filter(m => m.medals).length;
@@ -1914,7 +1906,7 @@ function renderStats() {
         <select id="stage-filter" data-filter="stage" class="vh" tabindex="-1" aria-hidden="true">${head(rStage, 'すべてのステージ', nAllStage)}${opt(stageOpts, fStage, sn)}</select>
         <button class="pickbtn${el.dataset.pick === 'stage' ? ' open' : ''}" data-pickopen="stage" aria-expanded="${el.dataset.pick === 'stage'}">${rStage === '' ? '未選択' : rStage === '__all' ? `すべてのステージ（${nAllStage}）` : `<span>${esc(sn(stageKey ?? rStage))}（${(stageOpts.find(([k]) => String(k) === rStage) || [0, 0])[1]}）</span>${real && stageThumb(rStage) ? `<img src="${stageThumb(rStage)}" alt="">` : ''}`}<i aria-hidden="true">▾</i></button></div>
       <label class="fl"><span class="label">モード</span><select id="mode-filter" data-filter="mode">${head(rMode, 'すべてのモード', nAllMode)}${opt(modeOpts, fMode, x => x)}</select></label>
-      <label class="fl"><span class="label">メダル</span><select id="mdl-mode"><option value="">未選択</option><option value="m"${el.dataset.mv === 'm' ? ' selected' : ''}>メダルから見る</option><option value="h"${el.dataset.mv === 'h' ? ' selected' : ''}>ヒーローから見る</option></select></label>
+      <label class="fl"><span class="label">メダル/カード</span><select id="mdl-mode"><option value="">未選択</option><option value="m"${el.dataset.mv === 'm' || el.dataset.mv === 'h' ? ' selected' : ''}>メダル</option><option value="c"${el.dataset.mv === 'c' ? ' selected' : ''}>カード</option></select></label>
       ${anySel ? '<button class="btn ghost" data-act="clear-filter">最初の状態に戻す</button>' : ''}
     </div>
     ${el.dataset.pick === 'hero' ? `<div class="pickpanel hero" role="listbox" aria-label="ヒーローを選ぶ">
@@ -2063,7 +2055,6 @@ function heroSections(ms, hk, nm, sn, el) {
       + (hs.length > 3 || hAll ? `<div class="row"><button class="btn ghost" data-act="hero-all">${hAll ? 'Top3だけにする' : `詳しく表示（全${hs.length}ヒーロー）`}</button></div>` : ''),
       hAll ? '自分が使った全ヒーローの勝率ランキングです。' : '自分が使ったヒーローのうち、勝率が高いTop3です。5試合以上のヒーローを優先します。');
   }
-  if (!allMode && real) h += cardHeroHTML(ms, hk, el);
   return h;
 }
 
@@ -2720,7 +2711,7 @@ function renderGuide() {
   ${acc('2. 各タブでできること', `
     <ul>
       <li><b>読み込み：</b>スクショから試合を登録します。</li>
-      <li><b>分析：</b>「使ったヒーロー」「ステージ」「モード」「メダル」で絞り込んで、勝率・使用率・直近の勝率などを見ます。「この条件の履歴を見る」で、その条件の試合の一覧に移れます。</li>
+      <li><b>分析：</b>「使ったヒーロー」「ステージ」「モード」「メダル/カード」で絞り込んで、勝率・使用率・直近の勝率などを見ます。「この条件の履歴を見る」で、その条件の試合の一覧に移れます。</li>
       <li><b>シーズンpt：</b>バトルアリーナの増減ptを入れると、シーズンptの推移をグラフにします。最初に、シーズン名・開始時のpt・開始日を入れてください。</li>
       <li><b>シーズン外：</b>フリーバトルやカスタムバトル、シーズン期間外のバトルアリーナなど、シーズンptに入らない試合です。試合ごとにメモを書けます。</li>
       <li><b>履歴：</b>登録した全試合を、新しい順に見られます。ヒーロー・ステージ・モード・敵ヒーロー・自分のランクで絞り込めます。試合の削除もここでできます（削除は元に戻せません）。</li>
@@ -2745,8 +2736,7 @@ function renderGuide() {
     <p>試合を読み込むと、6人のメダルも一緒に読み取って記録します。</p>
     <ul>
       <li><b>メダルの使用率の表：</b>分析タブの一番下です。味方と敵に分けて、各メダルを付けていた人の割合を見られます。</li>
-      <li><b>メダルから見る：</b>分析タブの「メダル」で選びます。そのメダルを付けていた人のうち、どのヒーローを使っていたかの割合が出ます。</li>
-      <li><b>ヒーローから見る：</b>同じく「メダル」で選びます。そのヒーローを使っていた人のうち、どのメダルを付けていたかの割合が出ます。</li>
+      <li><b>ヒーローごとのメダル：</b>分析タブの「メダル/カード」で「メダル」を選び、ヒーローを選びます。そのヒーローを使っていた人のうち、どのメダルを付けていたかの割合が出ます。</li>
     </ul>
     <h4>数え方</h4>
     <ul>
@@ -2758,7 +2748,7 @@ function renderGuide() {
   ${acc('5. カード分析', `
     <p>試合を読み込むと、6人が入れていた4枚のカードも、絵柄で見分けて記録します。</p>
     <ul>
-      <li><b>カードの使用率：</b>分析タブの「使ったヒーロー」で個別のヒーローを選ぶと、下の方に出ます。そのヒーローを使っていた人のうち、各カードを入れていた人の割合です。</li>
+      <li><b>カードの使用率：</b>分析タブの「メダル/カード」で「カード」を選び、ヒーローを選びます。そのヒーローを使っていた人のうち、各カードを入れていた人の割合が、上位10枚まで出ます。「全○枚を表示」で全部見られます。</li>
       <li><b>カードの名前：</b>やぎシミュ（yagitools）のカード一覧の絵と照らし合わせて、自信がある時だけ自動で名前を付けます（「自動」と表示）。自信がないカードは「名前なし」のままになり、データタブの「カードの名前」に絵が近い順の候補が出るので、合っているものをタップするか、自分で入力してください。自動の名前が違っていたら、そこで直せます。同じカードが2つに分かれて並んでいたら、同じ名前を付けると1つにまとまります。</li>
     </ul>
     <h4>数え方</h4>
@@ -3298,7 +3288,7 @@ const VIEW_BLOCK = '[data-cardpick],[data-cardsug],[data-sshare],[data-mfedit],[
 document.addEventListener('click', e => { if (view.on && e.target.closest && e.target.closest(VIEW_BLOCK)) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => { if (view.on && e.target.closest && e.target.closest(VIEW_BLOCK)) e.stopImmediatePropagation(); }, true));
 document.addEventListener('change', e => { if (e.target && e.target.id === 'mdl-mode') { const v = $('#view-stats'); v.dataset.mv = e.target.value; renderStats(); } });
-document.addEventListener('change', e => { if (e.target && e.target.id === 'mdl-pick') { const v = $('#view-stats'); v.dataset[e.target.dataset.kind] = e.target.value; renderStats(); } });
+document.addEventListener('change', e => { if (e.target && e.target.id === 'mdl-pick') { const v = $('#view-stats'); v.dataset[e.target.dataset.kind] = e.target.value; if (e.target.dataset.kind === 'ch') v.dataset.cardAll = ''; renderStats(); } });
 document.addEventListener('change', e => { if (e.target && e.target.id === 'tog') togSelect(e.target.value); });
 document.addEventListener('change', e => { if (e.target && e.target.id === 'who') { const v = e.target.value; if (v) viewOpen(v); else viewClose(); } });
 
@@ -3312,7 +3302,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-17g', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-17h', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
