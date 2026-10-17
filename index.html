@@ -1966,20 +1966,34 @@ function rankPanel(list, note) {
     ${none ? `<p class="small muted" style="margin:0">ランクの記録がない試合：${none}試合（この機能を入れる前に保存した試合など）</p>` : ''}</div></div>`;
 }
 // 敵ランク別の勝率（相手チームの平均ランク、自分との差）
-const rankVal = r => r ? 9 - RANK_ORDER.indexOf(r) : null; // S9=9 … S1=1, A=0, B=-1 …
-const valRank = v => RANK_ORDER[9 - v] || null;
+// ランクを数字にする：F=1, E=2, D=3, C=4, B=5, A=6, S1=7 … S9=15
+const rankVal = r => r && RANK_ORDER.includes(r) ? 15 - RANK_ORDER.indexOf(r) : null;
+const valRank = v => RANK_ORDER[15 - v] || null;
 function enemyRankPanel(list) {
   const withR = list.filter(m => m.ranks);
   const avgOf = m => { const vs = (m.side === 'blue' ? m.ranks.red : m.ranks.blue).map(rankVal).filter(v => v != null); return vs.length ? vs.reduce((a, b) => a + b, 0) / vs.length : null; };
   const byAvg = tally(withR, m => { const a = avgOf(m); return [a == null ? null : valRank(Math.round(a))]; }).sort((a, b) => RANK_ORDER.indexOf(a.k) - RANK_ORDER.indexOf(b.k));
-  const rel = tally(withR, m => { const a = avgOf(m), me = rankVal(m.rank); if (a == null || me == null) return [null]; const d = a - me; return [d >= 0.5 ? '格上（相手の平均が上）' : d <= -0.5 ? '格下（相手の平均が下）' : '同格']; });
-  const relOrder = ['格上（相手の平均が上）', '同格', '格下（相手の平均が下）']; rel.sort((a, b) => relOrder.indexOf(a.k) - relOrder.indexOf(b.k));
+  // 味方チーム（自分を含む3人）の平均。自分の枠が読めていない時は、自分のランク（m.rank）で補う
+  const allyAvg = m => { const rs = [...(m.ranks[m.side] || [])]; if (!rs[m.idx] && m.rank) rs[m.idx] = m.rank; const vs = rs.map(rankVal).filter(v => v != null); return vs.length ? vs.reduce((a, b) => a + b, 0) / vs.length : null; };
+  const rel = tally(withR, m => { const a = avgOf(m), me = allyAvg(m); if (a == null || me == null) return [null]; const d = a - me; return [d >= 0.5 ? '格上（敵チームの平均が上）' : d <= -0.5 ? '格下（敵チームの平均が下）' : '同格']; });
+  const relOrder = ['格上（敵チームの平均が上）', '同格', '格下（敵チームの平均が下）']; rel.sort((a, b) => relOrder.indexOf(a.k) - relOrder.indexOf(b.k));
   const none = list.length - withR.length;
+  // 敵1人1人のランク：そのランクの敵が1人でもいた試合（同じランクが2人いても1試合と数える）
+  const enemyRanks = m => (m.side === 'blue' ? m.ranks.red : m.ranks.blue) || [];
+  const byOne = tally(withR, m => enemyRanks(m)).sort((a, b) => RANK_ORDER.indexOf(a.k) - RANK_ORDER.indexOf(b.k));
+  let unk = 0; for (const m of withR) { const hs = m.side === 'blue' ? m.red : m.blue; enemyRanks(m).forEach((r, i) => { if (!r && hs[i] != null && hs[i] !== EMPTY) unk++; }); }
   const rows = r => r.length ? r.map(x => statRow(x, k => k, x.n < MIN_N ? 'thin' : '')).join('') : '<div class="small muted">まだデータがありません。</div>';
   return `<div class="section"><div class="panel"><h2>敵ランク別の勝率</h2>
-    <p class="small muted" style="margin:0">相手チーム3人のランクの平均で分けた勝率です。空き枠と読めなかったランクは平均に入れていません。</p>
-    <div class="subh">相手チームの平均ランク</div><div class="statlist">${rows(byAvg)}</div>
-    <div class="subh">自分のランクとの差</div><div class="statlist">${rows(rel)}</div>
+    <div class="subh">敵にそのランクがいた試合</div>
+    <p class="small muted" style="margin:0">敵3人のうち、そのランクの人が1人でもいた試合の勝率です（同じランクが2人いても1試合と数えます）。</p>
+    <div class="statlist">${rows(byOne)}</div>
+    ${unk ? `<p class="small muted" style="margin:0">ランクを読み取れなかった敵：${unk}人（この人たちは上の集計に入っていません。履歴タブの「編集」で直せます）</p>` : ''}
+    <div class="subh">相手チームの平均ランク</div>
+    <p class="small muted" style="margin:0">敵3人のランクの平均で分けた勝率です。例えば S5・S3・S3 の相手は平均S4として数えます。空き枠と読めなかったランクは平均に入れていません。</p>
+    <div class="statlist">${rows(byAvg)}</div>
+    <div class="subh">味方チームとの差</div>
+    <p class="small muted" style="margin:0">ランクを F=1・E=2・D=3・C=4・B=5・A=6・S1=7 … S9=15 の数字にして、味方チーム（自分を含む3人）と敵チームの平均を比べています。差が0.5未満なら同格です。</p>
+    <div class="statlist">${rows(rel)}</div>
     ${none ? `<p class="small muted" style="margin:0">全員のランクの記録がない試合：${none}試合（スクショを入れ直すと補えます）</p>` : ''}</div></div>`;
 }
 function heroSections(ms, hk, nm, sn, el) {
@@ -3312,7 +3326,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-17j', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-17l', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
