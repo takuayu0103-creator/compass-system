@@ -3153,6 +3153,8 @@ document.addEventListener('click', e => {
     } catch (_) { $('#restore-msg').textContent = '読み込めませんでした。コピーした文字列を最初から最後まで貼り付けてください。'; }
   } else if (act === 'clear-filter') { const v = $('#view-stats'); delete v.dataset.mode; delete v.dataset.hero; delete v.dataset.stage; delete v.dataset.mv; renderStats(); }
   else if (act === 'sync-login') syncLogin();
+  else if (act === 'iab-copy') { const u = 'https://' + SITE_URL, m = document.getElementById('iab-msg'), ok = () => { if (m) m.textContent = 'コピーしました'; }, ng = () => { if (m) m.textContent = u; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(ok, ng); else ng(); }
   else if (act === 'sync-logout') syncLogout();
   else if (act === 'fb-send') feedbackSend();
   else if (act === 'hist-more' || act === 'out-more') { const v = $(act === 'hist-more' ? '#view-hist' : '#view-out'); v.dataset.n = Math.max(PAGE_N, +(v.dataset.n || 0)) + PAGE_N; act === 'hist-more' ? renderHist() : renderOut(); }
@@ -3327,7 +3329,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-18a', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-18b', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -3405,11 +3407,23 @@ async function fbReal() {
     watchShare(uid, cb, errcb) { return F.onSnapshot(F.doc(fs, 'shares', uid), sn => cb(sn.exists() ? sn.data() : null), errcb); }
   };
 }
+// LINE・X・Instagramなどアプリの中のブラウザ（Googleがログインを止めることがある）
+const IN_APP = (() => { const ua = navigator.userAgent || '';
+  try { if (navigator.standalone || matchMedia('(display-mode: standalone)').matches) return false; } catch (e) {}   // ホーム画面に入れたアプリは対象外
+  if (/Line\/|FBAN|FBAV|FB_IAB|Instagram|Twitter|TwitterAndroid|Discord|MicroMessenger|KAKAOTALK|TikTok|musical_ly|BytedanceWebview|YJApp/i.test(ua)) return true;
+  if (/; wv\)/.test(ua)) return true;                                                     // AndroidのWebView
+  if (/iPhone|iPad|iPod/.test(ua) && /AppleWebKit/.test(ua) && !/Safari\//.test(ua)) return true;   // iPhoneのアプリ内ブラウザ（WKWebView）
+  return false; })();
+const iabNote = () => `<div class="small" style="margin:10px 0 0;padding:10px 12px;border:1px solid var(--accent);border-radius:10px;line-height:1.6">
+  <b style="color:var(--accent)">アプリの中のブラウザでは、Googleのログインができないことがあります。</b><br>
+  LINE・X・Discordなどのリンクから開いた画面だと、Googleがログインを止めてしまいます。<b>Safari（iPhone）やChrome（Android）で開き直してから</b>ログインしてください。<br>
+  開き直し方：画面の「…」や共有ボタン、コンパスのマークから「Safariで開く」「ブラウザで開く」を選ぶ。見つからなければ下のボタンでURLをコピーして、Safari・Chromeに貼り付けてください。
+  <div class="row" style="margin-top:8px"><button class="btn" data-act="iab-copy">URLをコピー</button><span class="small muted" id="iab-msg"></span></div></div>`;
 function syncHTML() {
   const s = syncS, u = s.user;
   const msg = s.msg ? `<p class="small${s.err ? '' : ' muted'}" style="margin:6px 0 0;${s.err ? 'color:var(--lose)' : ''}">${esc(s.msg)}</p>` : '';
   const intro = '<p class="small muted" style="margin:0"><b>ログインしなくても、フレンド連携以外の機能はすべて使えます。</b>その場合、記録はこの端末の中だけにあり、どこにも送られません。<br>ログインは、別の端末でも同じ記録を使いたい人と、フレンド連携をしたい人向けです。ログインすると、戦績のデータがGoogle（Firebase）のサーバーにも保存されます。</p>';
-  if (!u) return `<h2>ログインと同期</h2>${intro}<div class="row"><button class="btn primary" data-act="sync-login"${s.busy ? ' disabled' : ''}>Googleでログイン</button></div>${msg}`;
+  if (!u) return `<h2>ログインと同期</h2>${intro}<div class="row"><button class="btn primary" data-act="sync-login"${s.busy ? ' disabled' : ''}>Googleでログイン</button></div>${msg}${IN_APP || s.iab ? iabNote() : ''}`;
   let choose = '';
   if (s.status === 'choose') {
     const cc = s.cm ? s.cm.count : 0;
@@ -3740,8 +3754,8 @@ function syncLoad() {
 }
 function syncErr(e) {
   const c = (e && e.code) || '';
-  if (c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request') return 'ログインをやめました。';
-  if (c === 'auth/popup-blocked') return 'ログイン画面がブロックされました。もう一度ボタンを押してください。';
+  if (c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request') { syncS.iab = true; return 'ログイン画面が閉じられました。自分で閉じていないのにこうなる場合は、下の方法でブラウザを開き直してください。'; }
+  if (c === 'auth/popup-blocked') { syncS.iab = true; return 'ログイン画面がブロックされました。もう一度ボタンを押してください。続く場合は、下の方法でブラウザを開き直してください。'; }
   if (c === 'auth/unauthorized-domain') return 'このページのドメインが、Firebaseの承認済みドメインに入っていません。';
   if (c === 'permission-denied' || /permission/i.test((e && e.message) || '')) return 'クラウドへの保存が許可されていません（Firestoreのルール設定を確認してください）。';
   return '同期できませんでした：' + ((e && (e.code || e.message)) || '不明なエラー');
