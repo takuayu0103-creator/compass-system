@@ -2141,7 +2141,7 @@ document.addEventListener('touchend', () => { if (ppend) { clearTimeout(ppend.t)
 document.addEventListener('touchcancel', () => { if (pdrag) pEnd(); });
 document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.plist .prow') && !e.target.closest('input,textarea')) e.preventDefault(); });
 function seasonList() { return [...(db.seasons || [])].sort((a, b) => a.start - b.start); }
-// シーズンに入る試合：バトルアリーナで、シーズン期間（開始日〜10日後、次のシーズンが先に始まればそこまで）の中、「シーズンに入れない」にしていないもの
+// シーズンに入る試合：バトルアリーナで、シーズン期間（開始日〜10日後の日いっぱい、次のシーズンが先に始まればそこまで）の中、「シーズンに入れない」にしていないもの
 function seasonPeriodEnd(se) { const ss = seasonList(), i = ss.findIndex(x => x.id === se.id); return Math.min(seasonEnd(se), ss[i + 1] ? ss[i + 1].start : Infinity); }
 function seasonOfAt(at) { return seasonList().find(se => at >= se.start && at < seasonPeriodEnd(se)) || null; }
 function inSeason(m) { return m.mode === ARENA && !m.noSeason && !!seasonOfAt(m.at); }
@@ -2216,9 +2216,10 @@ function seasonChart(pts, win, cw) {
     <div class="ctip" hidden></div><p class="small muted" style="margin:4px 0 0">${win && n - 1 > win ? '横にスライドすると前の試合も見られます。' : ''}○を押すと、その試合の結果が出ます。</p></div>`;
 }
 let seasonOpenInit = false;
-// シーズンは開始日から10日後に終わる
+// シーズンは開始日から10日後の日の終わりまで（例：10/8開始なら10/18いっぱい、10/19 0:00に終了）
 const SEASON_DAYS = 10;
-const seasonEnd = se => se.start + SEASON_DAYS * 864e5;
+const seasonEnd = se => { const d = new Date(se.start); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + SEASON_DAYS + 1).getTime(); };
+const seasonLast = se => seasonEnd(se) - 1;   // 表示用の最終日
 const seasonState = se => { const now = Date.now(); return now < se.start ? '開始前' : now < seasonEnd(se) ? '開催中' : '開催終了'; };
 const rankOf = v => v >= 2000 ? `S${Math.min(9, Math.floor((v - 2000) / 500) + 1)}` : '';
 // ランク内のpt（2900ならS2の400）。S9は上限なので6000からの差
@@ -2245,7 +2246,7 @@ function seasonShareData(se) {
   const heroes = tl(mineOf).filter(x => x.k !== EMPTY).sort((a, b) => b.n - a.n || b.w - a.w).slice(0, 3);
   const stages = tl(m => m.stage).filter(x => x.w + x.l >= 3).sort((a, b) => b.w / (b.w + b.l) - a.w / (a.w + a.l) || b.n - a.n);
   return { se, sm, pts, cur: sm.cur, max: sm.max, w: sm.w, l: sm.l, n: list.length, gain: sm.cur - se.pt, heroes, stage: stages[0] || null,
-    period: `${new Date(se.start).toLocaleDateString('ja-JP')} 〜 ${new Date(seasonEnd(se)).toLocaleDateString('ja-JP')}`, state: seasonState(se) };
+    period: `${new Date(se.start).toLocaleDateString('ja-JP')} 〜 ${new Date(seasonLast(se)).toLocaleDateString('ja-JP')}`, state: seasonState(se) };
 }
 function loadImg(src) { return new Promise(res => { if (!src) { res(null); return; } const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; }); }
 async function seasonShareCanvas(se) {
@@ -2439,7 +2440,7 @@ function renderSeason() {
       <label class="fl"><span class="label">オリジナルヒーロー</span>${heroSelect('id="season-hero" data-newhero="1"', '')}</label>
       <label class="fl"><span class="label">シーズン名</span><input type="text" id="season-name" placeholder="例 ルチアーノシーズン"></label>
       <label class="fl"><span class="label">シーズン開始時のpt</span><input type="text" inputmode="numeric" id="season-pt" placeholder="例 0"></label>
-      <label class="fl"><span class="label">開始日（${SEASON_DAYS}日後に自動で終了）</span><input type="date" id="season-date" value="${defDate}"></label></div>
+      <label class="fl"><span class="label">開始日（${SEASON_DAYS}日後の日いっぱいで自動終了）</span><input type="date" id="season-date" value="${defDate}"></label></div>
     <div class="row"><button class="btn primary" data-act="season-start">このシーズンを始める</button>${ss.length ? '<button class="btn ghost" data-act="season-cancel">やめる</button>' : ''}<span class="small" id="season-msg"></span></div>`;
   if (!ss.length) {
     el.innerHTML = `<div class="section"><div class="panel"><h2>シーズンpt推移</h2>
@@ -2454,7 +2455,7 @@ function renderSeason() {
     const idx = ss.length - 1 - ri, open = openSeasons.has(se.id);
     const sm = seasonSummary(se, pc);
     const rk = rankOf(sm.cur);
-    const period = `${md(se.start)}〜${md(seasonEnd(se))}`, state = seasonState(se);
+    const period = `${md(se.start)}〜${md(seasonLast(se))}`, state = seasonState(se);
     h += `<div class="season${open ? ' open' : ''}">
       <button class="shead" data-season-toggle="${se.id}" aria-expanded="${open}" aria-label="${esc(se.name || 'シーズン')} ${rk} ${sm.cur}pt">
         <span class="sname"><b>${esc(se.name || '名前なしのシーズン')}</b>
@@ -2518,7 +2519,7 @@ function renderSeason() {
             })()}`;
         })() : '<div class="small muted">増減ptを入れた試合がまだありません。下の一覧から入れてください。</div>'}
         ${list.length > sm.done.length ? `<p class="small muted" style="margin:0">未入力の試合が${list.length - sm.done.length}試合あります。グラフは入力済みの試合だけでつないでいます。</p>` : ''}
-        <p class="small muted" style="margin:0">期間：${new Date(se.start).toLocaleDateString('ja-JP')} 〜 ${new Date(seasonEnd(se)).toLocaleDateString('ja-JP')}（開始日から${SEASON_DAYS}日後に終了）</p>
+        <p class="small muted" style="margin:0">期間：${new Date(se.start).toLocaleDateString('ja-JP')} 〜 ${new Date(seasonLast(se)).toLocaleDateString('ja-JP')}（開始日から${SEASON_DAYS}日後の日いっぱいまで）</p>
         ${last ? (el.dataset.delask === '1' ? `<div class="warnbox" role="alert"><b>⚠ 「${esc(se.name || 'このシーズン')}」を消しますか？</b>
             <span>シーズン名・オリジナルヒーロー・開始ptの設定が消えます。<b>元に戻せません。</b></span>
             <span>試合と入力したptは消えません。${idx > 0 ? `前のシーズン（${esc(ss[idx - 1].name || '名前なし')}）の試合として表示されるようになります。` : 'どのシーズンにも入らない状態になります。'}</span>
@@ -3326,7 +3327,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-17m', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-18a', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
