@@ -1174,6 +1174,17 @@ const HERO_ICON = {"十文字 アタリ": "data:image/png;base64,iVBORw0KGgoAAAA
 const heroIco = name => { const u = HERO_ICON[name]; const f = !u && name ? (db.heroes.find(h => h.name === name) || {}).face : null; const d = dispName(name || '?');
   return `<span class="hico${f ? ' face' : ''}" aria-hidden="true">${u ? `<img src="${u}" alt="">` : f ? `<img src="${f}" alt="">` : `<b>${esc([...d][0] || '?')}</b>`}</span>`; };
 const dispName = n => DISPLAY_NAME[n] || n;
+// 実装順（古い順）。ヒーローはやぎシミュの並び、ステージは拓の指定、カードは恒常（F→Sランク）→コラボの古い順
+const HERO_ORDER = ["十文字 アタリ","ジャスティス ハンコック","リリカ","双挽 乃保","桜華 忠臣","ジャンヌ ダルク","マルコス’55","ルチアーノ","Voidoll","深川 まとい","ソル＝バッドガイ","ディズィー","グスタフ ハイドリヒ","ニコラ テスラ","初音 ミク","ヴィオレッタ ノワール","コクリコット ブランシュ","リュウ","春麗","マリア=S=レオンブルク","アダム=ユーリエフ","13 †サーティーン†","かけだし勇者","エミリア","レム","カイ＝キスク","メグメグ","鏡音 リン","鏡音 レン","イスタカ","ザック & レイチェル","輝龍院 きらら","モノクマ","ヴィーナス ポロロッチョ","アクア","めぐみん","ソーン=ユーリエフ","リヴァイ","デビルミント鬼龍 デルミン","トマス","猫宮 ひなた","岡部 倫太郎","零夜","セイバーオルタ","ギルガメッシュ","ルルカ","ピエール 77世","佐藤四郎兵衛忠信","アイズ・ヴァレンシュタイン","狐ヶ咲 甘色","ノクティス","HM-WA100 ニーズヘッグ","中島 敦","芥川 龍之介","ゲームバズーカガール","ライザリン・シュタウト","青春 アリス","ジョーカー","イグニス=ウィル=ウィスプ","アインズ・ウール・ゴウン","糸廻 輪廻","キリト","アスナ","Bugdoll","ステリア・ララ・シルワ","ラム","2B","ラヴィ・シュシュマルシュ","リムル=テンペスト","アル・ダハブ=アルカティア","御坂 美琴","アクセラレータ","天空王 ぶれいずどらごん","ベル・クラネル","ロキシー・ミグルディア","某 <なにがし>","ロックマン.EXE ＆ 光熱斗","クー・シー","デンジ","パワー","アミスター=バランディン","シノン","ターニャ・デグレチャフ","鬼ヶ式 うら","コラプス","ボンドルド","みりぽゆ","ゴン=フリークス","キルア=ゾルディック","チーちゃん","上条当麻","ーペルリニエ","シャドウ","ポプ子＆ピピ美","メルーニャ・ランチェルナ","セイバー","アーチャー","ランサー","†ファースト†","レゼ","シャルル・リヒター","一姫","エドワード・エルリック"];
+const STAGE_ORDER = ["でらクランクストリート","けっこいスターパーク","東西たかさん広場","グレートウォール","立体交差のある風景","光と闇のライブステージ","妖華帝都ケルパーズの散歩道","ちゅら島リゾート","って～！つっぺる工事現場","太鼓で祭りだドーン！","おいでやす鳥居通り","【ストヘス区】急襲戦闘区域","かけだせ！じっぱか城","どっひゃぁ～！なっから遺跡","Castle of the Silver Feet","マジきてる ＃夜光犯罪特区","Hello :-) irregular World","なまらモーモーパーク","おっかねえ！氷焔神域ケイオスブルク","バリバリ！てげてげモーターウェイ","いこっさ！ダイダイダイナソー博物館","ジャンジャン麻雀の間","ぼちぼちボッチ墓地(毒)"];
+const CARD_ORDER = ["ドリーム☆ミーティア","保健室の救急セット","連合宇宙軍 ステルス迷彩","雨霊の加護 ウィネバ","操宴軍馬 ベディーネン・パンツァー","一撃必殺 ブラストアッパー","楽団員 サンバール","激旨！到着！戦場食堂車 バトルダイナー","‡四大精霊‡ シルフ","究極系ノーガード戦法","ぶじゅつかの超速加速","楽団長 ドルケストル","-蒼王宮- 恩寵天使 ソーン=ユーリエフ","初級魔法 ふれいむ","初級魔法 ぶりざーど","銀行強盗 デリンジャー","不思議の一休み「トランプちゃん」","焼却ロボ Fladoll-4649","ひめたる力の覚醒","聖女の守り手 黒猫リリィ","楽団員 アルプ","-蒼王宮- 白翼騎士 ジェニト","樹霊の加護 イシュティニケ","対消滅ロングレンジライフルHum-Buster","名門サッカー部 イナズマシュート","魂を司る聖天使 ガブリエル","妖炎参謀 月夜叉","UMEEEEEE!!! ㌍伝道 通信教育カラァーテェ","はらぺこゴースト","聖女の親友修道女 マリー","たんじょうび ぷれぜんと","紅薔薇の聖王剣 セルピエンテ","アイちゃんのオススメ防弾パーカー","∗支配ノ美∗ エレンホス","#夜光犯罪特区 #天馬エイワズ","ゲームバズーカ","聖槍ろんぎぬす","連合宇宙軍 フルアーマー機動兵","おにいちゃん ぎゅーってして","ドスブラック★シスコンブラザー","戦禍の灯/ フレイヤ― -哀傷のドッグタグ-","機航師弾 フルーク・ツォイク","荒れ狂う天空王 ぶれいずどらごん","祭りの真打ち！打ち上げ花火","おかあさん だーいすき","戦略の灯/ 国防長官フレイ","闘魂！注入！受け継がれし魂 ゲームバズーカ","連合宇宙軍 ジャスティスハンマー","きょうせんしの大剣","爆弾魔 バルカン","爆術死鬼 ツクモ","祭りの終わり！満天提灯","崩愛の爆弾 ジ・エラー","レーザー特注忍具 -双天小烏丸-","戦士の灯/ 超圧縮荷電粒子砲 ラグナロク","蜘蛛縫組 Ж 愛してマスコット ウサ太郎","でんせつのけんとたて","切り裂き魔 ジャック","祭り行列！山車燈籠","あこがれのアイドルからの声援","情愛の四女 クララ","紅薔薇の不壊盾 イノセンテ","デジタル堅牢忍具 -不可視金蔵-","∗振付ノ美∗ オルケーシス","-蒼王宮- 黒滅導師 アカンティラド","【デルミン】エンジェリック.A.破虎","UMEEEEEE!!! ㌍倍増 ピッツァハーレム","‡四大精霊‡ ノーム","連合宇宙軍 強襲制圧型 装甲多脚戦車","祭りの目玉！ドラゴン花火","どこにでもいけるドア","極悪！最低！悪人派遣会社社長 ベリバッド","せかいをまもる！守護星の女神","【天罰の熾天使】†ファースト†","はらぺこ吸血バット","死献薬 シュタルク・トート","¦¦¦狐ヶ咲¦¦¦ 黒漆祓拵 為次","失われし宝剣¦ゾモロドネガル","放火魔 スコーピオン","電撃ロボ Eledoll-115","聖女の前衛 ジル・ド・レ","聖女の後衛 銃士レオン","地獄の番犬 ケルベロス","連合宇宙軍 広域電磁波ジャマー","帝皇機神 ケーニヒ・イェーガー","ゼルっちの横流しフルオートライフル","オンエア部下忍者 -アニマルチューバーズ-","∗伝説ノ美∗ プロティバラリナ","【デルミン】デビルミント島","#夜光犯罪特区 #やめるちゃんアゲ","UMEEEEEE!!! ㌍満載 ピッツァフルコース","¦¦¦狸ヶ原¦¦¦ 偽紫 刀一郎","熱血！猛進！配給支援部隊 Mr.ランチャー","//*#イレギュラーウィルス#*//","‡四大精霊‡ ウンディーネ","‡四大精霊‡ サラマンダー","いのちをかいふく！かけだし僧侶","妖軍一統 ゲネラール","連合宇宙軍 シールドブレイカー","恒星間転送装置 Tele-Pass","反導砲 カノーネ・ファイエル","おとうさん あそんであそんでー","ミナ&ルナ&レナのバーゲンセール戦争","ハイカラ盟友忍者 -壬生咲みみみ-","∗絢爛ノ美∗ ボラ＆アルヒコ＆アペイロン","-蒼王宮- 聖歌連隊 ミローディア","【デルミン】デビルミント始龍","合体攻撃！ドリーム☆エンジェルズアロー","UMEEEEEE!!! ㌍覇王 プニャトフスキ一族","¦¦¦狐ヶ咲¦¦¦ 祓三姉妹 夢色¦桃色","戦陣の灯/ VDN-93 強襲揚陸艦 ユグドラシル","不思議の王子様「白馬の晴斗くん」","蜘蛛縫組 Ж 三代目組長 蜘蛛縫 正太郎","失われし呪物¦蛇神アペプ","剣道部エースの五月雨突き","千血妖刀 牛鬼村正","はらぺこメイジ","祭りの思い出！おじいちゃんの祝砲","【デルミン】オニギリクママン","‡焼亡の森‡ 静寂の宝槍 ルー","‡滅国の城‡ 名も亡き眷属コウモリ","看守長 キャバルリー","全翼飛将 グライフ","魔法少女☆ルルカ","化学部の放課後ジッケンタイム","祭りの華！だんじりガール","拷問館 パウ・ライヒェ","奏愛の三女 エレオノーラ","紅薔薇の生命線 パレンティア","-蒼王宮- 翠光騎士 リョーフキー","-蒼王宮- 監獄騎士 ヴィーセリツァ","#夜光犯罪特区 #メビウス目撃情報","魔法少女 レレカ☆ロロカ","¦¦¦狐ヶ咲¦¦¦ 四典老師 虹色","戦慄の灯/ AGBW-3990N ヘイムダル","不思議の籠球部「白秋晴斗くん」","蜘蛛縫組 Ж 舎弟衆 万亀川/蛇ノ目/虎山","失われし水源¦水王アイマン・マーイ","学園の王者 生徒会執行部","オールレンジアタック","迅雷の科学者 アバカン","連合宇宙軍 サテライトキャノン","全員集合！魔法少女リリカ☆ルルカ","狂愛の次女 ヴァルヴァラ","紅薔薇の暗殺術 クルエルダー","チーちゃんのウワキオシオキ狙撃","創霊の加護 タイオワ","∗真実ノ美∗ ジョバンニ","【デルミン】デビルミント鬼龍パパミン","絶夢の魔女 リベレーション★ルルカ","¦¦¦狸ヶ原¦¦¦ 破戒怨士 喰色","‡滅国の城‡ 双生王 レヴィ・シュシュマルシュ","‡滅国の城‡ 偽らざる鮮血の玉座","失われし血族¦カティーア大盗賊団","反政府勢力クラッキング Case-171","かぞく みんなで おしゃしん","魔法少女☆ララカ","祭り開始！どでかい和太鼓","呪詛包帯","不思議の美術部「玄冬淡雪＆朱夏夜雨ちゃん」","蜘蛛縫組 Ж 組本部 裁縫会合室","//*#イレギュラー Errordoll-18782#*//","まおうのせんぺい！殺戮武闘ロボ","失われし慈悲¦ケバブ屋のおっちゃん","とある家庭用メカの反乱","運命の女神 エボリューション☆リリカ","革命の旗","深淵より湧き上がるシャドウ","ドリーム☆マジカルスクエア","全天首都防壁 Hum-Sphere LLIK","銀河防衛ロボ Unidoll-2525","祭りの粋！オトコの手筒花火","モノリス Hum-Unknown","神技官 アンジュ・ソレイユ","独災者 アングリフ・ギフト","忘愛の長女 アレクサンドラ","楽団姫 ディーバ","紅薔薇の副団長 アミスター","-蒼王宮-氷冠女王イデア=N=ユランブルク","ガルガルのピカピカデコ戦車","雷霊の加護 ワキンヤン","ライバル狂刃忍者 -幽々院ゆらら-","-蒼王宮- 終焉禁獣 グラナート","背に負いし亡き妻の加護","#夜光犯罪特区 #きてるちゃんライヴ","#夜光犯罪特区 #終夜の俺様賛美会","不思議の支配者「ハートの女王さま」","蜘蛛縫組 Ж 面従相談役 千切 常影","//*#イレギュラー 戦闘摂理偽装システム#*//","//*#イレギュラードールズ#*//","‡焼亡の森‡ 溺愛弟 ルー・メルク・シルワ","‡焼亡の森‡ 奴隷狩り密売団 ケルマト","せかいをはかい！恐怖の大魔王","ジャンクヤード・ドッグ","ファイヤーホイール Mk.ll","よく喧嘩相手になってくれました","よく話し相手になってくれました","カイ＝キスク","シン＝キスク","エルフェルト＝ヴァレンタイン","ラムレザル＝ヴァレンタイン","ジャック・オー","メイ","蔵土縁紗夢(くらどべり じゃむ)","【刺激的絶命拳】ファウスト","【ライジング・フォース】カイ","【ライディーン】シン","【マグナムウェディング】エルフェルト","【アニモエスティンギ】ラムレザル","【アイウォントアウト】ジャック・オー","【アイアンメイデン】ミリア","【我羨惚(がせんこつ)】紗夢(じゃむ)","ギアメーカー","【スカイウォーカー】初音 ミク","【ピースメーカー】初音 ミク","【チャームスピーカー】初音 ミク","【空駆ける歌姫】初音 ミク","【号令する歌姫】初音 ミク","【祝福する歌姫】初音 ミク","ハッカドール 1号","ハッカドール 2号","ハッカドール 3号","ハッカドール 三人集合","F.A.N.G","M.バイソン","バルログ","ダルシム","【ラッシュ＆ブレイズ】ケン","【魂屠る闇】ネカリ","【拳を極めし者】豪鬼","【最終最凶】ベガ","THE REFLECTION エクスオン","THE REFLECTION アイガイ","THE REFLECTION エレノア","THE REFLECTION ナインスワンダー","スバル","ラム","ベアトリス","フェリス","【リゼロ】ゼロから始まる異世界生活","【リゼロ】絶望という病","【リゼロ】ひとときの団欒","【リゼロ】間断なき結束","ソル＝バッドガイ","ディズィー","【画竜点睛】梅喧(ばいけん)","【口寄せ・大型神陣】アンサー","【BEATLESS】レイシア","【BEATLESS】スノウドロップ","【BEATLESS】メトーデ","【BEATLESS】レイシアと遠藤アラト","【ハッピーシンガー】鏡音 リン","【パワフルプレイヤー】鏡音 レン","【熱狂する双演】鏡音リン&鏡音レン","【夢超える共演】初音ミク&鏡音リンレン","アイザック・フォスター","レイチェル・ガードナー","ピザック","【愉悦の一閃】アイザック","【ルナティック・アイズ】レイチェル","【イカれた約束】ザック＆レイ","日向 創","田中 眼蛇夢","江ノ島 盾子","【超高校級の希望】苗木 誠","【超高校級の幸運】狛枝 凪斗","【超高校級のゲーマー】七海 千秋","カズマ","ダクネス","ウィズ","ゆんゆん","【爆裂アークウィザード】めぐみん","【慈愛の貧乏リッチー】ウィズ","【駄女神’s】アクア＆めぐみん＆ダクネス","【風呂上がりの休息】アクア＆めぐみん","【進撃の巨人】 エレン","【進撃の巨人】 ミカサ","【進撃の巨人】 アルミン","【進撃の巨人】 小さな刃","【進撃の巨人】 超大型巨人襲来","【進撃の巨人】 娘々ストレッチ","【ニヒヒ対人地雷】猫宮ひなた","【ぶっぱ短機関銃】猫宮ひなた","【パルクール2丁拳銃】猫宮ひなた","【最高にハイ!!!エナドリ】猫宮ひなた","【ワンショットワンキル】猫宮ひなた","【火遊びフラッシュバン】猫宮ひなた","フェイリス・ニャンニャン","橋田 至","阿万音 鈴羽","【STEINS;GATE】黄昏の憩い","【STEINS;GATE】未来を司る女神作戦","【STEINS;GATE】時間跳躍の協力者","衛宮士郎","ライダー","間桐桜 -マキリの杯-","遠坂凛","【Fate/stay night [HF]】舞い散る桜","【Fate/stay night [HF]】lost butterfly","【Fate/stay night [HF]】狂戦士の咆哮","【Fate/stay night [HF]】激辛麻婆豆腐","【超歌舞伎】マルコス'55","【超歌舞伎】ニコラテスラ","【超歌舞伎】アダム=ユーリエフ","【千本桜】鏡音鈴＆鏡音錬","【超歌舞伎】青龍の精","【超歌舞伎】母と娘の絆","【千本桜】初音未來","【超歌舞伎】転生なしたる白狐","【超歌舞伎】今昔饗宴千本桜","ベル・クラネル","リリルカ・アーデ","リュー・リオン","【ダンまち】ソード・オラトリア","【ダンまち】眷族の物語(ファミリア・ミィス)","【ダンまち】至福の一時","グラディオラス","シドニー","アラネア","【FFXV】輝かしき未来へ","【FFXV】彼の者の物語","【FFXV】父子の絆","宮沢賢治","江戸川乱歩","与謝野晶子","福沢諭吉","【文スト】武装探偵社","【文スト】ありふれた日常の幸せ","【文スト】理想という病を愛す","【文スト】双つの黒","レント・マルスリンク","パトリツィア・アーベルハイム","セリ・グロース","【ライザのアトリエ2】いざ！冒険の旅へ！","【ライザのアトリエ2】夏だ！海だ！水着だ！","【ライザのアトリエ2】ひと夏の思い出","フォックス","クイーン","ノワール","【ペルソナ5】TAKE YOUR HEART","【ペルソナ5】運命の囚われ","【ペルソナ5】心の怪盗団","シャルティア・ブラッドフォールン","セバス・チャン","アウラ・ベラ・フィオーラ","【オーバーロード】不死者の王 アインズ","【オーバーロード】守護者統括 アルベド","【オーバーロード】英雄モモン&美姫ナーベ","シリカ&ピナ","リズベット","エギル","ヒースクリフ","【SAO】朝露の少女と","【SAO】氷の狙撃手","【SAO】妖精たちの国にて","【SAO】旅路の果て","ヨルハ部隊司令官","オペレーター 60／210","パスカル","【NieR:Automata】戦いの始まり","【NieR:Automata】静寂の時","【NieR:Automata】交錯する運命","ヴェルドラ","ミリム","クレイマン","【転スラ】転生したらスライムだった件","【転スラ】集う者達","【転スラ】受け継がれる想い","白井黒子","初春飾利","佐天涙子","フレンダ=セイヴェルン","【超電磁砲】常盤台の超電磁砲(レールガン)","【超電磁砲】超能力者(レベル5)の第一位","【超電磁砲】とある少女たちの物語","【超電磁砲】幻想殺し(イマジンブレイカー)","【ダンまち】聖火の女神と宴","【ダンまち】恥じらいの疾風","ロキシーの人形","シルフィエット","ルイジェルド・スペルディア","【無職転生】夕暮れのひと時","【無職転生】すれ違う物語","【無職転生】無慈悲なる邂逅","ガッツマン.EXE & 大山デカオ","ロール.EXE & 桜井メイル","Dr.ワイリー","【ロックマンエグゼ】ショックウェーブ","【ロックマンエグゼ】ダブルストリーム","【ロックマンエグゼ】アースブレイカー","サムライソード","岸辺","姫野","東山コベニ","【チェンソーマン】マキマ","【チェンソーマン】早川アキ","【チェンソーマン】公安対魔特異4課","【チェンソーマン】犬とチェンソー","ターニャ・デグレチャフ","ヴィーシャ","メアリー","【幼女戦記】ラインの悪魔","【幼女戦記】反撃の狼煙","【幼女戦記】神の恩寵","レグ","リコ","ナナチ","【メイドインアビス】火葬砲","【メイドインアビス】黎明卿","【メイドインアビス】ナナチ＆ミーティ","レオリオ","クラピカ","カイト","ネフェルピトー","【HUNTER×HUNTER】旅立ちと仲間たち","【HUNTER×HUNTER】ゾルディック家","【HUNTER×HUNTER】奇術師 ヒソカ","【HUNTER×HUNTER】決意と覚悟の拳","インデックス","ラストオーダー","【禁書目録】聖人と天才","【禁書目録】未元物質（ダークマター）","ベータ","イプシロン","イータ","【陰実】HIGHEST","【陰実】偽りの中の戯れ","【陰実】七陰の頭脳","ポプ子","ピピ美","ポプ子＆ピピ美","【ポプテピピック】POP TEAM EPIC","【ポプテピピック】万全のポプ子","【ポプテピピック】たたかないで…","フランチェスカ・プレラーティ","オーランド・リーヴ","アサシン","ジェスター・カルトゥーレ","【Fate/strange Fake】To The City","【Fate/strange Fake】慢心無き戦","【Fate/strange Fake】造られし命達","【Fate/strange Fake】時計塔の師弟","ビーム","天使の悪魔","【チェンソーマン】チェンソーマン","【チェンソーマン】レゼ","八木唯","ワン次郎","琳琅(りんらん)","【雀魂】金と緋に浮かぶ","【雀魂】一姫当千","【雀魂】夏の誘い","アルフォンス・エルリック","ロイ・マスタング","グリード","【鋼の錬金術師FA】エルリック兄弟","【鋼の錬金術師FA】賢者の石","【鋼の錬金術師FA】お父様と人造人間","【#コンパス2.0】アニメ キービジュアル"];
+const ordNz = t => String(t || '').normalize('NFKC').toLowerCase().replace(/[\s・=＝&＆<>＜＞†'’.\-]/g, '');
+const ordMap = list => { const m = new Map(); list.forEach((n, i) => m.set(ordNz(n), i)); return m; };
+const HERO_IX = ordMap(HERO_ORDER), STAGE_IX = ordMap(STAGE_ORDER), CARD_IX = ordMap(CARD_ORDER);
+// 名前から実装順の番号（分からないものは後ろ）。idを渡したときは名前に直してから見る
+const heroOrd = x => { const h = db.heroes.find(h => String(h.id) === String(x)); const k = ordNz(h ? h.name : x); return HERO_IX.has(k) ? HERO_IX.get(k) : 1e4; };
+const stageOrd = x => { const st = db.stages.find(s => String(s.id) === String(x)); const k = ordNz(st ? st.name : x); return STAGE_IX.has(k) ? STAGE_IX.get(k) : 1e4; };
+const cardOrd = n => { const k = ordNz(n); return CARD_IX.has(k) ? CARD_IX.get(k) : 1e4; };
 const heroName = id => id === EMPTY ? '空き' : dispName((db.heroes.find(h => h.id === id) || {}).name || '不明');
 const stageName = id => (db.stages.find(s => s.id === id) || {}).name || '不明';
 
@@ -1848,7 +1859,7 @@ function medalHeroHTML(list) {
   if (!recs.length) return `<div class="section"><div class="panel"><h2>メダル</h2><p class="small muted" style="margin:0">この条件では、メダルが記録された試合がまだありません。メダルは、新しく読み込んだ試合か、スクショを入れ直した試合から記録されます。</p></div></div>`;
   const THIN = 5, hn = id => heroName(id);
   const byHero = new Map(); for (const r of recs) { const k = String(r.h); if (!byHero.has(k)) byHero.set(k, { h: r.h, rs: [] }); byHero.get(k).rs.push(r); }
-  const heroes = [...byHero.values()].sort((a, b) => b.rs.length - a.rs.length);
+  const heroes = [...byHero.values()].sort((a, b) => heroOrd(a.h) - heroOrd(b.h) || b.rs.length - a.rs.length);
   const bar = (p, thin) => `<div class="mbar${thin ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
   const cur = byHero.has(String(el.dataset.mh)) ? String(el.dataset.mh) : String(heroes[0].h);
   const o = byHero.get(cur), N = o.rs.length, cnt = {};
@@ -1876,8 +1887,9 @@ function cardPanelHTML(list, el) {
     });
   }
   if (!byHero.size) return `<div class="section"><div class="panel"><h2>カード</h2><p class="small muted" style="margin:0">この条件では、カードが記録された試合がまだありません。カードは、新しく読み込んだ試合から記録されます。前に読み込んだ試合は、同じスクショをもう一度「読み込み」に入れると書き足せます。</p></div></div>`;
-  const heroes = [...byHero.values()].sort((a, b) => b.rs.length - a.rs.length);
-  const cur = byHero.has(String(el.dataset.ch)) ? String(el.dataset.ch) : String(heroes[0].h);
+  const heroes = [...byHero.values()].sort((a, b) => heroOrd(a.h) - heroOrd(b.h) || b.rs.length - a.rs.length);
+  const top = [...heroes].sort((a, b) => b.rs.length - a.rs.length)[0];
+  const cur = byHero.has(String(el.dataset.ch)) ? String(el.dataset.ch) : String(top.h);
   const o = byHero.get(cur), recs = o.rs, THIN = 5, N = recs.length;
   const cnt = new Map(); for (const ks of recs) for (const k of ks) cnt.set(k, (cnt.get(k) || 0) + 1);
   const rows = [...cnt.entries()].sort((a, b) => b[1] - a[1]), all = el.dataset.cardAll === '1', shown = all ? rows : rows.slice(0, 10);
@@ -1923,8 +1935,8 @@ function renderStats() {
   const okMode = m => fMode === 'all' || m.mode === fMode, okHero = m => fHero === 'all' || String(mineOf(m)) === fHero, okStage = m => fStage === 'all' || String(m.stage) === fStage;
   const keep = (list, cur, keys) => { if (cur !== 'all' && !list.some(([k]) => String(k) === cur)) { const k = keys.find(x => String(x) === cur); if (k != null) list.push([k, 0]); } return list; };
   const modeOpts = keep(count(ms.filter(m => okHero(m) && okStage(m)).map(m => m.mode)), fMode, ms.map(m => m.mode));
-  const heroOpts = keep(count(ms.filter(m => okMode(m) && okStage(m)).map(mineOf)), fHero, ms.map(mineOf));
-  const stageOpts = keep(count(ms.filter(m => okMode(m) && okHero(m)).map(m => m.stage)), fStage, ms.map(m => m.stage));
+  const heroOpts = keep(count(ms.filter(m => okMode(m) && okStage(m)).map(mineOf)), fHero, ms.map(mineOf)).sort((a, b) => heroOrd(a[0]) - heroOrd(b[0]) || b[1] - a[1]);
+  const stageOpts = keep(count(ms.filter(m => okMode(m) && okHero(m)).map(m => m.stage)), fStage, ms.map(m => m.stage)).sort((a, b) => stageOrd(a[0]) - stageOrd(b[0]) || b[1] - a[1]);
   const opt = (list, cur, label) => list.map(([k, n]) => `<option value="${esc(k)}"${String(k) === cur ? ' selected' : ''}>${esc(label(k))}（${n}）</option>`).join('');
   const base = ms.filter(m => (fMode === 'all' || m.mode === fMode) && (fStage === 'all' || String(m.stage) === fStage));
   const use = base.filter(m => fHero === 'all' || String(mineOf(m)) === fHero);
@@ -2419,7 +2431,7 @@ let cpState = null;
 function cpAllNames() {
   const m = new Map(); for (const [n, a] of CARD_DB) m.set(n, a);
   for (const c of db.cards || []) if (c.name && !m.has(c.name)) m.set(c.name, '');
-  return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ja'));
+  return [...m.entries()].sort((a, b) => cardOrd(a[0]) - cardOrd(b[0]) || a[0].localeCompare(b[0], 'ja'));
 }
 function cpOpen(id) {
   const c = cardById(id); if (!c || view.on) return;
@@ -2672,7 +2684,8 @@ function renderHist() {
   const opts = (k, keysOf, label) => {
     const c = new Map(); for (const m of allMs) if (hfMatch(m, f, k)) for (const x of new Set(keysOf(m))) if (x != null && x !== EMPTY) c.set(String(x), (c.get(String(x)) || 0) + 1);
     if (f[k] && !c.has(f[k])) c.set(f[k], 0);
-    const list = [...c.entries()].sort((a, b) => k === 'rank' ? RANK_ORDER.indexOf(a[0]) - RANK_ORDER.indexOf(b[0]) : b[1] - a[1]);
+    const ord = k === 'hero' || k === 'enemy' ? heroOrd : k === 'stage' ? stageOrd : null;
+    const list = [...c.entries()].sort((a, b) => k === 'rank' ? RANK_ORDER.indexOf(a[0]) - RANK_ORDER.indexOf(b[0]) : ord ? ord(a[0]) - ord(b[0]) || b[1] - a[1] : b[1] - a[1]);
     return `<option value="">すべて</option>` + list.map(([v, n]) => `<option value="${esc(v)}"${f[k] === v ? ' selected' : ''}>${esc(label(v))}（${n}）</option>`).join('');
   };
   const hname = v => heroName(v), sname = v => stageName(v);
@@ -2709,8 +2722,8 @@ function cardNameHTML(el) {
   if (!cs.length) return `<div class="section"><div class="panel"><h2>カードの名前</h2><p class="small muted" style="margin:0">まだカードの記録がありません。リプレイのスクショを読み込むと、映っているカードを覚えて、ここに並びます。</p></div></div>`;
   const cnt = new Map(); for (const m of db.matches) if (m.cards) for (const sd of ['blue', 'red']) for (const row of m.cards[sd] || []) if (row) for (const id of new Set(row)) if (id) cnt.set(id, (cnt.get(id) || 0) + 1);
   const only = el.dataset.cardOnly === '1', lim = +(el.dataset.cardLim || 60);
-  const list = cs.filter(c => !only || !c.name).sort((a, b) => (!!a.name - !!b.name) || ((cnt.get(b.id) || 0) - (cnt.get(a.id) || 0)));
-  const named = cs.filter(c => c.name).length, names = [...new Set(cs.map(c => c.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja'));
+  const list = cs.filter(c => !only || !c.name).sort((a, b) => (!!a.name - !!b.name) || (a.name ? cardOrd(a.name) - cardOrd(b.name) : 0) || ((cnt.get(b.id) || 0) - (cnt.get(a.id) || 0)));
+  const named = cs.filter(c => c.name).length, names = [...new Set(cs.map(c => c.name).filter(Boolean))].sort((a, b) => cardOrd(a) - cardOrd(b) || a.localeCompare(b, 'ja'));
   return `<div class="section"><div class="panel"><h2>カードの名前</h2>
     <p class="small muted" style="margin:0">読み込んだスクショから覚えたカードです（${cs.length}枚・名前あり${named}枚）。名前を付けると、分析タブの「カードの使用率」に名前が出ます。「自動」は、やぎシミュ（yagitools）のカード一覧の絵と照らし合わせて自動で付けた名前です。名前がないカードには、絵が近い順に候補が出るので、合っていればタップしてください。候補にない時は、名前の右の「▼」から全カードの一覧を開いて、名前で検索して選べます。同じカードが2つに分かれて並んでいたら、同じ名前を付けると1つにまとまります。</p>
     <div class="row"><label class="small"><input type="checkbox" data-cardonly="1"${only ? ' checked' : ''}> 名前がないカードだけ表示</label></div>
@@ -2724,7 +2737,7 @@ function renderData() {
   const el = $('#view-data');
   const hcnt = new Map(); for (const m of db.matches) for (const x of new Set(m.blue.concat(m.red))) hcnt.set(x, (hcnt.get(x) || 0) + 1);
   const used = new Set(hcnt.keys());
-  const hs = db.heroes.filter(h => used.has(h.id)).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  const hs = db.heroes.filter(h => used.has(h.id)).sort((a, b) => heroOrd(a.id) - heroOrd(b.id) || a.name.localeCompare(b.name, 'ja'));
   el.innerHTML = `
   <div class="section"><div class="panel" id="sync-box">${syncHTML()}</div></div>
   <div class="section"><div class="panel"><h2>バックアップ</h2>
@@ -2971,7 +2984,7 @@ function mfOpen(id) {
     <details${m && m.medals ? ' open' : ''}><summary class="small" style="cursor:pointer;font-weight:700">メダル（任意）</summary>
       <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${sl.map((x, j) => `<div class="mfmed"><span class="rl">${x.role}</span>${[0, 1, 2].map(q => medSel(`mf-m${j}-${q}`, med(x.side, x.idx, q))).join('')}</div>`).join('')}</div></details>
     <datalist id="mf-heroes">${allHeroNames().map(n => `<option value="${esc(n)}">`).join('')}<option value="空き"></datalist>
-    <datalist id="mf-stages">${[...new Set(db.stages.map(x => x.name))].map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+    <datalist id="mf-stages">${[...new Set(db.stages.map(x => x.name))].sort((a, b) => stageOrd(a) - stageOrd(b)).map(n => `<option value="${esc(n)}">`).join('')}</datalist>
     <p class="small" id="mf-msg" style="margin:0;color:var(--lose)" hidden></p>
     <div class="row" style="gap:8px"><button class="btn primary" data-act="mf-save">${m ? 'この内容で直す' : 'この内容で登録'}</button><button class="btn ghost" data-act="mf-cancel">やめる</button></div>
   </div>`;
@@ -3330,7 +3343,7 @@ document.addEventListener('change', e => {
   else if (t.dataset.cardname) {
     const c = cardById(t.dataset.cardname); if (!c) return;
     c.name = t.value.trim(); delete c.auto; persist(); renderStats();
-    const dl = $('#card-names'); if (dl) { const ns = [...new Set(db.cards.map(c => c.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja')); dl.innerHTML = ns.map(n => `<option value="${esc(n)}">`).join(''); }
+    const dl = $('#card-names'); if (dl) { const ns = [...new Set(db.cards.map(c => c.name).filter(Boolean))].sort((a, b) => cardOrd(a) - cardOrd(b) || a.localeCompare(b, 'ja')); dl.innerHTML = ns.map(n => `<option value="${esc(n)}">`).join(''); }
   }
   else if (t.dataset.rename) {
     const x = db.heroes.find(h => h.id === t.dataset.rename), n = t.value.trim();
@@ -3372,7 +3385,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-19d', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-19e', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
