@@ -2270,7 +2270,6 @@ function seasonChart(pts, win, cw) {
       <div class="cscroll"><svg class="chart" width="${PT}" height="${H}" role="img" aria-label="シーズンptの推移">${grid}<path class="ln" d="${path}"/>${xl}${top}${dots}</svg></div></div>
     <div class="ctip" hidden></div><p class="small muted" style="margin:4px 0 0">${win && n - 1 > win ? '横にスライドすると前の試合も見られます。' : ''}○を押すと、その試合の結果が出ます。</p></div>`;
 }
-let seasonOpenInit = false;
 // シーズンは開始日から10日後の日の終わりまで（例：10/8開始なら10/18いっぱい、10/19 0:00に終了）
 const SEASON_DAYS = 10;
 const seasonEnd = se => { const d = new Date(se.start); return new Date(d.getFullYear(), d.getMonth(), d.getDate() + SEASON_DAYS + 1).getTime(); };
@@ -2488,7 +2487,6 @@ function renderSeason() {
   const arena = db.matches.filter(m => m.mode === ARENA).sort((a, b) => a.at - b.at);
   const firstFree = arena.find(m => !ss.length || m.at < ss[0].start);
   const defDate = ss.length ? ymd(Date.now()) : ymd(firstFree ? firstFree.at : Date.now());
-  if (!seasonOpenInit && ss.length) { openSeasons.add(ss[ss.length - 1].id); seasonOpenInit = true; }
   const pc = ptCalc();
   let h = '';
   const formHTML = `<div class="formgrid">
@@ -2721,7 +2719,7 @@ function cardNameHTML(el) {
   const cs = db.cards || [];
   if (!cs.length) return `<div class="section"><div class="panel"><h2>カードの名前</h2><p class="small muted" style="margin:0">まだカードの記録がありません。リプレイのスクショを読み込むと、映っているカードを覚えて、ここに並びます。</p></div></div>`;
   const cnt = new Map(); for (const m of db.matches) if (m.cards) for (const sd of ['blue', 'red']) for (const row of m.cards[sd] || []) if (row) for (const id of new Set(row)) if (id) cnt.set(id, (cnt.get(id) || 0) + 1);
-  const only = el.dataset.cardOnly === '1', lim = +(el.dataset.cardLim || 60);
+  const only = el.dataset.cardOnly !== '0', lim = +(el.dataset.cardLim || 60);
   const list = cs.filter(c => !only || !c.name).sort((a, b) => (!!a.name - !!b.name) || (a.name ? cardOrd(a.name) - cardOrd(b.name) : 0) || ((cnt.get(b.id) || 0) - (cnt.get(a.id) || 0)));
   const named = cs.filter(c => c.name).length, names = [...new Set(cs.map(c => c.name).filter(Boolean))].sort((a, b) => cardOrd(a) - cardOrd(b) || a.localeCompare(b, 'ja'));
   return `<div class="section"><div class="panel"><h2>カードの名前</h2>
@@ -3055,6 +3053,9 @@ function renderAll() { renderStats(); renderSeason(); renderOut(); renderHist();
 
 /* ---------- イベント ---------- */
 function showTab(t) {
+  // 別のタブに切り替えたら、画面のいちばん上から表示する
+  const prev = document.querySelector('nav.tabs button[aria-selected="true"]');
+  if (prev && prev.dataset.tab !== t) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'));
   document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'view-' + t);
   if (t === 'season') { renderSeason(); }
@@ -3339,7 +3340,7 @@ document.addEventListener('change', e => {
   else if (t.dataset.seasonName) { const x = db.seasons.find(x => x.id === t.dataset.seasonName); x.name = t.value.trim(); persist(); renderSeason(); }
   else if (t.dataset.seasonSel) { $('#view-season').dataset.sel = t.value; $('#view-season').dataset.form = ''; renderSeason(); }
   else if (t.dataset.seasonPt) { const x = db.seasons.find(x => x.id === t.dataset.seasonPt), v = parsePt(t.value); if (v) { x.pt = v.sign === '-' ? -v.abs : v.abs; persist(); } renderSeason(); }
-  else if (t.dataset.cardonly) { const d = $('#view-data'); d.dataset.cardOnly = t.checked ? '1' : ''; renderData(); }
+  else if (t.dataset.cardonly) { const d = $('#view-data'); d.dataset.cardOnly = t.checked ? '1' : '0'; renderData(); }
   else if (t.dataset.cardname) {
     const c = cardById(t.dataset.cardname); if (!c) return;
     c.name = t.value.trim(); delete c.auto; persist(); renderStats();
@@ -3385,7 +3386,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-19e', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-19f', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
