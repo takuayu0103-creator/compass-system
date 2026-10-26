@@ -171,6 +171,7 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .fl{display:flex;flex-direction:column;gap:2px;min-width:0}
 .fl select{width:100%}
 .divider{font-size:.75rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:6px;margin-top:4px}
+.sbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;padding:8px 12px;margin:0 0 12px;background:var(--surface);border:1px solid var(--accent);border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.12)}.sbar .grow{flex:1}.sbar .btn{padding:6px 12px;font-size:.85rem}.sbar .sample{font-size:.9rem}.sampled{position:relative;opacity:.55;filter:grayscale(.45)}.sampled::after{content:'SAMPLE';position:absolute;left:50%;top:220px;transform:translateX(-50%) rotate(-16deg);font:900 4.6rem/1 var(--f-num);letter-spacing:.12em;color:var(--accent);opacity:.2;pointer-events:none;white-space:nowrap}
 .sample{font-size:.78rem;font-weight:700;color:var(--accent);letter-spacing:.06em}
 .hist{display:flex;flex-direction:column;gap:0}
 .hrow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line);font-size:.86rem}
@@ -1919,6 +1920,7 @@ function medalHTML(list) {
     </tbody></table>
     <p class="small muted" style="margin:8px 0 0">読み取れたメダル枠：味方 ${cov(R.ally)}%・敵 ${cov(R.enemy)}%。読み取れなかった枠は、集計に入れていません。</p></div></div>` + '';
 }
+let sampleShow = false; // 記録が無い時の「例を見る」（この画面を開いている間だけ）
 function renderStats() {
   const el = $('#view-stats');
   const real = db.matches.length > 0;
@@ -1953,7 +1955,8 @@ function renderStats() {
   const head = (raw, allLabel, n) => `<option value=""${raw === '' ? ' selected' : ''}>未選択</option><option value="__all"${raw === '__all' ? ' selected' : ''}>${allLabel}（${n}）</option>`;
   const nAllHero = ms.filter(m => okMode(m) && okStage(m) && mineOf(m) != null).length, nAllStage = ms.filter(m => okMode(m) && okHero(m)).length, nAllMode = ms.filter(m => okHero(m) && okStage(m)).length;
   let h = togHTML();
-  if (!real) h += `<div class="section"><div class="notice"><span class="sample">サンプル表示</span><br>まだ記録がありません。下はどんな表示になるかの例で、あなたのデータではありません。「読み込み」からスクショを入れると、自分の戦績に切り替わります。</div></div>`;
+  if (!real && !sampleShow) { el.innerHTML = h + `<div class="section"><div class="panel"><h2>まだ記録がありません</h2><p class="small muted" style="margin:0 0 10px">「読み込み」からリプレイのスクショを入れると、ここに勝率やヒーロー別の戦績が出ます。</p><div class="row"><button class="btn primary" data-act="go-add">読み込みへ</button><button class="btn ghost" data-act="sample-on">例を見る</button></div></div></div>`; return; }
+  if (!real) h += `<div class="sbar"><span class="sample">サンプル表示</span><span class="grow"></span><button class="btn primary" data-act="go-add">読み込みへ</button><button class="btn ghost" data-act="sample-off">閉じる</button></div><div class="sampled">`;
   h += `<div class="section">
     <div class="filters">
       <div class="fl${heroKey != null ? ' wide' : ''}"><span class="label">使ったヒーロー</span>
@@ -2008,6 +2011,7 @@ function renderStats() {
   else if (allHero) h += heroSections(ms, null, nm, sn, el);
   else h += `<p class="small muted">「使ったヒーロー」で個別のヒーローか「すべてのヒーロー」を選ぶと、そのヒーローの使用率・直近勝率・勝率推移・ステージ別・相手ヒーロー別の勝率が出ます。</p>`;
   if (real) h += medalHTML(base);
+  if (!real) h += '</div>';
   el.innerHTML = h;
 }
 
@@ -3221,6 +3225,9 @@ document.addEventListener('click', e => {
   else if (act === 'go-terms') { e.preventDefault(); guideGo('terms'); }
   else if (act === 'cloud-del') { syncS.cdAsk = true; syncRender(); }
   else if (act === 'cloud-del-no') { syncS.cdAsk = false; syncRender(); }
+  else if (act === 'go-add') showTab('add');
+  else if (act === 'sample-on') { sampleShow = true; renderStats(); }
+  else if (act === 'sample-off') { sampleShow = false; renderStats(); }
   else if (act === 'cloud-del-yes') cloudDelete();
   else if (act === 'sync-now') syncRun();
   else if (act === 'sync-pull') syncPull();
@@ -3387,7 +3394,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-27b', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-27c', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
