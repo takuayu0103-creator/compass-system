@@ -3387,7 +3387,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-27a', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-27b', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -3969,6 +3969,7 @@ storeInit().then(() => {
   if (!btn || !logo) return;
   const TAU = Math.PI * 2, N = 22, LOOP = 9; // 浮かぶ◆の1周は9秒基準
   const rnd = i => { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+  const ORD = [...Array(N).keys()].sort((a, b) => rnd(a) - rnd(b)); // 小さい◆から描く（大きい◆が手前）
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let on = false, cv = null, cx = null, W = 0, H = 0, raf = 0, last = 0, t0 = 0;
   try { const v = localStorage.getItem(KEY); on = v === null ? !reduce : v === '1'; } catch (e) { on = !reduce; }
@@ -3983,10 +3984,13 @@ storeInit().then(() => {
     logo.style.filter = 'drop-shadow(0 0 ' + (6 + 10 * g) + 'px rgba(240,100,12,' + (0.25 + 0.35 * g) + '))';
     // 背景：薄い◆が下から浮かぶ
     cx.clearRect(0, 0, W, H); const u = t / LOOP * 1.5;
-    for (let i = 0; i < N; i++) {
+    for (const i of ORD) {
       const sz = 18 + rnd(i) * 54, sp = 1 + Math.round(rnd(i + 9) * 2), px = rnd(i + 3) * W, ph2 = rnd(i + 5);
       const y = (1 - ((u * sp + ph2) % 1)) * (H + 2 * sz) - sz, sx = px + Math.sin((u * sp + ph2) * TAU) * 14 * (sz / 50);
-      cx.save(); cx.globalAlpha = 0.14 + 0.22 * (sz / 72); cx.translate(sx, y); cx.rotate(Math.sin((u * sp + ph2) * TAU) * 0.35); cx.drawImage(logo, -sz / 2, -sz / 2, sz, sz); cx.restore();
+      cx.save(); cx.translate(sx, y); cx.rotate(Math.sin((u * sp + ph2) * TAU) * 0.35);
+      // 重なっても濃くならないように、先に下の◆をこの形で消してから描く
+      cx.globalCompositeOperation = 'destination-out'; cx.globalAlpha = 1; cx.drawImage(logo, -sz / 2, -sz / 2, sz, sz);
+      cx.globalCompositeOperation = 'source-over'; cx.globalAlpha = 0.14 + 0.22 * (sz / 72); cx.drawImage(logo, -sz / 2, -sz / 2, sz, sz); cx.restore();
     }
   }
   function start() {
