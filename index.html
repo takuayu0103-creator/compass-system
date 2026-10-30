@@ -2532,6 +2532,18 @@ function cpSet(name) {
   cpClose();
 }
 document.addEventListener('input', e => { if (e.target && e.target.id === 'cp-q') cpRender(e.target.value); });
+document.addEventListener('change', async e => {
+  if (!e.target || e.target.id !== 'backup-file') return;
+  const f = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  const msg = t => { const el = document.getElementById('file-msg'); if (el) el.textContent = t; };
+  try {
+    const o = JSON.parse(await f.text());
+    if (!o || !Array.isArray(o.matches) || !Array.isArray(o.heroes)) throw 0;
+    pendingRestore = o;
+  } catch (_) { msg('読み込めませんでした。「ファイルで保存」で作ったファイルを選んでください'); return; }
+  renderData();
+});
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('cp')) cpClose(); });
 document.addEventListener('click', e => {
   const p = e.target.closest('[data-cardpick]'); if (p) { cpOpen(p.dataset.cardpick); return; }
@@ -2813,10 +2825,12 @@ function renderData() {
   <div class="section"><div class="panel"><h2>バックアップ</h2>
     <p class="small muted" style="margin:0">記録はこのブラウザの中にだけあります。ブラウザのデータを消すと戦績も消えるので、ときどき下の文字列をコピーしてメモ帳などに保存してください。</p>
     <textarea id="backup-out" readonly aria-label="バックアップ用の文字列" placeholder="「コピー」を押すと、ここにバックアップの文字列が入ります"></textarea>
-    <div class="row"><button class="btn" data-act="copy">コピー</button><span class="small muted" id="copy-msg"></span></div>
+    <div class="row"><button class="btn" data-act="save-file">ファイルで保存</button><button class="btn ghost" data-act="copy">文字列をコピー</button><span class="small muted" id="copy-msg"></span></div>
+    <p class="small muted" style="margin:6px 0 0">試合が多くて文字列のコピーで固まる時は、「ファイルで保存」を使ってください（ダウンロードに .json ファイルが入ります）。</p>
     <h3>復元</h3>
-    <textarea id="backup-in" placeholder="保存しておいた文字列を貼り付け" aria-label="復元する文字列"></textarea>
-    ${pendingRestore ? `<p class="small" style="margin:6px 0">いまの記録（${db.matches.length}試合）を、貼り付けた内容（${pendingRestore.matches.length}試合）で置き換えます。元に戻せません。</p><div class="row"><button class="btn danger" data-act="restore-yes">本当に上書きする</button><button class="btn ghost" data-act="restore-no">やめる</button></div>` : `<div class="row"><button class="btn" data-act="restore">この内容で上書きする</button><span class="small" id="restore-msg"></span></div>`}
+    <div class="row"><label class="btn ghost" style="cursor:pointer">ファイルから復元<input type="file" id="backup-file" accept=".json,application/json,text/plain" hidden></label><span class="small" id="file-msg"></span></div>
+    <textarea id="backup-in" placeholder="または、保存しておいた文字列を貼り付け" aria-label="復元する文字列"></textarea>
+    ${pendingRestore ? `<p class="small" style="margin:6px 0">いまの記録（${db.matches.length}試合）を、読み込んだ内容（${pendingRestore.matches.length}試合）で置き換えます。元に戻せません。</p><div class="row"><button class="btn danger" data-act="restore-yes">本当に上書きする</button><button class="btn ghost" data-act="restore-no">やめる</button></div>` : `<div class="row"><button class="btn" data-act="restore">この内容で上書きする</button><span class="small" id="restore-msg"></span></div>`}
   </div></div>
   <div class="section"><div class="panel"><h2>ヒーロー名の修正</h2>
     <p class="small muted" style="margin:0">名前を打ち間違えたときはここで直せます。すでにある名前に変えると、ふたつがまとまります。</p>
@@ -2912,7 +2926,7 @@ function renderGuide() {
     <ul>
       <li>記録は、このブラウザの中に保存されます。ブラウザのデータを消すと、戦績も消えます。</li>
       <li>Googleでログインすると、記録がクラウドにも保存され、別の端末でも同じ記録を使えます。機種を変える時は、先にログインして、新しい端末で同じアカウントでログインしてください。</li>
-      <li>ログインしない場合は、データタブの「バックアップ」の文字列をコピーして、メモ帳などに保存してください。復元は、同じ画面の「復元」の欄に貼り付けます（今の記録は上書きされます）。</li>
+      <li>ログインしない場合は、データタブの「バックアップ」の「ファイルで保存」で .json ファイルを残してください（文字列をコピーしてメモ帳に保存する方法もあります）。復元は、同じ画面の「ファイルから復元」でそのファイルを選ぶか、「復元」の欄に文字列を貼り付けます（今の記録は上書きされます）。</li>
     </ul>
     <h4>画面が古いかもしれない時</h4>
     <p>データタブのフレンド欄の一番下に「アプリの版」が出ます。新しい機能が出ない時は、ページを再読み込みしてください。</p>
@@ -3270,11 +3284,23 @@ document.addEventListener('click', e => {
   else if (t.dataset.ask !== undefined && !t.dataset.del) { $('#view-hist').dataset.ask = t.dataset.ask; renderHist(); }
   else if (t.dataset.del) { db.matches = db.matches.filter(m => m.id !== t.dataset.del); $('#view-hist').dataset.ask = ''; persist(); renderAll(); }
   else if (act === 'copy') {
-    const ta = $('#backup-out');
-    if (!ta.value) ta.value = JSON.stringify(db);
+    const ta = $('#backup-out'), str = JSON.stringify(db), big = str.length > 300000;
+    // 大きいときは欄に入れない（描画で固まるため）。クリップボードへ直接送る
+    if (!big) { if (!ta.value) ta.value = str; } else ta.value = '';
     const done = m => { $('#copy-msg').textContent = m; };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(() => done('コピーしました'), () => { ta.select(); done('選択しました。長押しかCtrl+Cでコピーしてください'); });
-    else { ta.select(); done('選択しました。長押しかCtrl+Cでコピーしてください'); }
+    const ng = () => { if (big) done('コピーできませんでした。「ファイルで保存」を使ってください'); else { ta.select(); done('選択しました。長押しかCtrl+Cでコピーしてください'); } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(str).then(() => done('コピーしました'), ng);
+    else ng();
+  } else if (act === 'save-file') {
+    const m = $('#copy-msg');
+    try {
+      const d = new Date(), z = n => String(n).padStart(2, '0');
+      const name = `compass-backup-${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}.json`;
+      const url = URL.createObjectURL(new Blob([JSON.stringify(db)], { type: 'application/json' }));
+      const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      m.textContent = `${name} を保存しました（${db.matches.length}試合）。ダウンロードフォルダを見てください`;
+    } catch (_) { m.textContent = 'ファイルを保存できませんでした。ブラウザ（Chromeなど）で開き直してください'; }
   } else if (act === 'restore') {
     try {
       const o = JSON.parse($('#backup-in').value);
@@ -3463,7 +3489,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-31i', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-31j', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
