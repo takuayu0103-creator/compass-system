@@ -2730,7 +2730,7 @@ function outRow(m) {
 }
 
 // 履歴の絞り込み（分析からのドリルダウンでも使う）。値は #view-hist の data-hf-○○ に入れる
-const HF_KEYS = ['hero', 'stage', 'mode', 'enemy', 'rank'];
+const HF_KEYS = ['hero', 'stage', 'mode', 'enemy', 'rank', 'pty'];
 const hfGet = () => { const el = $('#view-hist'), f = {}; for (const k of HF_KEYS) { const v = el.dataset['hf' + k[0].toUpperCase() + k.slice(1)]; if (v) f[k] = v; } return f; };
 function hfSet(f) { const el = $('#view-hist'); for (const k of HF_KEYS) { const key = 'hf' + k[0].toUpperCase() + k.slice(1); if (f[k]) el.dataset[key] = f[k]; else delete el.dataset[key]; } }
 const hfTest = {
@@ -2739,6 +2739,7 @@ const hfTest = {
   mode: (m, v) => m.mode === v,
   enemy: (m, v) => enemiesOf(m).some(x => String(x) === v),
   rank: (m, v) => m.rank === v,
+  pty: (m, v) => (fxSlots(m).length > 0) === (v === 'fx'),   // 固定（固定メンバー・連携フレンドが味方にいた試合）／野良
 };
 const hfMatch = (m, f, skip) => HF_KEYS.every(k => k === skip || !f[k] || hfTest[k](m, f[k]));
 function renderHist() {
@@ -2765,8 +2766,9 @@ function renderHist() {
       ${sel('mode', 'モード', m => [m.mode], x => x)}
       ${sel('enemy', '敵ヒーロー', m => enemiesOf(m), hname)}
       ${sel('rank', '自分のランク', m => [m.rank], x => x)}
+      ${sel('pty', '固定／野良', m => [fxSlots(m).length > 0 ? 'fx' : 'solo'], x => x === 'fx' ? '固定' : '野良')}
     </div>
-    ${active.length ? `<div class="hfbar"><span class="small muted">絞り込み中：</span>${active.map(k => `<span class="hfchip">${esc({ hero: '使用', stage: 'ステージ', mode: 'モード', enemy: '敵', rank: 'ランク' }[k])}：${esc(k === 'hero' || k === 'enemy' ? heroName(f[k]) : k === 'stage' ? stageName(f[k]) : f[k])}</span>`).join('')}<button class="btn ghost small" data-act="hf-clear">解除</button></div>` : ''}
+    ${active.length ? `<div class="hfbar"><span class="small muted">絞り込み中：</span>${active.map(k => `<span class="hfchip">${esc({ hero: '使用', stage: 'ステージ', mode: 'モード', enemy: '敵', rank: 'ランク', pty: '固定／野良' }[k])}：${esc(k === 'hero' || k === 'enemy' ? heroName(f[k]) : k === 'stage' ? stageName(f[k]) : k === 'pty' ? (f[k] === 'fx' ? '固定' : '野良') : f[k])}</span>`).join('')}<button class="btn ghost small" data-act="hf-clear">解除</button></div>` : ''}
     <div class="hist">${ms.length ? ms.slice(0, Math.max(PAGE_N, +(el.dataset.n || 0))).map(m => {
     const r = matchResult(m);
     const delAsk = el.dataset.ask === m.id;
@@ -3459,7 +3461,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-31g', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-31h', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
