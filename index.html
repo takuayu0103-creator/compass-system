@@ -973,14 +973,16 @@ function nearestRank(m, L) {
   const sOnly = !!(L && L.w >= LETTER_W);
   if (!m) return null;
   // 一番近い見本と、別のランクで2番目に近い見本の差が小さいときは「読めない」にする（見本のないS8・S9などを、似たランクに間違えないように）
-  let best = null, bd = 1, d2 = 1;
+  let best = null, bd = 1, d2 = 1, n2 = null;
   for (const t of RANK_SEED) {
     if (sOnly && t.n[0] !== 'S') continue;
     let mn = 0, mx = 0; for (let i = 0; i < m.length; i++) { mn += Math.min(m[i], t.m[i]); mx += Math.max(m[i], t.m[i]); }
     const dd = 1 - mn / Math.max(mx, 1e-6);
-    if (dd < bd) { if (best !== t.n) d2 = bd; bd = dd; best = t.n; } else if (t.n !== best && dd < d2) d2 = dd;
+    if (dd < bd) { if (best !== t.n) { d2 = bd; n2 = best; } bd = dd; best = t.n; } else if (t.n !== best && dd < d2) { d2 = dd; n2 = t.n; }
   }
-  return bd < 0.36 && d2 - bd >= 0.04 ? best : null;
+  // S5とS6は形がもともと近いので、この2つの間だけは差の基準を少しゆるくする（ほかのランクとの間は今まで通り）
+  const need = (best === 'S5' && n2 === 'S6') || (best === 'S6' && n2 === 'S5') ? 0.02 : 0.04;
+  return bd < 0.36 && d2 - bd >= need ? best : null;
 }
 // 6人全員のランク（{blue:[...], red:[...]}、読めない枠はnull）。自分の枠は手で直した値を使う
 function shotRanks(s) {
@@ -3461,7 +3463,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-31h', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-31i', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
