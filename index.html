@@ -3513,7 +3513,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-10-31-AA', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-10-31-AB', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4209,7 +4209,7 @@ function pubBuild() {
         ps.push([id(name), statBandOf(rk), name ? cs : [], name ? ms : []]);
       }
       const fp = statFp(hs.join('|') + '|' + m.b + '-' + m.r + '|' + stage + '|' + m.mode);
-      r.push([fp, Math.round(m.at / 60000), mode, id(stage), res === 'w' ? 1 : res === 'l' ? 0 : 2, m.side === 'blue' ? 0 : 1, m.noSeason ? 1 : 0, m.idx, ...ps]);
+      r.push([fp, Math.round(m.at / 60000), mode, id(stage), res === 'w' ? 1 : res === 'l' ? 0 : 2, m.side === 'blue' ? 0 : 1, m.noSeason ? 1 : 0, m.idx, ...ps, (m.fxs || []).reduce((a, i) => a | (1 << i), 0)]);
     }
     parts.push(JSON.stringify({ v: 1, n: names, r }));
   }
@@ -4305,14 +4305,17 @@ function statAgg(parts, cfg, now) {
     for (let k = 0; k < 6; k++) {
       const p = r[8 + k]; if (!Array.isArray(p)) continue; const h = name(p[0]); if (!h) continue;
       const band = Number.isFinite(p[1]) ? Math.min(10, Math.max(0, p[1] | 0)) : 10;
-      const x = bucket(d.h, band); let e = x.get(h); if (!e) { e = { n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map() }; x.set(h, e); }
+      const x = bucket(d.h, band); let e = x.get(h); if (!e) { e = { n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map(), seen: new Set() }; x.set(h, e); }
       const pw = w !== 2 && (k < 3 ? 0 : 1) === side ? w === 1 : (w === 0);
       e.n++; if (pw) e.w++;
       // ステージ×ヒーロー（その試合の全員ぶん。引き分けは数えない）
       if (stage && w !== 2) { const x = bucket(d.gh, band); let hm = x.get(h); if (!hm) { hm = new Map(); x.set(h, hm); } const a = hm.get(stage) || [0, 0]; a[0]++; if (pw) a[1]++; hm.set(stage, a); }
       const cs = Array.isArray(p[2]) ? p[2].map(name).filter(Boolean) : [], ms = Array.isArray(p[3]) ? p[3].filter(i => i >= 0 && i < 13) : [];
-      if (cs.length) { e.cn++; for (const c of new Set(cs)) e.cards.set(c, (e.cards.get(c) || 0) + 1); }
-      if (ms.length) { e.mn++; for (const i of new Set(ms)) e.med.set(i, (e.med.get(i) || 0) + 1); }
+      // 提供した本人と、その人の固定の味方は同じ人が何度も出てくるので、デッキ（メダル）が完全に同じなら1回だけ数える
+      const mine = (k < 3 ? 0 : 1) === side && ((k % 3) === (r[7] | 0) || ((r[14] | 0) >> (k % 3)) & 1);
+      const once = (tag, list) => { if (!mine) return true; const key = u + '|' + tag + '|' + [...new Set(list)].sort().join(','); if (e.seen.has(key)) return false; e.seen.add(key); return true; };
+      if (cs.length && once('c', cs)) { e.cn++; for (const c of new Set(cs)) e.cards.set(c, (e.cards.get(c) || 0) + 1); }
+      if (ms.length && once('m', ms)) { e.mn++; for (const i of new Set(ms)) e.med.set(i, (e.med.get(i) || 0) + 1); }
     }
     }
   }
