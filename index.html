@@ -2902,7 +2902,7 @@ function renderGuide() {
     <ul>
       <li><b>相手のデータを見る：</b>画面上部の「見るデータ」から相手を選びます。相手が記録を増やすと、画面にも反映されます。</li>
       <li><b>固定／野良：</b>登録の確認画面で、味方の横の「固定」にチェックすると、その人の名前を覚えます（次からは自動でチェック）。分析タブの「固定／野良」で、固定メンバーか連携フレンドが味方にいた試合（固定）と、いなかった試合（野良）を分けて集計できます。固定メンバーと連携フレンドは、メダル・カードの集計からも外れます。</li>
-      <li><b>連携したフレンドと表示：</b>分析タブの「連携したフレンドと表示」で相手を選ぶと、その人と味方で出た試合だけで集計します。分析と履歴の両方に反映されます。</li>
+      <li><b>連携したフレンドとの試合だけ表示：</b>分析タブの「連携したフレンドとの試合だけ表示」で相手を選ぶと、その人と味方で出た試合だけで集計します。分析と履歴の両方に反映されます。</li>
     </ul>
     <p class="note">「固定した試合」は、選んだ相手と味方で出た試合のことで、ステージ・対戦モード・スコア・ヒーロー構成が両方の記録で一致するかどうかで判定します。そのため、相手にもその試合が登録されている必要があります。</p>`)}
   ${acc('4. メダル分析', `
@@ -3514,7 +3514,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-10-31-AD', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-10-31-AE', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -3898,7 +3898,7 @@ function togHTML() {
   const nm = l => l.a === u.uid ? l.bName : l.aName;
   let note = '';
   if (tg.lid) note = tg.err ? `<span style="color:var(--lose)">${esc(tg.err)}</span>` : tg.matches ? `${esc(tg.name)}さんの記録と突き合わせて、固定した<b>${togIds().size}試合</b>だけで集計しています。相手も記録している試合だけが対象です。` : '読み込み中…';
-  return `<div class="section"><div class="panel"><label class="fl"><span class="label">連携したフレンドと表示</span><select id="tog"><option value="">絞り込まない</option>${fr.map(l => `<option value="${esc(l.id)}"${l.id === tg.lid ? ' selected' : ''}>${esc(nm(l) || '名前なし')}</option>`).join('')}</select></label>${note ? `<p class="small muted" style="margin:6px 0 0">${note}</p>` : ''}</div></div>`;
+  return `<div class="section"><div class="panel"><label class="fl"><span class="label">連携したフレンドとの試合だけ表示</span><select id="tog"><option value="">絞り込まない</option>${fr.map(l => `<option value="${esc(l.id)}"${l.id === tg.lid ? ' selected' : ''}>${esc(nm(l) || '名前なし')}</option>`).join('')}</select></label>${note ? `<p class="small muted" style="margin:6px 0 0">${note}</p>` : ''}</div></div>`;
 }
 function togChip() {
   if (!tg.lid || view.on) return '';
