@@ -339,10 +339,11 @@ body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],bod
   <div id="who-bar" class="whobar" hidden></div>
 
   <nav class="tabs" role="tablist" aria-label="ページ切り替え">
-    <button role="tab" id="tab-add" aria-selected="true" data-tab="add">読み込み</button>
+    <button role="tab" id="tab-add" aria-selected="true" data-tab="add">登録</button>
     <button role="tab" id="tab-stats" aria-selected="false" data-tab="stats">分析</button>
     <button role="tab" id="tab-season" aria-selected="false" data-tab="season">シーズンpt</button>
     <button role="tab" id="tab-out" aria-selected="false" data-tab="out">シーズン外</button>
+    <button role="tab" id="tab-stat" aria-selected="false" data-tab="stat">統計</button>
     <button role="tab" id="tab-hist" aria-selected="false" data-tab="hist">履歴</button>
     <button role="tab" id="tab-data" aria-selected="false" data-tab="data">データ</button>
     <button role="tab" id="tab-guide" aria-selected="false" data-tab="guide">使い方</button>
@@ -381,6 +382,7 @@ body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],bod
   <main id="view-stats" class="view" hidden></main>
   <main id="view-season" class="view" hidden></main>
   <main id="view-out" class="view" hidden></main>
+  <main id="view-stat" class="view" hidden></main>
   <main id="view-hist" class="view" hidden></main>
   <main id="view-data" class="view" hidden></main>
   <main id="view-guide" class="view" hidden></main>
@@ -1609,7 +1611,7 @@ function renderShot(s) {
       <span class="score"><span class="b">${sel(s.score.b, 'blue')}</span><span class="vs">vs</span><span class="r">${sel(s.score.r, 'red')}</span></span>
       ${unsure ? '<span class="badge">スコア要確認</span>' : ''}</div>
     <div class="meta">${s.stageURL ? `<img src="${s.stageURL}" alt="">` : ''}<span>ステージ：${esc(stageLabel)}</span>
-      <select id="md-${s.id}" data-mode="${s.id}" aria-label="モード">${s.modeName ? '' : '<option value="" selected>モードを選んでください</option>'}${MODES.map(m => `<option${m === s.modeName ? ' selected' : ''}>${m}</option>`).join('')}</select>${s.modeName ? '' : '<span class="badge warn">モード要確認</span>'}
+      <select id="md-${s.id}" data-mode="${s.id}" aria-label="対戦モード">${s.modeName ? '' : '<option value="" selected>対戦モードを選んでください</option>'}${MODES.map(m => `<option${m === s.modeName ? ' selected' : ''}>${m}</option>`).join('')}</select>${s.modeName ? '' : '<span class="badge warn">対戦モード要確認</span>'}
       ${s.own ? (() => { const rk = shotRank(s); return `<label class="small">自分のランク <select data-rank="${s.id}" id="rk-${s.id}" aria-label="自分のランク"><option value=""${rk ? '' : ' selected'}>不明</option>${RANK_ORDER.map(r => `<option${r === rk ? ' selected' : ''}>${r}</option>`).join('')}</select></label>${rk ? '' : '<span class="badge">ランク読めず</span>'}`; })() : ''}
       <span>${new Date(s.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}撮影</span></div>
     ${s.modeName === ARENA ? `<div class="ptrow">${ptBox('pt', s.id, s.ptSign || (res === 'l' ? '-' : '+'), s.ptAbs || '')}<span class="small muted">か</span>${afterBox('after', s.id, s.ptAfter ?? '', false)}<label class="ptbox"><span class="small muted">試合日</span><input type="date" class="datein" data-sdate="${s.id}" id="sd-${s.id}" value="${ymd(s.at)}"></label><label class="ptbox"><input type="checkbox" data-noseason="${s.id}" id="ns-${s.id}"${s.noSeason ? ' checked' : ''}><span class="small">シーズンに入れない</span></label></div>` : ''}
@@ -2019,8 +2021,8 @@ function renderStats() {
   const head = (raw, allLabel, n) => `<option value=""${raw === '' ? ' selected' : ''}>未選択</option><option value="__all"${raw === '__all' ? ' selected' : ''}>${allLabel}（${n}）</option>`;
   const nAllHero = ms.filter(m => okMode(m) && okStage(m) && mineOf(m) != null).length, nAllStage = ms.filter(m => okMode(m) && okHero(m)).length, nAllMode = ms.filter(m => okHero(m) && okStage(m)).length;
   let h = togHTML();
-  if (!real && !sampleShow) { el.innerHTML = h + `<div class="section"><div class="panel"><h2>まだ記録がありません</h2><p class="small muted" style="margin:0 0 10px">「読み込み」からリプレイのスクショを入れると、ここに勝率やヒーロー別の戦績が出ます。</p><div class="row"><button class="btn primary" data-act="go-add">読み込みへ</button><button class="btn ghost" data-act="sample-on">例を見る</button></div></div></div>`; return; }
-  if (!real) h += `<div class="sbar"><span class="sample">サンプル表示</span><span class="grow"></span><button class="btn primary" data-act="go-add">読み込みへ</button><button class="btn ghost" data-act="sample-off">閉じる</button></div><div class="sampled">`;
+  if (!real && !sampleShow) { el.innerHTML = h + `<div class="section"><div class="panel"><h2>まだ記録がありません</h2><p class="small muted" style="margin:0 0 10px">「読み込み」からリプレイのスクショを入れると、ここに勝率やヒーロー別の戦績が出ます。</p><div class="row"><button class="btn primary" data-act="go-add">登録へ</button><button class="btn ghost" data-act="sample-on">例を見る</button></div></div></div>`; return; }
+  if (!real) h += `<div class="sbar"><span class="sample">サンプル表示</span><span class="grow"></span><button class="btn primary" data-act="go-add">登録へ</button><button class="btn ghost" data-act="sample-off">閉じる</button></div><div class="sampled">`;
   h += `<div class="section">
     <div class="filters">
       <div class="fl${heroKey != null ? ' wide' : ''}"><span class="label">使ったヒーロー</span>
@@ -2029,7 +2031,7 @@ function renderStats() {
       <div class="fl${stageKey != null ? ' wide' : ''}"><span class="label">ステージ</span>
         <select id="stage-filter" data-filter="stage" class="vh" tabindex="-1" aria-hidden="true">${head(rStage, 'すべてのステージ', nAllStage)}${opt(stageOpts, fStage, sn)}</select>
         <button class="pickbtn${el.dataset.pick === 'stage' ? ' open' : ''}" data-pickopen="stage" aria-expanded="${el.dataset.pick === 'stage'}">${rStage === '' ? '未選択' : rStage === '__all' ? `すべてのステージ（${nAllStage}）` : `<span>${esc(sn(stageKey ?? rStage))}（${(stageOpts.find(([k]) => String(k) === rStage) || [0, 0])[1]}）</span>${real && stageThumb(rStage) ? `<img src="${stageThumb(rStage)}" alt="">` : ''}`}<i aria-hidden="true">▾</i></button></div>
-      <label class="fl"><span class="label">モード</span><select id="mode-filter" data-filter="mode">${head(rMode, 'すべてのモード', nAllMode)}${opt(modeOpts, fMode, x => x)}</select></label>
+      <label class="fl"><span class="label">対戦モード</span><select id="mode-filter" data-filter="mode">${head(rMode, 'すべて', nAllMode)}${opt(modeOpts, fMode, x => x)}</select></label>
       <label class="fl"><span class="label">固定／野良</span><select id="pty-filter" data-filter="pty"><option value="">すべて（${ms0.length}）</option><option value="fx"${pty === 'fx' ? ' selected' : ''}>固定（${nFx}）</option><option value="solo"${pty === 'solo' ? ' selected' : ''}>野良（${ms0.length - nFx}）</option></select></label>
       <label class="fl"><span class="label">メダル/カード</span><select id="mdl-mode"><option value="">未選択</option><option value="m"${el.dataset.mv === 'm' || el.dataset.mv === 'h' ? ' selected' : ''}>メダル</option><option value="c"${el.dataset.mv === 'c' ? ' selected' : ''}>カード</option></select></label>
       ${anySel ? '<button class="btn ghost" data-act="clear-filter">最初の状態に戻す</button>' : ''}
@@ -2136,7 +2138,7 @@ function heroSections(ms, hk, nm, sn, el) {
   h += `<div class="section"><h2 style="margin-top:6px">${esc(hname)} の分析</h2><div class="kpis" style="grid-template-columns:repeat(2,1fr)">
     ${allMode ? kpi('試合数', hm.length, '試合', `使ったヒーロー ${new Set(hm.map(mineOf)).size}体`) : kpi('使用率', use, '%', `${hm.length} / ${total}試合`)}
     ${kpi('勝率', f2(all.rate), all.rate == null ? '' : '%', `${all.w}勝${all.l}敗${all.n ? `<br>95%の範囲 ${ciText(all.w, all.n)}` : ''}`)}</div>
-    <p class="small muted" style="margin:0">ここから下は、ステージ・モードの絞り込みに関係なく、${allMode ? '保存したすべての試合' : esc(hname) + 'を使った全試合'}で計算しています。</p>
+    <p class="small muted" style="margin:0">ここから下は、ステージ・対戦モードの絞り込みに関係なく、${allMode ? '保存したすべての試合' : esc(hname) + 'を使った全試合'}で計算しています。</p>
     <p class="ci-note" style="margin:0">「95%の範囲」と棒の薄い帯は、試合数から見た本当の勝率がおよそ入っている範囲です（ウィルソンの信頼区間）。試合数が少ないほど広くなります。右に「›」がある行を押すと、その条件の試合を履歴で見られます。</p></div>`;
   // 3. 直近勝率（20試合ずつ広げる）
   const N = Math.max(20, +(el.dataset.recent || 20));
@@ -2713,7 +2715,7 @@ function renderOut() {
   const rate = pct2(w, n);
   let h = `<div class="section"><div class="panel"><h2>シーズン外の試合</h2>
     <p class="small muted" style="margin:0">シーズンpt推移に入っていない試合です。フリーバトル・カスタムバトルなどと、シーズン期間外のバトルアリーナ、「シーズンに入れない」にしたバトルアリーナが入ります。</p>
-    <div class="row segs" role="group" aria-label="モードで絞り込み"><button class="seg${fm ? '' : ' on'}" data-outmode="">すべて（${all.length}）</button>${modes.map(md2 => `<button class="seg${fm === md2 ? ' on' : ''}" data-outmode="${esc(md2)}">${esc(md2)}（${all.filter(m => m.mode === md2).length}）</button>`).join('')}</div>
+    <div class="row segs" role="group" aria-label="対戦モードで絞り込み"><button class="seg${fm ? '' : ' on'}" data-outmode="">すべて（${all.length}）</button>${modes.map(md2 => `<button class="seg${fm === md2 ? ' on' : ''}" data-outmode="${esc(md2)}">${esc(md2)}（${all.filter(m => m.mode === md2).length}）</button>`).join('')}</div>
     <div class="kpis"><div class="kpi"><div class="label">試合数</div><div class="v">${list.length}<small>試合</small></div></div>
       <div class="kpi"><div class="label">勝利-敗北${d ? '-DRAW' : ''}</div><div class="v">${w}<small>-</small>${l}${d ? `<small>-</small>${d}` : ''}</div></div>
       <div class="kpi"><div class="label">勝率</div><div class="v">${f2(rate)}<small>${rate == null ? '' : '%'}</small></div>${n ? `<div class="small muted">95%の範囲 ${ciText(w, n)}</div>` : ''}</div></div>
@@ -2777,12 +2779,12 @@ function renderHist() {
     <div class="filters">
       ${sel('hero', '使ったヒーロー', m => [mineOf(m)], hname)}
       ${sel('stage', 'ステージ', m => [m.stage], sname)}
-      ${sel('mode', 'モード', m => [m.mode], x => x)}
+      ${sel('mode', '対戦モード', m => [m.mode], x => x)}
       ${sel('enemy', '敵ヒーロー', m => enemiesOf(m), hname)}
       ${sel('rank', '自分のランク', m => [m.rank], x => x)}
       ${sel('pty', '固定／野良', m => [fxSlots(m).length > 0 ? 'fx' : 'solo'], x => x === 'fx' ? '固定' : '野良')}
     </div>
-    ${active.length ? `<div class="hfbar"><span class="small muted">絞り込み中：</span>${active.map(k => `<span class="hfchip">${esc({ hero: '使用', stage: 'ステージ', mode: 'モード', enemy: '敵', rank: 'ランク', pty: '固定／野良' }[k])}：${esc(k === 'hero' || k === 'enemy' ? heroName(f[k]) : k === 'stage' ? stageName(f[k]) : k === 'pty' ? (f[k] === 'fx' ? '固定' : '野良') : f[k])}</span>`).join('')}<button class="btn ghost small" data-act="hf-clear">解除</button></div>` : ''}
+    ${active.length ? `<div class="hfbar"><span class="small muted">絞り込み中：</span>${active.map(k => `<span class="hfchip">${esc({ hero: '使用', stage: 'ステージ', mode: '対戦モード', enemy: '敵', rank: 'ランク', pty: '固定／野良' }[k])}：${esc(k === 'hero' || k === 'enemy' ? heroName(f[k]) : k === 'stage' ? stageName(f[k]) : k === 'pty' ? (f[k] === 'fx' ? '固定' : '野良') : f[k])}</span>`).join('')}<button class="btn ghost small" data-act="hf-clear">解除</button></div>` : ''}
     <div class="hist">${ms.length ? ms.slice(0, Math.max(PAGE_N, +(el.dataset.n || 0))).map(m => {
     const r = matchResult(m);
     const delAsk = el.dataset.ask === m.id;
@@ -2822,6 +2824,7 @@ function renderData() {
   const hs = db.heroes.filter(h => used.has(h.id)).sort((a, b) => heroOrd(a.id) - heroOrd(b.id) || a.name.localeCompare(b.name, 'ja'));
   el.innerHTML = `
   <div class="section"><div class="panel" id="sync-box">${syncHTML()}</div></div>
+  <div class="section"><div class="panel" id="pub-box-d">${pubHTML(true)}</div></div>
   <div class="section"><div class="panel"><h2>バックアップ</h2>
     <p class="small muted" style="margin:0">記録はこのブラウザの中にだけあります。ブラウザのデータを消すと戦績も消えるので、ときどき下の文字列をコピーしてメモ帳などに保存してください。</p>
     <textarea id="backup-out" readonly aria-label="バックアップ用の文字列" placeholder="「コピー」を押すと、ここにバックアップの文字列が入ります"></textarea>
@@ -2852,13 +2855,13 @@ function renderGuide() {
   ${acc('1. 始め方', `
     <ol>
       <li><b>スクショを撮る：</b>#コンパスのリプレイ選択の画面で、6人全員とそのメダルが映っている試合をスクショします。1試合だけを切り取る必要はなく、画面全体でも読み取れます（複数の試合が映っていれば、全部読み取ります）。ただし、画面の上下の端で切れている試合は読み取りません。</li>
-      <li><b>読み込みタブで選ぶ：</b>「スクショを選ぶ」を押して、撮った画像を選びます（複数枚OK）。画像はこの端末の中だけで処理され、サーバーには送られません。選べない時は、写真アプリで画像をコピーして、「貼り付け」の欄に貼れます。</li>
+      <li><b>登録タブで選ぶ：</b>「スクショを選ぶ」を押して、撮った画像を選びます（複数枚OK）。画像はこの端末の中だけで処理され、サーバーには送られません。選べない時は、写真アプリで画像をコピーして、「貼り付け」の欄に貼れます。</li>
       <li><b>読み取り結果を確認する：</b>
         <ul>
           <li>最初に「あなたの名前はこれですか？」と聞かれます。「はい、これが自分」を選ぶと、次からは自動で判定します。</li>
           <li>初めて見るヒーローは、候補から選びます。選ばないものは「不明」として記録されます。</li>
           <li>初めて見るステージは、名前を入力します。</li>
-          <li>「スコア要確認」「モード要確認」などの表示が出た試合は、内容を見て直してください。</li>
+          <li>「スコア要確認」「対戦モード要確認」などの表示が出た試合は、内容を見て直してください。</li>
         </ul></li>
       <li><b>「この内容で保存」を押します。</b>似た試合がある時は、「登録する」か「登録しない」を選びます。</li>
       <li><b>分析タブで見ます。</b>勝率やヒーロー別の傾向が出ます。</li>
@@ -2866,11 +2869,12 @@ function renderGuide() {
     <p class="note">読み取りは自動なので、ごくまれに間違えます。保存前に、ヒーロー・スコア・ステージだけは目で確認するのがおすすめです。</p>`, true)}
   ${acc('2. 各タブでできること', `
     <ul>
-      <li><b>読み込み：</b>スクショから試合を登録します。</li>
-      <li><b>分析：</b>「使ったヒーロー」「ステージ」「モード」「メダル/カード」で絞り込んで、勝率・使用率・直近の勝率などを見ます。「この条件の履歴を見る」で、その条件の試合の一覧に移れます。</li>
+      <li><b>登録：</b>スクショから試合を登録します。</li>
+      <li><b>分析：</b>「使ったヒーロー」「ステージ」「対戦モード」「メダル/カード」で絞り込んで、勝率・使用率・直近の勝率などを見ます。「この条件の履歴を見る」で、その条件の試合の一覧に移れます。</li>
       <li><b>シーズンpt：</b>バトルアリーナの増減ptを入れると、シーズンptの推移をグラフにします。最初に、シーズン名・開始時のpt・開始日を入れてください。</li>
       <li><b>シーズン外：</b>フリーバトルやカスタムバトル、シーズン期間外のバトルアリーナなど、シーズンptに入らない試合です。試合ごとにメモを書けます。</li>
-      <li><b>履歴：</b>登録した全試合を、新しい順に見られます。ヒーロー・ステージ・モード・敵ヒーロー・自分のランクで絞り込めます。試合の削除もここでできます（削除は元に戻せません）。</li>
+      <li><b>統計：</b>提供に同意した人の試合をまとめた、みんなの統計です。シーズン・ランク・対戦モードごとに、ヒーローの使用率と勝率、カードとメダルの使用率、ステージの勝率を見られます。提供するかどうかは、統計タブかデータタブで選べます（最初は「提供しない」）。</li>
+      <li><b>履歴：</b>登録した全試合を、新しい順に見られます。ヒーロー・ステージ・対戦モード・敵ヒーロー・自分のランクで絞り込めます。試合の削除もここでできます（削除は元に戻せません）。</li>
       <li><b>データ：</b>ログイン、フレンド連携、バックアップと復元、ヒーロー名の修正、カードの名前付け、全データの削除があります。</li>
     </ul>`)}
   ${acc('3. フレンド連携', `
@@ -2885,10 +2889,10 @@ function renderGuide() {
     <h4>連携した後にできること</h4>
     <ul>
       <li><b>相手のデータを見る：</b>画面上部の「見るデータ」から相手を選びます。相手が記録を増やすと、画面にも反映されます。</li>
-      <li><b>固定／野良：</b>読み込みの確認画面で、味方の横の「固定」にチェックすると、その人の名前を覚えます（次からは自動でチェック）。分析タブの「固定／野良」で、固定メンバーか連携フレンドが味方にいた試合（固定）と、いなかった試合（野良）を分けて集計できます。固定メンバーと連携フレンドは、メダル・カードの集計からも外れます。</li>
+      <li><b>固定／野良：</b>登録の確認画面で、味方の横の「固定」にチェックすると、その人の名前を覚えます（次からは自動でチェック）。分析タブの「固定／野良」で、固定メンバーか連携フレンドが味方にいた試合（固定）と、いなかった試合（野良）を分けて集計できます。固定メンバーと連携フレンドは、メダル・カードの集計からも外れます。</li>
       <li><b>固定した試合だけ表示：</b>分析タブの「固定した試合だけ表示」で相手を選ぶと、その人と味方で出た試合だけで集計します。分析と履歴の両方に反映されます。</li>
     </ul>
-    <p class="note">「固定した試合」は、選んだ相手と味方で出た試合のことで、ステージ・モード・スコア・ヒーロー構成が両方の記録で一致するかどうかで判定します。そのため、相手にもその試合が登録されている必要があります。</p>`)}
+    <p class="note">「固定した試合」は、選んだ相手と味方で出た試合のことで、ステージ・対戦モード・スコア・ヒーロー構成が両方の記録で一致するかどうかで判定します。そのため、相手にもその試合が登録されている必要があります。</p>`)}
   ${acc('4. メダル分析', `
     <p>試合を読み込むと、6人のメダルも一緒に読み取って記録します。</p>
     <ul>
@@ -2917,10 +2921,10 @@ function renderGuide() {
   ${acc('6. 困った時', `
     <h4>読み取りが間違っていた時</h4>
     <ul>
-      <li>保存する前なら、読み込みの画面で、ヒーロー・スコア・モード・ステージを選び直せます。</li>
+      <li>保存する前なら、登録の画面で、ヒーロー・スコア・対戦モード・ステージを選び直せます。</li>
       <li>ヒーロー名の打ち間違いは、データタブの「ヒーロー名の修正」で直せます。既にある名前に変えると、2つがまとまります。</li>
       <li>保存した後に間違いに気づいた時は、履歴タブの「編集」で、ステージ・スコア・ヒーロー・ランク・メダルなどを直せます。</li>
-      <li>スクショがない試合は、読み込みタブの「スクショなしで手入力する」から登録できます。</li>
+      <li>スクショがない試合は、登録タブの「スクショなしで手入力する」から登録できます。</li>
     </ul>
     <h4>データの保存とバックアップ</h4>
     <ul>
@@ -2959,6 +2963,13 @@ function renderGuide() {
     </ul>
     <h4>運営者が見られる範囲</h4>
     <p>ログインした人の記録は、仕組み上、運営者がFirebaseの管理画面から見られる状態にあります（ログインに使ったメールアドレスも含みます）。運営者は、不具合の調査など必要な場合を除いて、これらを見ません。また、ほかの目的に使ったり、第三者に渡したりしません。これが気になる場合は、ログインせずに使ってください（記録は端末の中だけにあり、運営者を含めて誰にも見えません）。</p>
+    <h4>みんなの統計への提供（任意）</h4>
+    <ul>
+      <li>統計タブかデータタブで「提供する」を選んだ人だけ、登録した試合のうち、ヒーロー・カード・メダル・ランク・勝敗・ステージ・対戦モード・日時を送ります。プレイヤー名・ニックネーム・メモ・スクショ・メールアドレスは送りません。</li>
+      <li>送ったデータは、ほかの提供者の分と合わせて集計し、統計タブで誰でも見られる形で公開します。個人ごとの記録は公開しません。</li>
+      <li>運営者と、運営者が指名した集計の管理者は、送られた試合の内容（上の項目）を見られます。</li>
+      <li>提供をやめると、送ったデータはすぐに削除されます。集計の数字からは、次に集計し直した時に消えます。</li>
+    </ul>
     <h4>ほかの利用者に見える範囲</h4>
     <ul>
       <li>フレンド連携をした相手だけが、あなたの戦績を見られます（メモは見えません）。連携していない人には見えません。</li>
@@ -3056,7 +3067,7 @@ function mfOpen(id) {
     <p class="small muted" style="margin:0">${m ? '読み取りの間違いを直せます。ここで直したランクは、同じスクショを入れ直しても上書きされません。' : '分かる所だけ入れれば保存できます。分からない所は空欄のままで大丈夫です。'}</p>
     <div class="mfgrid">
       <label class="fl"><span class="label">試合日</span><input type="date" id="mf-date" value="${ymd(m ? m.at : Date.now())}"></label>
-      <label class="fl"><span class="label">モード</span><select id="mf-mode">${MODES.map(x => `<option${(m ? m.mode : 'バトルアリーナ') === x ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
+      <label class="fl"><span class="label">対戦モード</span><select id="mf-mode">${MODES.map(x => `<option${(m ? m.mode : 'バトルアリーナ') === x ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
       <label class="fl" style="grid-column:1/-1"><span class="label">ステージ</span><input type="text" id="mf-stage" list="mf-stages" value="${esc(sn)}" placeholder="ステージ名" autocomplete="off"></label>
       <label class="fl"><span class="label">自分のチーム（任意）</span><select id="mf-side"><option value=""${mf.ns ? ' selected' : ''}>指定しない</option><option value="blue"${!mf.ns && mf.side === 'blue' ? ' selected' : ''}>青</option><option value="red"${!mf.ns && mf.side === 'red' ? ' selected' : ''}>赤</option></select></label>
       <div class="fl"><span class="label" id="mf-sclab">${mf.ns ? 'スコア（自分 - 相手）' : 'スコア（青 - 赤）'}</span><div class="mfnum"><input type="number" min="0" max="99" inputmode="numeric" id="mf-b" value="${m && m.b != null ? m.b : ''}"><span>-</span><input type="number" min="0" max="99" inputmode="numeric" id="mf-r" value="${m && m.r != null ? m.r : ''}"></div></div>
@@ -3147,6 +3158,7 @@ function showTab(t) {
   document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'view-' + t);
   if (t === 'season') { renderSeason(); }
   if (t === 'out') fitAllMemos();
+  if (t === 'stat') { statRender(); statEnsure(); }
   try { localStorage.setItem(DBKEY + '-tab', t); } catch (e) {}
   const nb = document.querySelector('nav.tabs button[data-tab="' + t + '"]'), nv = document.querySelector('nav.tabs');
   if (nb && nv && nv.scrollWidth > nv.clientWidth) nv.scrollLeft = nb.offsetLeft - (nv.clientWidth - nb.offsetWidth) / 2;
@@ -3489,7 +3501,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-31j', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-31n', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -3533,6 +3545,27 @@ async function fbReal() {
     async delCloud(uid) {
       const q = await F.getDocs(F.collection(fs, 'users', uid, 'chunks')), b = F.writeBatch(fs);
       q.forEach(d => b.delete(d.ref)); b.delete(F.doc(fs, 'users', uid)); await b.commit();
+    },
+    // ---- 統計（みんなの記録） ----
+    async pubGet(uid) { const d = await F.getDoc(F.doc(fs, 'pub', uid)); return d.exists() ? d.data() : null; },
+    async pubPut(uid, ch, n, prevN) {
+      for (let i = 0; i < ch.length; i += 20) { const b = F.writeBatch(fs); for (const [k, text] of ch.slice(i, i + 20)) b.set(F.doc(fs, 'pub', uid, 'parts', String(k)), { d: text }); await b.commit(); }
+      const b = F.writeBatch(fs); for (let i = n; i < (prevN || 0); i++) b.delete(F.doc(fs, 'pub', uid, 'parts', String(i)));
+      b.set(F.doc(fs, 'pub', uid), { t: Date.now(), n }); await b.commit();
+    },
+    async pubDel(uid) {
+      const q = await F.getDocs(F.collection(fs, 'pub', uid, 'parts')), b = F.writeBatch(fs);
+      q.forEach(d => b.delete(d.ref)); b.delete(F.doc(fs, 'pub', uid)); b.set(F.doc(fs, 'pubout', uid), { t: Date.now() }); await b.commit();
+    },
+    async pubAll() { const q = await F.getDocs(F.collectionGroup(fs, 'parts')), out = []; q.forEach(d => { const u = d.ref.parent.parent; if (u && u.parent && u.parent.id === 'pub') out.push({ uid: u.id, text: d.data().d || '' }); }); return out; },
+    async pubOutList() { const q = await F.getDocs(F.collection(fs, 'pubout')), out = []; q.forEach(d => out.push(d.id)); return out; },
+    async pubOutClear(ids) { if (!ids || !ids.length) return; const b = F.writeBatch(fs); ids.forEach(i => b.delete(F.doc(fs, 'pubout', i))); await b.commit(); },
+    async statGet(id) { const d = await F.getDoc(F.doc(fs, 'stats', id)); return d.exists() ? d.data() : null; },
+    async statPut(id, data) { await F.setDoc(F.doc(fs, 'stats', id), data); },
+    async statWrite(list, del, meta) {
+      const ops = list.map(([id, v]) => ['set', id, v]).concat(del.map(id => ['del', id]));
+      for (let i = 0; i < ops.length; i += 400) { const b = F.writeBatch(fs); for (const o of ops.slice(i, i + 400)) { if (o[0] === 'set') b.set(F.doc(fs, 'stats', o[1]), o[2]); else b.delete(F.doc(fs, 'stats', o[1])); } await b.commit(); }
+      await F.setDoc(F.doc(fs, 'stats', 'meta'), meta);
     },
     async sendFeedback(text, ver) { await F.addDoc(F.collection(fs, 'feedback'), { text, ver, at: F.serverTimestamp() }); },
     async createInvite(uid, name, code, exp) { await F.setDoc(F.doc(fs, 'invites', code), { owner: uid, ownerName: name, expiresAt: exp }); },
@@ -3914,7 +3947,7 @@ function syncLoad() {
   syncLoading = (async () => {
     try { FBA = window.__FB_MOCK || await fbReal(); }
     catch (e) { syncLoading = null; throw e; }
-    FBA.onUser(u => { togStop(); viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = u; syncS.links = []; syncS.fmsg = ''; syncS.delAsk = ''; if (!u) { syncS.status = 'out'; syncRender(''); return; } syncRun(); });
+    FBA.onUser(u => { togStop(); viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = u; syncS.links = []; syncS.fmsg = ''; syncS.delAsk = ''; if (!u) { syncS.status = 'out'; pubS.on = false; pubS.loaded = false; pubS.ask = false; pubS.msg = ''; pubRender(); syncRender(''); return; } syncRun(); pubLoad(); });
   })();
   return syncLoading;
 }
@@ -4113,12 +4146,317 @@ function syncTouch() {
   if (syncApplying) return;
   const m = syncMeta(); m.dirty = true; syncSaveMeta(m);
   if (syncS.user && FBA && syncS.status === 'in') { clearTimeout(syncTimer); syncTimer = setTimeout(syncAuto, 4000); }
+  try { pubAuto(); } catch (e) {}
 }
 async function syncAuto() {
   if (!syncS.user || !FBA || syncS.busy || syncS.status !== 'in' || view.on) return;
   if (!syncHasLocal() && syncS.cm && syncS.cm.count > 0) { syncS.status = 'choose'; syncRender(''); return; }
   await syncPush(false);
 }
+/* ---------- 統計（みんなの記録） ----------
+   提供に同意した人の試合を、名前を含まない形（ヒーロー・カード・メダル・ランク・結果・ステージ・対戦モード・日時）にして
+   pub/{uid}/parts/{n} に置く。管理者がアプリを開いた時に、全員ぶんを集計して stats/ に書く。見る人は stats/ だけを読む */
+const ADMIN_UIDS = ['OHVoIZI3n7cioMO8ZvsU89Kr7qv1'];
+const STAT_THIN = 30, STAT_HOURS = 12, STAT_WAIT = 5 * 60000, PUB_PART = 800;
+const STAT_BANDS = ['A以下', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9'];
+const pubS = { on: false, loaded: false, busy: false, ask: false, msg: '', err: false };
+const statS = { meta: null, docs: new Map(), loading: false, err: '', run: false, cfg: null, msg: '', merr: false, more: {} };
+const isAdmin = () => !!(syncS.user && ADMIN_UIDS.includes(syncS.user.uid));
+const pad2 = n => String(n).padStart(2, '0');
+// 第2木曜日の0時（日本時間）
+function statSecondThu(y, m0) { const w = new Date(Date.UTC(y, m0, 1)).getUTCDay(); return Date.UTC(y, m0, 1 + ((4 - w + 7) % 7) + 7) - 9 * 3600000; }
+const statDateMs = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) - 9 * 3600000 : null; };
+const statMsDate = ms => { const d = new Date(ms + 9 * 3600000); return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`; };
+const statSeasonLabel = (id, name) => id === 'out' ? 'シーズン外' : (name || `${id.slice(0, 4)}年${+id.slice(5)}月`);
+function statBandOf(r) { const m = /^S([1-9])$/.exec(r || ''); if (m) return +m[1]; return /^[A-F]$/.test(r || '') ? 0 : 10; }
+function statFp(s) { let a = 0x811c9dc5, b = 0x9747b28c; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); a = Math.imul(a ^ c, 16777619) >>> 0; b = Math.imul(b ^ c, 2246822519) >>> 0; } return a.toString(36) + b.toString(36); }
+
+/* --- 送る側：自分の試合を、名前を含まない記録にする --- */
+function pubBuild() {
+  const hn = new Map(db.heroes.map(h => [h.id, h.name])), sn = new Map(db.stages.map(s => [s.id, s.name])), cn = new Map((db.cards || []).map(c => [c.id, c.name]));
+  const out = [];
+  for (const m of db.matches) {
+    const mode = MODES.indexOf(m.mode); if (mode < 0 || !Number.isFinite(m.at)) continue;
+    const res = matchResult(m); if (res === 'u' || !res) continue;
+    const stage = m.stage ? (sn.get(m.stage) || '') : '';
+    out.push({ m, mode, stage, res, hn, cn });
+  }
+  const parts = [];
+  for (let k = 0; k < out.length; k += PUB_PART) {
+    const names = [], ix = new Map(), id = s => { if (!s) return -1; let i = ix.get(s); if (i == null) { i = names.length; names.push(s); ix.set(s, i); } return i; };
+    const r = [];
+    for (const { m, mode, stage, res, hn, cn } of out.slice(k, k + PUB_PART)) {
+      const ps = [], hs = [];
+      for (const side of ['blue', 'red']) for (let i = 0; i < 3; i++) {
+        const h = (side === 'blue' ? m.blue : m.red)[i], name = h && h !== EMPTY ? (hn.get(h) || '') : '';
+        hs.push(name);
+        const cards = ((m.cards && m.cards[side] || [])[i] || []).map(x => cn.get(x)).filter(Boolean), cs = [...new Set(cards)].map(id);
+        const md = ((m.medals && m.medals[side] || [])[i] || []).filter(x => x != null && x >= 0), ms = [...new Set(md)];
+        const rk = (m.ranks && m.ranks[side] && m.ranks[side][i]) || (side === m.side && i === m.idx ? m.rank : null);
+        ps.push([id(name), statBandOf(rk), name ? cs : [], name ? ms : []]);
+      }
+      const fp = statFp(hs.join('|') + '|' + m.b + '-' + m.r + '|' + stage + '|' + m.mode);
+      r.push([fp, Math.round(m.at / 60000), mode, id(stage), res === 'w' ? 1 : res === 'l' ? 0 : 2, m.side === 'blue' ? 0 : 1, m.noSeason ? 1 : 0, m.idx, ...ps]);
+    }
+    parts.push(JSON.stringify({ v: 1, n: names, r }));
+  }
+  return parts;
+}
+let pubTimer = null;
+function pubAuto() { if (!pubS.on || !syncS.user || !FBA || view.on) return; clearTimeout(pubTimer); pubTimer = setTimeout(() => pubPush().catch(() => {}), 8000); }
+async function pubPush() {
+  const u = syncS.user; if (!u || !FBA || !pubS.on || pubS.busy) return;
+  pubS.busy = true;
+  try {
+    const parts = pubBuild(), key = DBKEY + '-pubsig'; let last = {};
+    try { last = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) {}
+    if (last.uid !== u.uid) last = { uid: u.uid, h: [] };
+    const sig = parts.map(statFp), ch = [];
+    parts.forEach((p, i) => { if (last.h[i] !== sig[i]) ch.push([i, p]); });
+    if (ch.length || last.h.length !== parts.length) await FBA.pubPut(u.uid, ch, parts.length, Math.max(last.h.length, pubS.n || 0)); pubS.n = parts.length;
+    try { localStorage.setItem(key, JSON.stringify({ uid: u.uid, h: sig })); } catch (e) {}
+    pubS.msg = ''; pubS.err = false;
+  } catch (e) { pubS.msg = '送れませんでした：' + ((e && (e.code || e.message)) || ''); pubS.err = true; }
+  pubS.busy = false; pubRender();
+}
+async function pubLoad() {
+  const u = syncS.user; if (!u || !FBA) { pubS.on = false; pubS.loaded = false; pubRender(); return; }
+  try { const d = await FBA.pubGet(u.uid); pubS.on = !!d; pubS.n = d ? d.n || 0 : 0; pubS.loaded = true; } catch (e) { pubS.loaded = false; }
+  pubRender(); if (pubS.on) pubAuto();
+  if (isAdmin()) statAdminCheck();
+}
+async function pubOn() {
+  const u = syncS.user; if (!u || !FBA || pubS.busy) return;
+  pubS.ask = false; pubS.on = true; pubS.msg = '送っています…'; pubS.err = false; pubRender();
+  try { localStorage.removeItem(DBKEY + '-pubsig'); } catch (e) {}
+  await pubPush();
+}
+async function pubOff() {
+  const u = syncS.user; if (!u || !FBA || pubS.busy) return;
+  pubS.busy = true; pubS.msg = ''; pubRender();
+  try { await FBA.pubDel(u.uid); pubS.on = false; try { localStorage.removeItem(DBKEY + '-pubsig'); } catch (e) {} pubS.msg = '提供をやめて、送ったデータを消しました。'; pubS.err = false; }
+  catch (e) { pubS.msg = '消せませんでした：' + ((e && (e.code || e.message)) || ''); pubS.err = true; }
+  pubS.busy = false; pubRender();
+}
+function pubHTML(withId) { return pubHTML0() + (withId ? pubIdHTML() : ''); }
+function pubHTML0() {
+  const u = syncS.user, msg = pubS.msg ? `<p class="small" style="margin:6px 0 0;${pubS.err ? 'color:var(--lose)' : ''}">${esc(pubS.msg)}</p>` : '';
+  const what = `<p class="small muted" style="margin:0">登録した試合から、<b>ヒーロー・カード・メダル・ランク・勝敗・ステージ・対戦モード・日時</b>だけを匿名で送り、みんなの集計（統計タブ）に使います。<b>プレイヤー名・ニックネーム・メモ・スクショ・メールアドレスは送りません。</b>運営者は、送られた試合の内容（上の項目）を見られます。</p>`;
+  if (!u) return `<h2>みんなの統計に提供</h2>${what}<p class="small" style="margin:8px 0 0">提供するには、先にGoogleでログインしてください。</p><div class="row"><button class="btn primary" data-act="sync-login">Googleでログイン</button></div>`;
+  if (!pubS.loaded && !pubS.msg) return `<h2>みんなの統計に提供</h2>${what}<p class="small muted" style="margin:8px 0 0">状態を確認しています…</p>`;
+  const stop = '提供をやめると、送ったデータはすぐに消えます。集計の数字からは、次に集計し直した時（目安は半日以内）に消えます。';
+  if (pubS.on) return `<h2>みんなの統計に提供</h2>${what}<p class="small" style="margin:8px 0 0"><b>提供中です。</b>登録した試合は、自動で送られます。</p><p class="small muted" style="margin:4px 0 0">${stop}</p><div class="row"><button class="btn danger" data-act="pub-off"${pubS.busy ? ' disabled' : ''}>提供をやめる</button></div>${msg}`;
+  if (pubS.ask) return `<h2>みんなの統計に提供</h2>${what}<p class="small" style="margin:8px 0 0"><b>この内容で、いまある試合と、これから登録する試合を送ります。</b>${stop}</p><div class="row"><button class="btn primary" data-act="pub-yes">同意して提供する</button><button class="btn ghost" data-act="pub-no">やめておく</button></div>${msg}`;
+  return `<h2>みんなの統計に提供</h2>${what}<p class="small" style="margin:8px 0 0"><b>いまは提供していません。</b>（初期設定は「提供しない」です）</p><div class="row"><button class="btn" data-act="pub-ask">提供について確認する</button></div>${msg}`;
+}
+function pubRender() { for (const id of ['pub-box-d', 'pub-box-s']) { const el = document.getElementById(id); if (el) el.innerHTML = pubHTML(id === 'pub-box-d'); } }
+const pubIdHTML = () => syncS.user ? `<p class="small muted" style="margin:10px 0 0">あなたのID：<code id="my-uid" style="user-select:all">${esc(syncS.user.uid)}</code> <button class="btn ghost" data-act="uid-copy" style="padding:2px 10px">コピー</button><span class="small" id="uid-msg"></span><br>統計の管理者を追加する時だけ使います。ふだんは使いません。</p>` : '';
+
+/* --- 集計する（管理者のみ） --- */
+function statAgg(parts, cfg, now) {
+  const recs = [];
+  for (const p of parts) {
+    let o; try { o = JSON.parse(p.text); } catch (e) { continue; }
+    if (!o || !Array.isArray(o.r) || !Array.isArray(o.n)) continue;
+    for (const r of o.r) if (Array.isArray(r) && r.length >= 14 && Number.isFinite(r[1]) && r[2] >= 0 && r[2] < MODES.length) recs.push({ u: p.uid, nm: o.n, r });
+  }
+  const over = new Map((cfg || []).map(c => [c.id, c]));
+  let minT = now; for (const x of recs) minT = Math.min(minT, x.r[1] * 60000);
+  const d0 = new Date(minT + 9 * 3600000), d1 = new Date(now + 9 * 3600000);
+  let y = d0.getUTCFullYear(), mo = d0.getUTCMonth() - 1; const ey = d1.getUTCFullYear(), em = d1.getUTCMonth() + 1;
+  const ss = [];
+  for (let n = 0; n < 240; n++) {
+    const yy = y + Math.floor(mo / 12), mm = ((mo % 12) + 12) % 12;
+    if (yy > ey + Math.floor(em / 12) || (yy === ey + Math.floor(em / 12) && mm > em % 12)) break;
+    const id = `${yy}-${pad2(mm + 1)}`, c = over.get(id) || {}, st = statDateMs(c.start);
+    ss.push({ id, start: st != null ? st : statSecondThu(yy, mm), name: c.name || '', custom: st != null });
+    mo++;
+  }
+  ss.sort((a, b) => a.start - b.start);
+  const seasonOf = t => { let r = null; for (const s of ss) { if (s.start <= t) r = s; else break; } return r; };
+  const docs = new Map(), seen = new Map();
+  const doc = (sid, mode) => { const k = `s_${sid}_${mode}`; let d = docs.get(k); if (!d) { d = { fps: new Set(), us: new Set(), h: new Map(), g: new Map() }; docs.set(k, d); } return d; };
+  const bucket = (m, b) => { let x = m.get(b); if (!x) { x = new Map(); m.set(b, x); } return x; };
+  for (const { u, nm, r } of recs) {
+    const t = r[1] * 60000, se = r[6] === 1 ? { id: 'out' } : seasonOf(t); if (!se) continue;
+    const d = doc(se.id, r[2]), name = i => (i >= 0 && i < nm.length ? String(nm[i]) : ''), w = r[4], side = r[5] === 1 ? 1 : 0;
+    d.us.add(u);
+    const stage = name(r[3]), own = r[8 + side * 3 + (r[7] | 0)];
+    if (stage && (w === 0 || w === 1)) { const x = bucket(d.g, own && Number.isFinite(own[1]) ? own[1] : 10); const a = x.get(stage) || [0, 0]; a[0]++; a[1] += w; x.set(stage, a); }
+    const fp = String(r[0]); if (seen.has(fp + '|' + se.id + '|' + r[2]) && seen.get(fp + '|' + se.id + '|' + r[2]) !== u) continue;
+    seen.set(fp + '|' + se.id + '|' + r[2], u); d.fps.add(fp + u);
+    for (let k = 0; k < 6; k++) {
+      const p = r[8 + k]; if (!Array.isArray(p)) continue; const h = name(p[0]); if (!h) continue;
+      const band = Number.isFinite(p[1]) ? Math.min(10, Math.max(0, p[1] | 0)) : 10;
+      const x = bucket(d.h, band); let e = x.get(h); if (!e) { e = { n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map() }; x.set(h, e); }
+      e.n++; if (w !== 2 && (k < 3 ? 0 : 1) === side ? w === 1 : (w === 0)) e.w++;
+      const cs = Array.isArray(p[2]) ? p[2].map(name).filter(Boolean) : [], ms = Array.isArray(p[3]) ? p[3].filter(i => i >= 0 && i < 13) : [];
+      if (cs.length) { e.cn++; for (const c of new Set(cs)) e.cards.set(c, (e.cards.get(c) || 0) + 1); }
+      if (ms.length) { e.mn++; for (const i of new Set(ms)) e.med.set(i, (e.med.get(i) || 0) + 1); }
+    }
+  }
+  const out = new Map(), ids = [];
+  for (const [k, d] of docs) {
+    const ct = [], ci = new Map(), cidx = c => { let i = ci.get(c); if (i == null) { i = ct.length; ct.push(c); ci.set(c, i); } return i; };
+    const h = {}, g = {};
+    for (const [b, hm] of d.h) { h[b] = {}; for (const [n, e] of hm) h[b][n] = [e.n, e.w, e.cn, [...e.cards].sort((a, b) => b[1] - a[1]).slice(0, 40).flatMap(([c, v]) => [cidx(c), v]), e.mn, [...e.med].flatMap(([i, v]) => [i, v])]; }
+    for (const [b, gm] of d.g) { g[b] = {}; for (const [n, a] of gm) g[b][n] = a; }
+    out.set(k, { t: now, n: d.fps.size, p: d.us.size, d: JSON.stringify({ c: ct, h, g }) });
+  }
+  const persons = new Set(recs.map(x => x.u));
+  const usedIds = [...out.keys()];
+  const meta = { t: now, n: [...out.values()].reduce((a, d) => a + d.n, 0), p: persons.size, d: JSON.stringify({ docs: usedIds, ss: ss.map(s => ({ id: s.id, start: s.start, name: s.name, custom: s.custom })) }) };
+  return { docs: out, meta };
+}
+async function statRun(manual) {
+  if (!isAdmin() || !FBA || statS.run) return;
+  statS.run = true; statS.msg = '集計しています…'; statS.merr = false; statRender();
+  try {
+    const [parts, cfgDoc, outs, old] = await Promise.all([FBA.pubAll(), FBA.statGet('seasons'), FBA.pubOutList(), FBA.statGet('meta')]);
+    let cfg = []; try { cfg = JSON.parse((cfgDoc && cfgDoc.d) || '[]') || []; } catch (e) {}
+    const res = statAgg(parts, cfg, Date.now());
+    let oldIds = []; try { oldIds = JSON.parse((old && old.d) || '{}').docs || []; } catch (e) {}
+    const del = oldIds.filter(i => !res.docs.has(i));
+    await FBA.statWrite([...res.docs].map(([id, v]) => [id, v]), del, res.meta);
+    await FBA.pubOutClear(outs);
+    statS.docs.clear(); statS.meta = res.meta; statS.cfg = cfg;
+    statS.msg = `集計しました（${res.meta.p}人／${res.meta.n}試合）。`;
+  } catch (e) { statS.msg = '集計できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; }
+  statS.run = false; statRender();
+}
+async function statAdminCheck() {
+  if (!isAdmin() || !FBA) return;
+  try {
+    const [meta, outs] = await Promise.all([FBA.statGet('meta'), FBA.pubOutList()]);
+    statS.meta = meta || statS.meta;
+    if (!meta || Date.now() - meta.t > STAT_HOURS * 3600000 || outs.length) statRun(false);
+  } catch (e) {}
+}
+async function statSaveSeasons() {
+  if (!isAdmin() || !FBA || statS.run) return;
+  const ss = (statS.meta && statMetaD().ss) || [], cfg = [];
+  for (const s of ss) {
+    const dt = document.getElementById('sa-d-' + s.id), nm = document.getElementById('sa-n-' + s.id); if (!dt || !nm) continue;
+    const st = statDateMs(dt.value), def = statSecondThu(+s.id.slice(0, 4), +s.id.slice(5) - 1), name = nm.value.trim().slice(0, 30);
+    if ((st != null && st !== def) || name) cfg.push({ id: s.id, start: st != null && st !== def ? dt.value : '', name });
+  }
+  try { await FBA.statPut('seasons', { t: Date.now(), d: JSON.stringify(cfg) }); } catch (e) { statS.msg = '保存できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; statRender(); return; }
+  await statRun(true);
+}
+
+/* --- 見る側 --- */
+const statMetaD = () => { try { return JSON.parse((statS.meta && statS.meta.d) || '{}') || {}; } catch (e) { return {}; } };
+async function statEnsure() {
+  if (statS.loading) return; statS.loading = true; statS.err = '';
+  try { await syncLoad(); if (!statS.meta) statS.meta = (await FBA.statGet('meta')) || { none: true }; }
+  catch (e) { statS.err = '読み込めませんでした。通信を確認して、もう一度開いてください。'; }
+  statS.loading = false; statRender();
+  if (!statS.err && !statS.meta.none) statDocLoad();
+}
+function statSel() {
+  const el = document.getElementById('view-stat'), md = statMetaD(), docs = md.docs || [];
+  const ss = (md.ss || []).filter(s => docs.some(d => d.startsWith(`s_${s.id}_`))).sort((a, b) => b.start - a.start);
+  const ids = ss.map(s => s.id); if (docs.some(d => d.startsWith('s_out_'))) ids.push('out');
+  let season = el.dataset.season; if (!ids.includes(season)) season = ids[0];
+  const modes = MODES.map((n, i) => i).filter(i => docs.includes(`s_${season}_${i}`));
+  let mode = el.dataset.mode != null && el.dataset.mode !== '' ? +el.dataset.mode : 1; if (!modes.includes(mode)) mode = modes.includes(1) ? 1 : modes[0];
+  return { el, md, ss, ids, season, modes, mode, band: el.dataset.band || 'all' };
+}
+async function statDocLoad() {
+  const s = statSel(); if (!s.ids.length || s.mode == null) return;
+  const id = `s_${s.season}_${s.mode}`; if (statS.docs.has(id)) return;
+  try { statS.docs.set(id, await FBA.statGet(id)); } catch (e) { statS.err = '読み込めませんでした。'; }
+  statRender();
+}
+function statData(doc, band) {
+  let o = {}; try { o = JSON.parse(doc.d) || {}; } catch (e) {}
+  const bands = band === 'all' ? Object.keys(o.h || {}).concat(Object.keys(o.g || {})) : [String(band)];
+  const H = new Map(), G = new Map(), ct = o.c || [];
+  for (const b of new Set(bands)) {
+    for (const [n, a] of Object.entries((o.h || {})[b] || {})) {
+      let e = H.get(n); if (!e) { e = { k: n, n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map() }; H.set(n, e); }
+      e.n += a[0]; e.w += a[1]; e.cn += a[2]; e.mn += a[4];
+      for (let i = 0; i < a[3].length; i += 2) { const c = ct[a[3][i]]; if (c) e.cards.set(c, (e.cards.get(c) || 0) + a[3][i + 1]); }
+      for (let i = 0; i < a[5].length; i += 2) e.med.set(a[5][i], (e.med.get(a[5][i]) || 0) + a[5][i + 1]);
+    }
+    for (const [n, a] of Object.entries((o.g || {})[b] || {})) { const e = G.get(n) || { k: n, n: 0, w: 0 }; e.n += a[0]; e.w += a[1]; G.set(n, e); }
+  }
+  return { H: [...H.values()].sort((a, b) => b.n - a.n), G: [...G.values()].sort((a, b) => b.n - a.n) };
+}
+function statRender() {
+  const el = document.getElementById('view-stat'); if (!el) return;
+  const keep = document.activeElement && document.activeElement.id;
+  const admin = isAdmin() ? statAdminHTML() : '';
+  const pubBox = `<div class="section"><div class="panel" id="pub-box-s">${pubHTML()}</div></div>`;
+  const head = `<div class="section"><div class="panel"><h2>みんなの統計</h2><p class="small muted" style="margin:0">データの提供に同意した人の、匿名の集計です。このツールを使っている人だけの集計なので、全体の傾向とは限りません。${STAT_THIN}件未満の項目は薄く表示します。</p></div></div>`;
+  if (statS.err) { el.innerHTML = head + `<div class="section"><div class="panel"><p class="small" style="margin:0;color:var(--lose)">${esc(statS.err)}</p></div></div>` + pubBox + admin; return; }
+  if (!statS.meta) { el.innerHTML = head + `<div class="section"><div class="panel"><p class="small muted" style="margin:0">読み込んでいます…</p></div></div>` + pubBox + admin; return; }
+  if (statS.meta.none || !statSel().ids.length) { el.innerHTML = head + `<div class="section"><div class="panel"><p class="small muted" style="margin:0">まだ集計がありません。提供する人が増えると、ここに表示されます。</p></div></div>` + pubBox + admin; return; }
+  const s = statSel(), id = `s_${s.season}_${s.mode}`, doc = statS.docs.get(id);
+  const names = new Map((s.md.ss || []).map(x => [x.id, x.name]));
+  const opt = (v, t, cur) => `<option value="${esc(String(v))}"${String(v) === String(cur) ? ' selected' : ''}>${esc(t)}</option>`;
+  const fl = (label, idv, opts) => `<label class="fl"><span class="label">${label}</span><select id="${idv}">${opts}</select></label>`;
+  const filters = `<div style="display:grid;gap:8px;margin-top:10px">${
+    fl('シーズン', 'st-season', s.ids.map(i => opt(i, statSeasonLabel(i, names.get(i)), s.season)).join(''))}${
+    fl('ランク', 'st-band', opt('all', '全ランク', s.band) + STAT_BANDS.map((b, i) => opt(i, b, s.band)).join(''))}${
+    fl('対戦モード', 'st-mode', s.modes.map(i => opt(i, MODES[i], s.mode)).join(''))}</div>`;
+  let body = '';
+  if (!doc) body = `<p class="small muted" style="margin:10px 0 0">読み込んでいます…</p>`;
+  else {
+    const D = statData(doc, s.band), slots = D.H.reduce((a, e) => a + e.n, 0);
+    const nmRow = (k, n, w, extra, thin) => { const p = n ? w / n * 100 : 0; return `<div class="stat" style="margin:7px 0;grid-template-columns:minmax(0,9.6em) 1fr 8.6em;gap:6px${thin ? ';opacity:.55' : ''}"><span class="nm" style="display:flex;align-items:center;gap:6px">${extra}</span><span class="bar"><i class="${p >= 50 ? 'w' : 'l'}" style="width:${p}%"></i></span><span class="num">${f2(p)}%<span class="cir">@@</span></span></div>`; };
+    const more = (key, total, lim) => total > lim ? `<div class="row"><button class="btn ghost" data-act="stat-more" data-k="${key}">もっと見る（残り${total - lim}件）</button></div>` : '';
+    const lim = k => statS.more[k] || 10;
+    const hr = D.H.slice(0, lim('h')).map(e => nmRow(e.k, e.n, e.w, `<span style="display:inline-flex;width:30px;height:30px;flex:0 0 30px;transform:scale(.83);transform-origin:left center">${heroIco(e.k)}</span><span style="margin-left:-4px">${esc(dispName(e.k))}</span>`, e.n < STAT_THIN).replace('@@', `${e.w}/${e.n}・使用率${f2(slots ? e.n / slots * 100 : 0)}%`)).join('');
+    const gr = D.G.slice(0, lim('g')).map(e => nmRow(e.k, e.n, e.w, esc(e.k), e.n < STAT_THIN).replace('@@', `${e.w}/${e.n}試合`)).join('');
+    const withC = D.H.filter(e => e.cn > 0), withM = D.H.filter(e => e.mn > 0);
+    const hsel = (idv, list, cur) => `<label class="fl"><span class="label">ヒーロー</span><select id="${idv}">${list.map(e => opt(e.k, `${dispName(e.k)}（${e.n}人）`, cur)).join('')}</select></label>`;
+    const hc = withC.find(e => e.k === s.el.dataset.hc) || withC[0], hm = withM.find(e => e.k === s.el.dataset.hm) || withM[0];
+    const bar = (p, thin) => `<div class="mbar${thin ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
+    const cardRows = hc ? [...hc.cards].sort((a, b) => b[1] - a[1]) : [];
+    const cr = cardRows.slice(0, lim('c')).map(([c, v]) => { const p = v / hc.cn * 100; return `<div class="mrow${hc.cn < STAT_THIN ? ' thin' : ''}"><span class="mh"><span class="pn">${esc(c)}</span></span>${bar(p, hc.cn < STAT_THIN)}<span class="mn">${f2(p)}%</span></div>`; }).join('');
+    const medRows = hm ? [...hm.med].sort((a, b) => b[1] - a[1]) : [];
+    const mr = medRows.slice(0, lim('m')).map(([i, v]) => { const k = Core.MEDAL_KEYS[i], p = v / hm.mn * 100; return `<div class="mrow${hm.mn < STAT_THIN ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, hm.mn < STAT_THIN)}<span class="mn">${f2(p)}%</span></div>`; }).join('');
+    body = `<p class="small" style="margin:10px 0 0"><b>集計：${doc.p}人／${doc.n}試合</b>（同じ試合は1回だけ数えます）　<span class="muted">最終更新 ${statMsDate(doc.t)}</span></p>
+    </div></div>
+    <div class="section"><div class="panel"><h2>ヒーローの使用率と勝率</h2><p class="small muted" style="margin:0 0 6px">使用率は、ヒーロー全体のうち使われた割合です。</p>${hr || '<p class="small muted">この条件のデータはありません。</p>'}${more('h', D.H.length, lim('h'))}</div></div>
+    <div class="section"><div class="panel"><h2>カードの使用率</h2>${hc ? `${hsel('st-hc', withC, hc.k)}<p class="small muted" style="margin:8px 0 4px">「${esc(dispName(hc.k))}」を使っていた${hc.cn}人のうち、そのカードを入れていた人の割合です。${hc.cn < STAT_THIN ? `<b>まだ${hc.cn}人なので参考程度です。</b>` : ''}</p><div class="mlist">${cr}</div>${more('c', cardRows.length, lim('c'))}` : '<p class="small muted" style="margin:0">この条件では、カードの記録がありません。</p>'}</div></div>
+    <div class="section"><div class="panel"><h2>メダルの使用率</h2>${hm ? `${hsel('st-hm', withM, hm.k)}<p class="small muted" style="margin:8px 0 4px">同じ絵柄は、何個付けていても1つと数えます。${hm.mn < STAT_THIN ? `<b>まだ${hm.mn}人なので参考程度です。</b>` : ''}</p><div class="mlist">${mr}</div>${more('m', medRows.length, lim('m'))}` : '<p class="small muted" style="margin:0">この条件では、メダルの記録がありません。</p>'}</div></div>
+    <div class="section"><div class="panel"><h2>ステージの勝率</h2><p class="small muted" style="margin:0 0 6px">提供した人自身の勝率です。</p>${gr || '<p class="small muted">この条件のデータはありません。</p>'}${more('g', D.G.length, lim('g'))}`;
+  }
+  el.innerHTML = head + `<div class="section"><div class="panel">${filters}${body}</div></div>` + pubBox + admin;
+  if (keep) { const k = document.getElementById(keep); if (k && k.focus) try { k.focus(); } catch (e) {} }
+}
+function statAdminHTML() {
+  const md = statMetaD(), m = statS.meta && !statS.meta.none ? statS.meta : null, ss = (md.ss || []).slice().sort((a, b) => b.start - a.start).slice(0, 8);
+  const wait = m && Date.now() - m.t < STAT_WAIT;
+  const msg = statS.msg ? `<p class="small" style="margin:6px 0 0;${statS.merr ? 'color:var(--lose)' : ''}">${esc(statS.msg)}</p>` : '';
+  const rows = ss.map(s => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:0 0 5.5em">${esc(s.id)}</span><input type="date" id="sa-d-${esc(s.id)}" value="${statMsDate(s.start)}" style="flex:0 0 9.5em"><input type="text" id="sa-n-${esc(s.id)}" value="${esc(s.name || '')}" maxlength="30" placeholder="シーズンの名前" style="flex:1;min-width:0"></div>`).join('');
+  return `<div class="section"><div class="panel"><h2>管理者用</h2>
+    <p class="small muted" style="margin:0">${m ? `最終の集計：${new Date(m.t).toLocaleString('ja-JP')}（${m.p}人／${m.n}試合）` : 'まだ集計していません'}。集計は、開いた時に${STAT_HOURS}時間以上たっていれば自動で行います。</p>
+    <div class="row"><button class="btn primary" data-act="stat-run"${statS.run || wait ? ' disabled' : ''}>今すぐ集計</button><span class="small muted">${wait ? '前の集計から5分たつと押せます' : ''}</span></div>${msg}
+    <h3>シーズンの日付と名前</h3><p class="small muted" style="margin:0 0 6px">開始日は、決まった日（毎月第2木曜日）が最初から入っています。変える時だけ直してください。保存すると、集計し直します。</p>${rows}
+    <div class="row"><button class="btn" data-act="stat-seasons"${statS.run ? ' disabled' : ''}>保存して集計し直す</button></div></div></div>`;
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-act]'); if (!t) return; const a = t.dataset.act;
+  if (a === 'pub-ask') { pubS.ask = true; pubRender(); }
+  else if (a === 'pub-no') { pubS.ask = false; pubRender(); }
+  else if (a === 'pub-yes') pubOn();
+  else if (a === 'pub-off') pubOff();
+  else if (a === 'stat-run') statRun(true);
+  else if (a === 'uid-copy') { const v = syncS.user ? syncS.user.uid : '', m = document.getElementById('uid-msg'); if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(() => { if (m) m.textContent = 'コピーしました'; }, () => { if (m) m.textContent = '長押しで選んでコピーしてください'; }); }
+  else if (a === 'stat-seasons') statSaveSeasons();
+  else if (a === 'stat-more') { statS.more[t.dataset.k] = (statS.more[t.dataset.k] || 10) + 20; statRender(); }
+});
+document.addEventListener('change', e => {
+  const t = e.target; if (!t || !t.id) return; const el = document.getElementById('view-stat');
+  const map = { 'st-season': 'season', 'st-band': 'band', 'st-mode': 'mode', 'st-hc': 'hc', 'st-hm': 'hm' };
+  if (!map[t.id] || !el) return;
+  el.dataset[map[t.id]] = t.value; if (t.id === 'st-season') delete el.dataset.mode; statS.more = {};
+  statRender(); if (t.id === 'st-season' || t.id === 'st-mode') statDocLoad();
+});
+
 renderGuide();
 /* ---------- アプリとして入れる（PWA） ---------- */
 // GitHub Pages（https）でだけ、オフライン用の仕組みを登録する。Claudeのプレビューなどでは何もしない
