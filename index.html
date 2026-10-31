@@ -3512,7 +3512,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-31x', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-31y', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4293,7 +4293,7 @@ function statAgg(parts, cfg, now) {
     // アプリの「シーズン外」と同じ：期間内のバトルアリーナだけがシーズン。それ以外の試合はシーズン外
     const t = r[1] * 60000, se = r[2] !== AR || r[6] === 1 ? { id: 'out' } : seasonOf(t); if (!se) continue;
     const name = i => (i >= 0 && i < nm.length ? String(nm[i]) : ''), w = r[4], side = r[5] === 1 ? 1 : 0;
-    const stage = name(r[3]), own = r[8 + side * 3 + (r[7] | 0)], fp = String(r[0]), sk = fp + '|' + se.id;
+    const stage = STAGE_ALIAS[name(r[3])] || name(r[3]), own = r[8 + side * 3 + (r[7] | 0)], fp = String(r[0]), sk = fp + '|' + se.id;
     const dup = seen.has(sk) && seen.get(sk) !== u; if (!dup) { seen.set(sk, u); total++; }
     for (const d of [doc(se.id, r[2]), doc(se.id, 'a')]) {
     d.us.add(u);
