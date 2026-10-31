@@ -1084,10 +1084,21 @@ function cardThumb(k) {
 }
 const stageSeed = {};
 for (const s of STAGE_SEED) stageSeed[s.name] = [enc.unstage(s.f)];
+const STAGE_ALIAS = { '東西たこさん広場': '東西たかさん広場' };
 function seedHeroes() {
   const rid = () => Math.random().toString(36).slice(2, 9);
   for (const s of SEED) if (!db.heroes.some(h => h.name === s.name)) db.heroes.push({ id: 'h-' + rid(), name: s.name, refs: [] });
   for (const s of STAGE_SEED) if (!db.stages.some(x => x.name === s.name)) db.stages.push({ id: 's-' + rid(), name: s.name, refs: [] });
+  // 期間限定の別名ステージは、同じ構成の元のステージに寄せる（登録済みの試合も付け替える）
+  for (const al of Object.keys(STAGE_ALIAS)) {
+    const from = db.stages.find(x => x.name === al); if (!from) continue;
+    let to = db.stages.find(x => x.name === STAGE_ALIAS[al]);
+    if (!to) { from.name = STAGE_ALIAS[al]; continue; }
+    for (const r of from.refs) if (to.refs.length < 6) to.refs.push(r);
+    if (!to.thumb && from.thumb) to.thumb = from.thumb;
+    for (const m of db.matches || []) if (m.stage === from.id) m.stage = to.id;
+    db.stages = db.stages.filter(x => x !== from);
+  }
 }
 seedHeroes();
 // 前の版で自分で選んだシーズン画像は使わなくなったので消す（公式画像に戻す）
@@ -1667,7 +1678,7 @@ function saveBatch() {
   }
   // ステージ
   for (const g of batch.stageGroups) {
-    const n = g.name.trim(); if (!n) continue;
+    const n = STAGE_ALIAS[g.name.trim()] || g.name.trim(); if (!n) continue;
     let x = db.stages.find(s => s.name === n);
     if (!x) { x = { id: uid(), name: n, refs: [] }; db.stages.push(x); }
     if (!x.thumb && !STAGE_IMG[x.name] && g.url) x.thumb = g.url;
@@ -3501,7 +3512,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-31w', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-31x', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
