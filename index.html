@@ -3501,7 +3501,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-31t', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-31u', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4422,7 +4422,7 @@ function statRender() {
   if (!doc) body = `<p class="small muted" style="margin:10px 0 0">読み込んでいます…</p>`;
   else {
     const D = statData(doc, s.band), slots = D.H.reduce((a, e) => a + e.n, 0);
-    const nmRow = (k, n, w, extra, thin, sub) => { const p = n ? w / n * 100 : 0; return `<div class="stat" style="margin:9px 0;grid-template-columns:minmax(0,9.8em) 1fr 7.4em;gap:6px${thin ? ';opacity:.55' : ''}"><span class="nm" style="display:flex;align-items:center;gap:6px">${extra}</span><span class="bar"><i class="${p >= 50 ? 'w' : 'l'}" style="width:${p}%"></i></span><span class="num" style="font-size:1.12rem;line-height:1.25">${f2(p)}%<span class="cir" style="font-size:.86rem;font-weight:600;color:var(--ink)">${w}/${n}試合</span></span></div>`; };
+    const nmRow = (k, n, w, extra, thin) => { const p = n ? w / n * 100 : 0, c = wilson(w, n); return `<div class="stat" style="margin:9px 0;grid-template-columns:minmax(0,8.4em) 1fr 7.4em;gap:8px${thin ? ';opacity:.55' : ''}"><span class="nm" style="display:flex;align-items:center;gap:6px">${extra}</span><span class="bar" style="height:26px" role="img" aria-label="勝率${f2(p)}%（95%の範囲 ${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%）"><b class="ci" style="left:${c.lo}%;width:${c.hi - c.lo}%"></b><i class="${p >= 50 ? 'w' : 'l'}" style="width:${p}%;top:7px;bottom:7px"></i></span><span class="num">${f2(p)}% <span class="muted">${w}/${n}</span><span class="cir">${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%</span></span></div>`; };
     // 勝率の高い順。ただし件数が少ない項目（STAT_THIN未満）は、あとにまとめる
     const byWr = l => [...l].sort((a, b) => ((b.n >= STAT_THIN) - (a.n >= STAT_THIN)) || (b.w / b.n - a.w / a.n) || b.n - a.n);
     const more = (key, total, lim) => total > lim ? `<div class="row"><button class="btn ghost" data-act="stat-more" data-k="${key}">もっと見る（残り${total - lim}件）</button></div>` : '';
@@ -4436,12 +4436,12 @@ function statRender() {
     const hc = withC.find(e => e.k === s.el.dataset.hc) || withC[0], hm = withM.find(e => e.k === s.el.dataset.hm) || withM[0];
     const bar = (p, thin) => `<div class="mbar${thin ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
     const cardRows = hc ? [...hc.cards].sort((a, b) => b[1] - a[1]) : [];
-    const cr = cardRows.slice(0, lim('c')).map(([c, v]) => { const p = v / hc.cn * 100, u = cardThumb('n:' + c); return `<div class="mrow${hc.cn < STAT_THIN ? ' thin' : ''}"><span class="mh">${u ? `<img class="cthumb" src="${u}" alt="">` : '<span class="cthumb"></span>'}<span class="pn" style="white-space:normal;line-height:1.3">${esc(c)}</span></span>${bar(p, hc.cn < STAT_THIN)}<span class="mn" style="font-size:1.05rem;font-weight:700">${f2(p)}%</span></div>`; }).join('');
+    const cr = cardRows.slice(0, lim('c')).map(([c, v]) => { const p = v / hc.cn * 100, u = cardThumb('n:' + c); return `<div class="mrow${hc.cn < STAT_THIN ? ' thin' : ''}"><span class="mh">${u ? `<img class="cthumb" src="${u}" alt="">` : '<span class="cthumb"></span>'}<span class="pn" style="white-space:normal;line-height:1.3">${esc(c)}</span></span>${bar(p, hc.cn < STAT_THIN)}<span class="mn">${f2(p)}%</span></div>`; }).join('');
     const medRows = hm ? [...hm.med].sort((a, b) => b[1] - a[1]) : [];
     const mr = medRows.slice(0, lim('m')).map(([i, v]) => { const k = Core.MEDAL_KEYS[i], p = v / hm.mn * 100; return `<div class="mrow${hm.mn < STAT_THIN ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, hm.mn < STAT_THIN)}<span class="mn">${f2(p)}%</span></div>`; }).join('');
     body = `<p class="small" style="margin:10px 0 0"><b>集計：${doc.p}人／${doc.n}試合</b>（同じ試合は1回だけ数えます）　<span class="muted">最終更新 ${statMsDate(doc.t)}</span></p>
     </div></div>
-    <div class="section"><div class="panel"><h2>ヒーローの使用率と勝率</h2><p class="small muted" style="margin:0 0 6px">使用率は、ヒーロー全体のうち使われた割合です。</p>${hr || '<p class="small muted">この条件のデータはありません。</p>'}${more('h', D.H.length, lim('h'))}</div></div>
+    <div class="section"><div class="panel"><h2>ヒーローの使用率と勝率</h2><p class="small muted" style="margin:0 0 6px">使用率は、ヒーロー全体のうち使われた割合です。棒の薄い帯と下の数字は、勝率の95%信頼区間（ウィルソン）です。</p>${hr || '<p class="small muted">この条件のデータはありません。</p>'}${more('h', D.H.length, lim('h'))}</div></div>
     <div class="section"><div class="panel"><h2>カードの使用率</h2>${hc ? `${hsel('st-hc', withC, hc.k)}<p class="small muted" style="margin:8px 0 4px">「${esc(dispName(hc.k))}」を使っていた${hc.cn}人のうち、そのカードを入れていた人の割合です。${hc.cn < STAT_THIN ? `<b>まだ${hc.cn}人なので参考程度です。</b>` : ''}</p><div class="mlist">${cr}</div>${more('c', cardRows.length, lim('c'))}` : '<p class="small muted" style="margin:0">この条件では、カードの記録がありません。</p>'}</div></div>
     <div class="section"><div class="panel"><h2>メダルの使用率</h2>${hm ? `${hsel('st-hm', withM, hm.k)}<p class="small muted" style="margin:8px 0 4px">同じ絵柄は、何個付けていても1つと数えます。${hm.mn < STAT_THIN ? `<b>まだ${hm.mn}人なので参考程度です。</b>` : ''}</p><div class="mlist">${mr}</div>${more('m', medRows.length, lim('m'))}` : '<p class="small muted" style="margin:0">この条件では、メダルの記録がありません。</p>'}</div></div>
     <div class="section"><div class="panel"><h2>ステージの勝率</h2><label class="fl"><span class="label">ヒーロー</span><select id="st-hg">${opt('', '全ヒーロー', hg)}${hgList.map(e => opt(e.k, dispName(e.k), hg)).join('')}</select></label><p class="small muted" style="margin:8px 0 6px">${hg ? `「${esc(dispName(hg))}」を使っていた人（味方・敵を含む全員）の、ステージごとの勝率です。` : '提供した人自身の、ステージごとの勝率です。'}</p>${gr || '<p class="small muted">この条件のデータはありません。</p>'}${more('g', GL.length, lim('g'))}`;
