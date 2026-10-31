@@ -3501,7 +3501,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-31s', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-31t', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4422,19 +4422,21 @@ function statRender() {
   if (!doc) body = `<p class="small muted" style="margin:10px 0 0">読み込んでいます…</p>`;
   else {
     const D = statData(doc, s.band), slots = D.H.reduce((a, e) => a + e.n, 0);
-    const nmRow = (k, n, w, extra, thin) => { const p = n ? w / n * 100 : 0; return `<div class="stat" style="margin:7px 0;grid-template-columns:minmax(0,9.6em) 1fr 8.6em;gap:6px${thin ? ';opacity:.55' : ''}"><span class="nm" style="display:flex;align-items:center;gap:6px">${extra}</span><span class="bar"><i class="${p >= 50 ? 'w' : 'l'}" style="width:${p}%"></i></span><span class="num">${f2(p)}%<span class="cir">@@</span></span></div>`; };
+    const nmRow = (k, n, w, extra, thin, sub) => { const p = n ? w / n * 100 : 0; return `<div class="stat" style="margin:9px 0;grid-template-columns:minmax(0,9.8em) 1fr 7.4em;gap:6px${thin ? ';opacity:.55' : ''}"><span class="nm" style="display:flex;align-items:center;gap:6px">${extra}</span><span class="bar"><i class="${p >= 50 ? 'w' : 'l'}" style="width:${p}%"></i></span><span class="num" style="font-size:1.12rem;line-height:1.25">${f2(p)}%<span class="cir" style="font-size:.86rem;font-weight:600;color:var(--ink)">${w}/${n}試合</span></span></div>`; };
+    // 勝率の高い順。ただし件数が少ない項目（STAT_THIN未満）は、あとにまとめる
+    const byWr = l => [...l].sort((a, b) => ((b.n >= STAT_THIN) - (a.n >= STAT_THIN)) || (b.w / b.n - a.w / a.n) || b.n - a.n);
     const more = (key, total, lim) => total > lim ? `<div class="row"><button class="btn ghost" data-act="stat-more" data-k="${key}">もっと見る（残り${total - lim}件）</button></div>` : '';
     const lim = k => statS.more[k] || 10;
-    const hr = D.H.slice(0, lim('h')).map(e => nmRow(e.k, e.n, e.w, `<span style="display:inline-flex;width:30px;height:30px;flex:0 0 30px;transform:scale(.83);transform-origin:left center">${heroIco(e.k)}</span><span style="margin-left:-4px">${esc(dispName(e.k))}</span>`, e.n < STAT_THIN).replace('@@', `${e.w}/${e.n}・使用率${f2(slots ? e.n / slots * 100 : 0)}%`)).join('');
+    const hr = byWr(D.H).slice(0, lim('h')).map(e => nmRow(e.k, e.n, e.w, `<span style="display:inline-flex;width:30px;height:30px;flex:0 0 30px;transform:scale(.83);transform-origin:left center">${heroIco(e.k)}</span><span style="margin-left:-4px;display:flex;flex-direction:column;line-height:1.3;min-width:0"><span>${esc(dispName(e.k))}</span><span class="small muted" style="font-size:.78rem">使用率${f2(slots ? e.n / slots * 100 : 0)}%</span></span>`, e.n < STAT_THIN)).join('');
     const hgList = D.H.filter(e => D.GH.has(e.k)), hg = hgList.find(e => e.k === s.el.dataset.hg) ? s.el.dataset.hg : '';
     const GL = hg ? D.GH.get(hg) : D.G;
-    const gr = GL.slice(0, lim('g')).map(e => nmRow(e.k, e.n, e.w, esc(e.k), e.n < STAT_THIN).replace('@@', `${e.w}/${e.n}試合`)).join('');
+    const gr = byWr(GL).slice(0, lim('g')).map(e => nmRow(e.k, e.n, e.w, esc(e.k), e.n < STAT_THIN)).join('');
     const withC = D.H.filter(e => e.cn > 0), withM = D.H.filter(e => e.mn > 0);
     const hsel = (idv, list, cur) => `<label class="fl"><span class="label">ヒーロー</span><select id="${idv}">${list.map(e => opt(e.k, `${dispName(e.k)}（${e.n}人）`, cur)).join('')}</select></label>`;
     const hc = withC.find(e => e.k === s.el.dataset.hc) || withC[0], hm = withM.find(e => e.k === s.el.dataset.hm) || withM[0];
     const bar = (p, thin) => `<div class="mbar${thin ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
     const cardRows = hc ? [...hc.cards].sort((a, b) => b[1] - a[1]) : [];
-    const cr = cardRows.slice(0, lim('c')).map(([c, v]) => { const p = v / hc.cn * 100; return `<div class="mrow${hc.cn < STAT_THIN ? ' thin' : ''}"><span class="mh"><span class="pn">${esc(c)}</span></span>${bar(p, hc.cn < STAT_THIN)}<span class="mn">${f2(p)}%</span></div>`; }).join('');
+    const cr = cardRows.slice(0, lim('c')).map(([c, v]) => { const p = v / hc.cn * 100, u = cardThumb('n:' + c); return `<div class="mrow${hc.cn < STAT_THIN ? ' thin' : ''}"><span class="mh">${u ? `<img class="cthumb" src="${u}" alt="">` : '<span class="cthumb"></span>'}<span class="pn" style="white-space:normal;line-height:1.3">${esc(c)}</span></span>${bar(p, hc.cn < STAT_THIN)}<span class="mn" style="font-size:1.05rem;font-weight:700">${f2(p)}%</span></div>`; }).join('');
     const medRows = hm ? [...hm.med].sort((a, b) => b[1] - a[1]) : [];
     const mr = medRows.slice(0, lim('m')).map(([i, v]) => { const k = Core.MEDAL_KEYS[i], p = v / hm.mn * 100; return `<div class="mrow${hm.mn < STAT_THIN ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, hm.mn < STAT_THIN)}<span class="mn">${f2(p)}%</span></div>`; }).join('');
     body = `<p class="small" style="margin:10px 0 0"><b>集計：${doc.p}人／${doc.n}試合</b>（同じ試合は1回だけ数えます）　<span class="muted">最終更新 ${statMsDate(doc.t)}</span></p>
