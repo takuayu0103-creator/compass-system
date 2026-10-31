@@ -3513,7 +3513,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-10-31-Z', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-10-31-AA', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4446,7 +4446,7 @@ function statRender() {
     const GL = hg ? D.GH.get(hg) : D.G;
     const gr = byWr(GL).slice(0, lim('g')).map(e => nmRow(e.k, e.n, e.w, esc(e.k), e.n < STAT_THIN)).join('');
     const withC = byIx(D.H.filter(e => e.cn > 0)), withM = byIx(D.H.filter(e => e.mn > 0));
-    const hsel = (idv, list, cur) => `<label class="fl"><span class="label">ヒーロー</span><select id="${idv}">${list.map(e => opt(e.k, `${dispName(e.k)}（${e.n}人）`, cur)).join('')}</select></label>`;
+    const hsel = (idv, list, cur, fld) => `<label class="fl"><span class="label">ヒーロー</span><select id="${idv}">${list.map(e => opt(e.k, `${dispName(e.k)}（${e[fld]}人）`, cur)).join('')}</select></label>`;
     const hc = withC.find(e => e.k === s.el.dataset.hc) || withC[0], hm = withM.find(e => e.k === s.el.dataset.hm) || withM[0];
     const bar = (p, thin) => `<div class="mbar${thin ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
     const cardRows = hc ? [...hc.cards].sort((a, b) => b[1] - a[1]) : [];
@@ -4456,8 +4456,8 @@ function statRender() {
     body = `<p class="small" style="margin:10px 0 0"><b>集計：${doc.p}人／${doc.n}試合</b>（同じ試合は1回だけ数えます）　<span class="muted">最終更新 ${statMsTime(doc.t)}</span></p>
     </div></div>
     <div class="section"><div class="panel"><h2>ヒーローの使用率と勝率</h2><p class="small muted" style="margin:0 0 6px">使用率は、ヒーロー全体のうち使われた割合です。棒の薄い帯と下の数字は、勝率の95%信頼区間（ウィルソン）です。</p>${hr || '<p class="small muted">この条件のデータはありません。</p>'}${more('h', D.H.length, lim('h'))}</div></div>
-    <div class="section"><div class="panel"><h2>カードの使用率</h2>${hc ? `${hsel('st-hc', withC, hc.k)}<p class="small muted" style="margin:8px 0 4px">「${esc(dispName(hc.k))}」を使っていた${hc.cn}人のうち、そのカードを入れていた人の割合です。${hc.cn < STAT_THIN ? `<b>まだ${hc.cn}人なので参考程度です。</b>` : ''}</p><div class="mlist">${cr}</div>${more('c', cardRows.length, lim('c'))}` : '<p class="small muted" style="margin:0">この条件では、カードの記録がありません。</p>'}</div></div>
-    <div class="section"><div class="panel"><h2>メダルの使用率</h2>${hm ? `${hsel('st-hm', withM, hm.k)}<p class="small muted" style="margin:8px 0 4px">同じ絵柄は、何個付けていても1つと数えます。${hm.mn < STAT_THIN ? `<b>まだ${hm.mn}人なので参考程度です。</b>` : ''}</p><div class="mlist">${mr}</div>${more('m', medRows.length, lim('m'))}` : '<p class="small muted" style="margin:0">この条件では、メダルの記録がありません。</p>'}</div></div>
+    <div class="section"><div class="panel"><h2>カードの使用率</h2>${hc ? `${hsel('st-hc', withC, hc.k, 'cn')}<p class="small muted" style="margin:8px 0 4px">「${esc(dispName(hc.k))}」を使っていた${hc.cn}人のうち、そのカードを入れていた人の割合です。${hc.cn < STAT_THIN ? `<b>まだ${hc.cn}人なので参考程度です。</b>` : ''}</p><div class="mlist">${cr}</div>${more('c', cardRows.length, lim('c'))}` : '<p class="small muted" style="margin:0">この条件では、カードの記録がありません。</p>'}</div></div>
+    <div class="section"><div class="panel"><h2>メダルの使用率</h2>${hm ? `${hsel('st-hm', withM, hm.k, 'mn')}<p class="small muted" style="margin:8px 0 4px">同じ絵柄は、何個付けていても1つと数えます。${hm.mn < STAT_THIN ? `<b>まだ${hm.mn}人なので参考程度です。</b>` : ''}</p><div class="mlist">${mr}</div>${more('m', medRows.length, lim('m'))}` : '<p class="small muted" style="margin:0">この条件では、メダルの記録がありません。</p>'}</div></div>
     <div class="section"><div class="panel"><h2>ステージの勝率</h2><label class="fl"><span class="label">ヒーロー</span><select id="st-hg">${opt('', '全ヒーロー', hg)}${hgList.map(e => opt(e.k, dispName(e.k), hg)).join('')}</select></label><p class="small muted" style="margin:8px 0 6px">${hg ? `「${esc(dispName(hg))}」を使っていた人（味方・敵を含む全員）の、ステージごとの勝率です。` : '提供した人自身の、ステージごとの勝率です。'}</p>${gr || '<p class="small muted">この条件のデータはありません。</p>'}${more('g', GL.length, lim('g'))}`;
   }
   el.innerHTML = head + `<div class="section"><div class="panel">${filters}${body}</div></div>` + pubBox + admin;
