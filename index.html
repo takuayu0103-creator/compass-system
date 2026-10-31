@@ -3501,7 +3501,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-31r', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-31s', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4451,7 +4451,7 @@ function statAdminHTML() {
   const md = statMetaD(), m = statS.meta && !statS.meta.none ? statS.meta : null, ss = (md.ss || []).slice().sort((a, b) => b.start - a.start).slice(0, 8);
   const wait = m && Date.now() - m.t < STAT_WAIT;
   const msg = statS.msg ? `<p class="small" style="margin:6px 0 0;${statS.merr ? 'color:var(--lose)' : ''}">${esc(statS.msg)}</p>` : '';
-  const rows = ss.map(s => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:0 0 5.5em">${esc(s.id)}</span><input type="date" id="sa-d-${esc(s.id)}" value="${statMsDate(s.start)}" style="flex:0 0 9.5em"><select id="sa-n-${esc(s.id)}" style="flex:1;min-width:0"><option value="">（未設定）</option>${Object.keys(HERO_ICON).concat(s.name && !HERO_ICON[s.name] ? [s.name] : []).map(h => `<option value="${esc(h)}"${h === s.name ? ' selected' : ''}>${esc(dispName(h))}シーズン</option>`).join('')}</select></div>`).join('');
+  const rows = ss.map(s => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:0 0 5.5em">${esc(s.id)}</span><input type="date" id="sa-d-${esc(s.id)}" value="${statMsDate(s.start)}" style="flex:0 0 9.5em"><select id="sa-n-${esc(s.id)}" style="flex:1;min-width:0"><option value="">（未設定）</option>${Object.keys(HERO_ICON).concat(s.name && !HERO_ICON[s.name] ? [s.name] : []).sort((x, y) => (HERO_IX.has(ordNz(x)) ? HERO_IX.get(ordNz(x)) : 1e4) - (HERO_IX.has(ordNz(y)) ? HERO_IX.get(ordNz(y)) : 1e4)).map(h => `<option value="${esc(h)}"${h === s.name ? ' selected' : ''}>${esc(dispName(h))}シーズン</option>`).join('')}</select></div>`).join('');
   return `<div class="section"><div class="panel"><h2>管理者用</h2>
     <p class="small muted" style="margin:0">${m ? `最終の集計：${new Date(m.t).toLocaleString('ja-JP')}（${m.p}人／${m.n}試合）` : 'まだ集計していません'}。集計は、開いた時に${STAT_HOURS}時間以上たっていれば自動で行います。</p>
     <div class="row"><button class="btn primary" data-act="stat-run"${statS.run || wait ? ' disabled' : ''}>今すぐ集計</button><span class="small muted">${wait ? '前の集計から5分たつと押せます' : ''}</span></div>${msg}
