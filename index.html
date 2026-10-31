@@ -3501,7 +3501,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '2026-10-31n', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '2026-10-31o', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4167,7 +4167,7 @@ const pad2 = n => String(n).padStart(2, '0');
 function statSecondThu(y, m0) { const w = new Date(Date.UTC(y, m0, 1)).getUTCDay(); return Date.UTC(y, m0, 1 + ((4 - w + 7) % 7) + 7) - 9 * 3600000; }
 const statDateMs = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) - 9 * 3600000 : null; };
 const statMsDate = ms => { const d = new Date(ms + 9 * 3600000); return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`; };
-const statSeasonLabel = (id, name) => id === 'out' ? 'シーズン外' : (name || `${id.slice(0, 4)}年${+id.slice(5)}月`);
+const statSeasonLabel = (id, name) => id === 'out' ? 'シーズン外' : name ? `${dispName(name)}シーズン` : `${id.slice(0, 4)}年${+id.slice(5)}月`;
 function statBandOf(r) { const m = /^S([1-9])$/.exec(r || ''); if (m) return +m[1]; return /^[A-F]$/.test(r || '') ? 0 : 10; }
 function statFp(s) { let a = 0x811c9dc5, b = 0x9747b28c; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); a = Math.imul(a ^ c, 16777619) >>> 0; b = Math.imul(b ^ c, 2246822519) >>> 0; } return a.toString(36) + b.toString(36); }
 
@@ -4277,14 +4277,18 @@ function statAgg(parts, cfg, now) {
   const docs = new Map(), seen = new Map();
   const doc = (sid, mode) => { const k = `s_${sid}_${mode}`; let d = docs.get(k); if (!d) { d = { fps: new Set(), us: new Set(), h: new Map(), g: new Map() }; docs.set(k, d); } return d; };
   const bucket = (m, b) => { let x = m.get(b); if (!x) { x = new Map(); m.set(b, x); } return x; };
+  const AR = MODES.indexOf(ARENA);
   for (const { u, nm, r } of recs) {
-    const t = r[1] * 60000, se = r[6] === 1 ? { id: 'out' } : seasonOf(t); if (!se) continue;
-    const d = doc(se.id, r[2]), name = i => (i >= 0 && i < nm.length ? String(nm[i]) : ''), w = r[4], side = r[5] === 1 ? 1 : 0;
+    // アプリの「シーズン外」と同じ：期間内のバトルアリーナだけがシーズン。それ以外の試合はシーズン外
+    const t = r[1] * 60000, se = r[2] !== AR || r[6] === 1 ? { id: 'out' } : seasonOf(t); if (!se) continue;
+    const name = i => (i >= 0 && i < nm.length ? String(nm[i]) : ''), w = r[4], side = r[5] === 1 ? 1 : 0;
+    const stage = name(r[3]), own = r[8 + side * 3 + (r[7] | 0)], fp = String(r[0]), sk = fp + '|' + se.id;
+    const dup = seen.has(sk) && seen.get(sk) !== u; if (!dup) seen.set(sk, u);
+    for (const d of [doc(se.id, r[2]), doc(se.id, 'a')]) {
     d.us.add(u);
-    const stage = name(r[3]), own = r[8 + side * 3 + (r[7] | 0)];
     if (stage && (w === 0 || w === 1)) { const x = bucket(d.g, own && Number.isFinite(own[1]) ? own[1] : 10); const a = x.get(stage) || [0, 0]; a[0]++; a[1] += w; x.set(stage, a); }
-    const fp = String(r[0]); if (seen.has(fp + '|' + se.id + '|' + r[2]) && seen.get(fp + '|' + se.id + '|' + r[2]) !== u) continue;
-    seen.set(fp + '|' + se.id + '|' + r[2], u); d.fps.add(fp + u);
+    if (dup) continue;
+    d.fps.add(fp + u);
     for (let k = 0; k < 6; k++) {
       const p = r[8 + k]; if (!Array.isArray(p)) continue; const h = name(p[0]); if (!h) continue;
       const band = Number.isFinite(p[1]) ? Math.min(10, Math.max(0, p[1] | 0)) : 10;
@@ -4293,6 +4297,7 @@ function statAgg(parts, cfg, now) {
       const cs = Array.isArray(p[2]) ? p[2].map(name).filter(Boolean) : [], ms = Array.isArray(p[3]) ? p[3].filter(i => i >= 0 && i < 13) : [];
       if (cs.length) { e.cn++; for (const c of new Set(cs)) e.cards.set(c, (e.cards.get(c) || 0) + 1); }
       if (ms.length) { e.mn++; for (const i of new Set(ms)) e.med.set(i, (e.med.get(i) || 0) + 1); }
+    }
     }
   }
   const out = new Map(), ids = [];
@@ -4356,10 +4361,10 @@ async function statEnsure() {
 function statSel() {
   const el = document.getElementById('view-stat'), md = statMetaD(), docs = md.docs || [];
   const ss = (md.ss || []).filter(s => docs.some(d => d.startsWith(`s_${s.id}_`))).sort((a, b) => b.start - a.start);
-  const ids = ss.map(s => s.id); if (docs.some(d => d.startsWith('s_out_'))) ids.push('out');
+  const ids = ss.map(s => s.id); if (docs.some(d => d.startsWith('s_out_'))) ids.unshift('out');
   let season = el.dataset.season; if (!ids.includes(season)) season = ids[0];
-  const modes = MODES.map((n, i) => i).filter(i => docs.includes(`s_${season}_${i}`));
-  let mode = el.dataset.mode != null && el.dataset.mode !== '' ? +el.dataset.mode : 1; if (!modes.includes(mode)) mode = modes.includes(1) ? 1 : modes[0];
+  const modes = ['a'].concat(MODES.map((n, i) => String(i))).filter(i => docs.includes(`s_${season}_${i}`));
+  let mode = el.dataset.mode || 'a'; if (!modes.includes(mode)) mode = modes[0];
   return { el, md, ss, ids, season, modes, mode, band: el.dataset.band || 'all' };
 }
 async function statDocLoad() {
@@ -4399,7 +4404,7 @@ function statRender() {
   const filters = `<div style="display:grid;gap:8px;margin-top:10px">${
     fl('シーズン', 'st-season', s.ids.map(i => opt(i, statSeasonLabel(i, names.get(i)), s.season)).join(''))}${
     fl('ランク', 'st-band', opt('all', '全ランク', s.band) + STAT_BANDS.map((b, i) => opt(i, b, s.band)).join(''))}${
-    fl('対戦モード', 'st-mode', s.modes.map(i => opt(i, MODES[i], s.mode)).join(''))}</div>`;
+    fl('対戦モード', 'st-mode', s.modes.map(i => opt(i, i === 'a' ? '全対戦モード' : MODES[+i], s.mode)).join(''))}</div>`;
   let body = '';
   if (!doc) body = `<p class="small muted" style="margin:10px 0 0">読み込んでいます…</p>`;
   else {
@@ -4431,11 +4436,11 @@ function statAdminHTML() {
   const md = statMetaD(), m = statS.meta && !statS.meta.none ? statS.meta : null, ss = (md.ss || []).slice().sort((a, b) => b.start - a.start).slice(0, 8);
   const wait = m && Date.now() - m.t < STAT_WAIT;
   const msg = statS.msg ? `<p class="small" style="margin:6px 0 0;${statS.merr ? 'color:var(--lose)' : ''}">${esc(statS.msg)}</p>` : '';
-  const rows = ss.map(s => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:0 0 5.5em">${esc(s.id)}</span><input type="date" id="sa-d-${esc(s.id)}" value="${statMsDate(s.start)}" style="flex:0 0 9.5em"><input type="text" id="sa-n-${esc(s.id)}" value="${esc(s.name || '')}" maxlength="30" placeholder="シーズンの名前" style="flex:1;min-width:0"></div>`).join('');
+  const rows = ss.map(s => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:0 0 5.5em">${esc(s.id)}</span><input type="date" id="sa-d-${esc(s.id)}" value="${statMsDate(s.start)}" style="flex:0 0 9.5em"><select id="sa-n-${esc(s.id)}" style="flex:1;min-width:0"><option value="">（未設定）</option>${Object.keys(HERO_ICON).concat(s.name && !HERO_ICON[s.name] ? [s.name] : []).map(h => `<option value="${esc(h)}"${h === s.name ? ' selected' : ''}>${esc(dispName(h))}シーズン</option>`).join('')}</select></div>`).join('');
   return `<div class="section"><div class="panel"><h2>管理者用</h2>
     <p class="small muted" style="margin:0">${m ? `最終の集計：${new Date(m.t).toLocaleString('ja-JP')}（${m.p}人／${m.n}試合）` : 'まだ集計していません'}。集計は、開いた時に${STAT_HOURS}時間以上たっていれば自動で行います。</p>
     <div class="row"><button class="btn primary" data-act="stat-run"${statS.run || wait ? ' disabled' : ''}>今すぐ集計</button><span class="small muted">${wait ? '前の集計から5分たつと押せます' : ''}</span></div>${msg}
-    <h3>シーズンの日付と名前</h3><p class="small muted" style="margin:0 0 6px">開始日は、決まった日（毎月第2木曜日）が最初から入っています。変える時だけ直してください。保存すると、集計し直します。</p>${rows}
+    <h3>シーズンの日付と名前</h3><p class="small muted" style="margin:0 0 6px">開始日は、決まった日（毎月第2木曜日）が最初から入っています。変える時だけ直してください。名前は、そのシーズンのヒーローを選びます。保存すると、集計し直します。</p>${rows}
     <div class="row"><button class="btn" data-act="stat-seasons"${statS.run ? ' disabled' : ''}>保存して集計し直す</button></div></div></div>`;
 }
 document.addEventListener('click', e => {
