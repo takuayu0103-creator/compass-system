@@ -26,6 +26,9 @@
   --stripe:rgba(255,255,255,.022);
   --blue:#7088ff; --red:#ff5d66; --accent:#ff8a3d; --accent-ink:#1a1206;
   --win:#43c682; --lose:#ff6f80; --draw:#9aa1b3; --soft:#242835; color-scheme:dark}
+:root[data-skin="gold"]{--bg:#17130a;--surface:#221b0d;--ink:#fbf1d2;--muted:#b9a672;--line:#5a4719;--stripe:rgba(245,197,66,.05);--blue:#7088ff;--red:#ff5d66;--accent:#f5c542;--accent-ink:#241a00;--win:#43c682;--lose:#ff6f80;--draw:#b9a672;--soft:#2c2410;color-scheme:dark}
+:root[data-skin="sakura"]{--bg:#fbeef2;--surface:#fff8fa;--ink:#3a1f2b;--muted:#8d6676;--line:#efc3d0;--stripe:rgba(224,69,123,.05);--blue:#1f3fd1;--red:#d8232f;--accent:#e0457b;--accent-ink:#fff;--win:#16814a;--lose:#b02a3c;--draw:#8d6676;--soft:#f7dde6;color-scheme:light}
+:root[data-skin="team"]{--bg:#0f1430;--surface:#171d45;--ink:#eaf0ff;--muted:#98a4dc;--line:#2f3a82;--stripe:rgba(112,136,255,.07);--blue:#7088ff;--red:#ff5d66;--accent:#ff5d66;--accent-ink:#fff;--win:#43c682;--lose:#ff8a96;--draw:#98a4dc;--soft:#1f2756;color-scheme:dark}
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.7;
@@ -2435,10 +2438,10 @@ async function seasonShareCanvas(se) {
   try { await Promise.all(['900 60px "Zen Kaku Gothic New"', '700 24px "Zen Kaku Gothic New"', '800 40px "JetBrains Mono"', '900 40px "Archivo"'].map(f => document.fonts.load(f))); } catch (e) {}
   const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
   const JP = '"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif', NUM = '"JetBrains Mono",ui-monospace,monospace';
-  const C = { bg: '#13151b', panel: '#1c1f28', line: '#2e3341', ink: '#e7e9f0', muted: '#9aa1b3', acc: '#ff8a3d', blue: '#7088ff', red: '#ff5d66', win: '#43c682', lose: '#ff6f80' };
+  const C = Object.assign({}, SKINS.base.c, (SKINS[skinNow()] || SKINS.base).c);
   // 背景（アプリと同じ斜めのストライプ）
   x.fillStyle = C.bg; x.fillRect(0, 0, W, H);
-  x.save(); x.strokeStyle = 'rgba(255,255,255,.025)'; x.lineWidth = 7; for (let i = -H; i < W; i += 14) { x.beginPath(); x.moveTo(i, H); x.lineTo(i + H, 0); x.stroke(); } x.restore();
+  x.save(); x.strokeStyle = C.st; x.lineWidth = 7; for (let i = -H; i < W; i += 14) { x.beginPath(); x.moveTo(i, H); x.lineTo(i + H, 0); x.stroke(); } x.restore();
   x.fillStyle = C.acc; x.fillRect(0, 0, 10, H);
   const txt = (t, px, py, font, col, al) => { x.font = font; x.fillStyle = col; x.textAlign = al || 'left'; x.fillText(t, px, py); };
   const fit = (t, maxW, size, weight, fam) => { let s0 = size; x.font = `${weight} ${s0}px ${fam}`; while (s0 > 16 && x.measureText(t).width > maxW) { s0 -= 2; x.font = `${weight} ${s0}px ${fam}`; } return `${weight} ${s0}px ${fam}`; };
@@ -2455,7 +2458,7 @@ async function seasonShareCanvas(se) {
   const ptT = String(d.cur); x.font = `800 84px ${NUM}`; const pw = x.measureText(ptT).width;
   txt(ptT, 64, 318, `800 84px ${NUM}`, C.ink); txt('pt', 72 + pw, 318, `800 34px ${NUM}`, C.muted);
   const rk = rankOf(d.cur);
-  if (rk) { x.fillStyle = C.acc; rr(400, 220, 136, 64, 12); x.fill(); txt(rk, 468, 266, `900 40px "Archivo",${JP}`, '#1a1206', 'center'); txt(`+${rankRest(d.cur)}`, 468, 312, `800 24px ${NUM}`, C.acc, 'center'); }
+  if (rk) { x.fillStyle = C.acc; rr(400, 220, 136, 64, 12); x.fill(); txt(rk, 468, 266, `900 40px "Archivo",${JP}`, C.ai, 'center'); txt(`+${rankRest(d.cur)}`, 468, 312, `800 24px ${NUM}`, C.acc, 'center'); }
   const gainCol = d.gain > 0 ? C.win : d.gain < 0 ? C.lose : C.muted;
   txt(`${d.se.pt}pt → ${d.cur}pt`, 64, 360, `700 24px ${JP}`, C.muted);
   x.font = `700 24px ${JP}`; const gw = x.measureText(`${d.se.pt}pt → ${d.cur}pt`).width; txt(`（${fmtPt(d.gain)}）`, 72 + gw, 360, `800 24px ${NUM}`, gainCol);
@@ -2477,8 +2480,8 @@ async function seasonShareCanvas(se) {
     const X = j => L + (R - L) * j / (P.length - 1), Y = v => B - (v - lo) * (B - T) / (hi - lo);
     const step = [50, 100, 250, 500, 1000, 2000].find(s0 => (hi - lo) / s0 <= 5) || 5000;
     x.font = `700 16px ${NUM}`; x.textAlign = 'right';
-    for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) { x.strokeStyle = v % 500 === 0 ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.07)'; x.lineWidth = 1; x.beginPath(); x.moveTo(L, Y(v)); x.lineTo(R, Y(v)); x.stroke(); x.fillStyle = C.muted; x.fillText(v >= 2000 && v % 500 === 0 ? rankOf(v) : String(v), L - 10, Y(v) + 5); }
-    const gr = x.createLinearGradient(0, T, 0, B); gr.addColorStop(0, 'rgba(255,138,61,.35)'); gr.addColorStop(1, 'rgba(255,138,61,0)');
+    for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) { x.strokeStyle = v % 500 === 0 ? C.gl1 : C.gl2; x.lineWidth = 1; x.beginPath(); x.moveTo(L, Y(v)); x.lineTo(R, Y(v)); x.stroke(); x.fillStyle = C.muted; x.fillText(v >= 2000 && v % 500 === 0 ? rankOf(v) : String(v), L - 10, Y(v) + 5); }
+    const gr = x.createLinearGradient(0, T, 0, B); gr.addColorStop(0, `rgba(${C.gr},.35)`); gr.addColorStop(1, `rgba(${C.gr},0)`);
     x.beginPath(); P.forEach((v, j) => j ? x.lineTo(X(j), Y(v)) : x.moveTo(X(j), Y(v))); x.lineTo(X(P.length - 1), B); x.lineTo(X(0), B); x.closePath(); x.fillStyle = gr; x.fill();
     x.beginPath(); P.forEach((v, j) => j ? x.lineTo(X(j), Y(v)) : x.moveTo(X(j), Y(v))); x.strokeStyle = C.acc; x.lineWidth = 3; x.lineJoin = 'round'; x.stroke();
     x.fillStyle = C.acc; x.beginPath(); x.arc(X(P.length - 1), Y(P[P.length - 1]), 6, 0, Math.PI * 2); x.fill();
@@ -2489,7 +2492,7 @@ async function seasonShareCanvas(se) {
   d.heroes.forEach((h, i) => {
     const hx = gx + i * 188, hy = 474;
     x.fillStyle = C.panel; rr(hx, hy, 180, 108, 12); x.fill(); x.strokeStyle = i === 0 ? C.acc : C.line; x.stroke();
-    x.fillStyle = '#2a2f3c'; rr(hx + 10, hy + 10, 44, 44, 8); x.fill();
+    x.fillStyle = C.ib; rr(hx + 10, hy + 10, 44, 44, 8); x.fill();
     const im = icons[i];
     if (im) { x.save(); rr(hx + 10, hy + 10, 44, 44, 8); x.clip(); x.drawImage(im, hx + 12, hy + 12, 40, 40); x.restore(); }
     else txt([...heroName(h.k)][0] || '?', hx + 32, hy + 42, `900 24px ${JP}`, C.ink, 'center');
@@ -2515,7 +2518,7 @@ async function seasonShareCanvas(se) {
   if (d.stage) { const sr = f2(pct2(d.stage.w, d.stage.w + d.stage.l)); txt('得意ステージ', 58, 563, `700 18px ${JP}`, C.muted); const sn0 = stageName(d.stage.k), rt = `${sr}%（${d.stage.w}勝${d.stage.l}敗）`; x.font = `800 18px ${NUM}`; const rw = x.measureText(rt).width; txt(sn0, 180, 564, fit(sn0, 544 - rw - 196, 22, 700, JP), C.ink); txt(rt, 544, 564, `800 18px ${NUM}`, C.ink, 'right'); }
   else txt('得意ステージ：3試合以上のステージがまだありません', 58, 563, `700 18px ${JP}`, C.muted);
   // 下の帯
-  x.fillStyle = 'rgba(255,255,255,.04)'; x.fillRect(0, H - 62, W, 62);
+  x.fillStyle = C.bd; x.fillRect(0, H - 62, W, 62);
   txt(SITE_URL, 48, H - 24, `700 20px ${NUM}`, C.muted);
   txt('非公式ファンツール', W - 40, H - 24, `700 18px ${JP}`, C.muted, 'right');
   return { c, d };
@@ -2880,6 +2883,7 @@ function renderData() {
   el.innerHTML = `
   <div class="section"><div class="panel" id="sync-box">${syncHTML()}</div></div>
   <div class="section"><div class="panel" id="pub-box-d">${pubHTML(true)}</div></div>
+  <div class="section" id="skin-sec"${isAdmin() ? '' : ' hidden'}><div class="panel" id="skin-box">${skinHTML()}</div></div>
   <div class="section"><div class="panel"><h2>バックアップ</h2>
     <p class="small muted" style="margin:0">記録はこのブラウザの中にだけあります。ブラウザのデータを消すと戦績も消えるので、ときどき下の文字列をコピーしてメモ帳などに保存してください。</p>
     <textarea id="backup-out" readonly aria-label="バックアップ用の文字列" placeholder="「コピー」を押すと、ここにバックアップの文字列が入ります"></textarea>
@@ -3352,6 +3356,7 @@ document.addEventListener('click', e => {
   else if (act === 'discard') { batch = null; rebuildCache(); renderReview(); $('#prog-wrap').hidden = true; }
   else if (t.dataset.ask !== undefined && !t.dataset.del) { $('#view-hist').dataset.ask = t.dataset.ask; renderHist(); }
   else if (t.dataset.del) { db.matches = db.matches.filter(m => m.id !== t.dataset.del); $('#view-hist').dataset.ask = ''; persist(); renderAll(); }
+  else if (act === 'skin') { skinSet(t.dataset.skin); syncRender(); }
   else if (act === 'copy') {
     const ta = $('#backup-out'), str = JSON.stringify(db), big = str.length > 300000;
     // 大きいときは欄に入れない（描画で固まるため）。クリップボードへ直接送る
@@ -3558,7 +3563,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-01-J', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-01-K', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -3996,6 +4001,7 @@ function syncRender(msg, err) {
   try { fxSync(); } catch (e) {}
   if (msg !== undefined) { syncS.msg = msg; syncS.err = !!err; }
   const el = document.getElementById('sync-box'); if (el) el.innerHTML = syncHTML();
+  const sb = document.getElementById('skin-box'); if (sb) { sb.innerHTML = skinHTML(); const ss = document.getElementById('skin-sec'); if (ss) ss.hidden = !isAdmin(); }
   whoRender();
 }
 function syncLoad() {
@@ -4004,7 +4010,7 @@ function syncLoad() {
   syncLoading = (async () => {
     try { FBA = window.__FB_MOCK || await fbReal(); }
     catch (e) { syncLoading = null; throw e; }
-    FBA.onUser(u => { togStop(); viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = u; syncS.links = []; syncS.fmsg = ''; syncS.delAsk = ''; if (!u) { syncS.status = 'out'; pubS.on = false; pubS.loaded = false; pubS.ask = false; pubS.msg = ''; pubRender(); syncRender(''); return; } syncRun(); pubLoad(); });
+    FBA.onUser(u => { togStop(); viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = u; if (!isAdmin() && skinGet()) skinSet(''); syncS.links = []; syncS.fmsg = ''; syncS.delAsk = ''; if (!u) { syncS.status = 'out'; pubS.on = false; pubS.loaded = false; pubS.ask = false; pubS.msg = ''; pubRender(); syncRender(''); return; } syncRun(); pubLoad(); });
   })();
   return syncLoading;
 }
@@ -4213,6 +4219,21 @@ async function syncAuto() {
 /* ---------- 統計（みんなの記録） ----------
    提供に同意した人の試合を、名前を含まない形（ヒーロー・カード・メダル・ランク・結果・ステージ・対戦モード・日時）にして
    pub/{uid}/parts/{n} に置く。管理者がアプリを開いた時に、全員ぶんを集計して stats/ に書く。見る人は stats/ だけを読む */
+const SKINS = {
+  base: { n: 'いつもの色', c: { bg: '#13151b', panel: '#1c1f28', line: '#2e3341', ink: '#e7e9f0', muted: '#9aa1b3', acc: '#ff8a3d', blue: '#7088ff', red: '#ff5d66', win: '#43c682', lose: '#ff6f80', ai: '#1a1206', st: 'rgba(255,255,255,.025)', gl1: 'rgba(255,255,255,.16)', gl2: 'rgba(255,255,255,.07)', gr: '255,138,61', ib: '#2a2f3c', bd: 'rgba(255,255,255,.04)' } },
+  gold: { n: 'ゴールド', c: { bg: '#17130a', panel: '#221b0d', line: '#5a4719', ink: '#fbf1d2', muted: '#b9a672', acc: '#f5c542', ai: '#241a00', st: 'rgba(245,197,66,.05)', gl1: 'rgba(245,197,66,.2)', gl2: 'rgba(245,197,66,.09)', gr: '245,197,66', ib: '#3a2f14', bd: 'rgba(245,197,66,.06)' } },
+  sakura: { n: 'サクラ', c: { bg: '#fbeef2', panel: '#fff8fa', line: '#efc3d0', ink: '#3a1f2b', muted: '#8d6676', acc: '#e0457b', blue: '#1f3fd1', red: '#d8232f', win: '#16814a', lose: '#b02a3c', ai: '#ffffff', st: 'rgba(224,69,123,.05)', gl1: 'rgba(58,31,43,.2)', gl2: 'rgba(58,31,43,.09)', gr: '224,69,123', ib: '#f3d6e0', bd: 'rgba(224,69,123,.07)' } },
+  team: { n: 'ブルー×レッド', c: { bg: '#0f1430', panel: '#171d45', line: '#2f3a82', ink: '#eaf0ff', muted: '#98a4dc', acc: '#ff5d66', ai: '#ffffff', st: 'rgba(112,136,255,.07)', gl1: 'rgba(152,164,220,.25)', gl2: 'rgba(152,164,220,.1)', gr: '255,93,102', ib: '#222b63', bd: 'rgba(112,136,255,.08)' } }
+};
+const SKIN_KEY = 'senseki-skin';
+const skinGet = () => { try { return localStorage.getItem(SKIN_KEY) || ''; } catch (e) { return ''; } };
+const skinNow = () => document.documentElement.dataset.skin || '';
+function skinApply(k) { if (k && SKINS[k] && k !== 'base') document.documentElement.dataset.skin = k; else delete document.documentElement.dataset.skin; }
+function skinSet(k) { try { if (k && k !== 'base') localStorage.setItem(SKIN_KEY, k); else localStorage.removeItem(SKIN_KEY); } catch (e) {} skinApply(k); }
+skinApply(skinGet());
+// いまは管理者（開発者）だけが選べる。管理者でなくなったら元に戻す
+const skinHTML = () => !isAdmin() ? '' : `<h2>色・背景（開発者用）</h2><p class="small muted" style="margin:0">この端末の見た目だけが変わります。シーズン総括の画像にも反映されます。</p>
+  <div class="row segs" style="margin-top:8px;flex-wrap:wrap">${Object.keys(SKINS).map(k => `<button class="seg${(skinNow() || 'base') === k ? ' on' : ''}" data-act="skin" data-skin="${k}">${SKINS[k].n}</button>`).join('')}</div>`;
 const ADMIN_UIDS = ['OHVoIZI3n7cioMO8ZvsU89Kr7qv1'];
 const STAT_THIN = 30, STAT_HOURS = 12, STAT_WAIT = 5 * 60000, PUB_PART = 800;
 const STAT_BANDS = ['A以下', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9'];
