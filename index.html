@@ -509,7 +509,11 @@ const Core = (() => {
     const bv = vr(bx, clsB), rv = vr(rx, clsR), groups = [];
     for (const r of bv) { const g = groups[groups.length - 1]; if (g && r[0] - g[g.length - 1][1] <= 120 * sc) g.push(r); else groups.push([r]); }
     const cards = []; let skipped = 0;
+    // ⓘを押して詳細（メダル欄）が出ている試合が1つでもあれば、それを見せたい1試合とみなす。ほかの試合は読み取らず、数にも入れない
+    const isWide = g => g.length === 3 && g.slice(1).map((r, i) => r[0] - g[i][1]).every(d => d >= 60 * sc && d <= 110 * sc);
+    const anyWide = groups.some(isWide);
     for (const g of groups) {
+      if (anyWide && !isWide(g)) continue;
       const hs = g.map(([a, b]) => b - a), med = [...hs].sort((a, b) => a - b)[Math.floor(hs.length / 2)];
       const gaps = g.slice(1).map((r, i) => r[0] - g[i][1]);
       // 段の間が広い画面（ⓘを押してメダル欄が出ている）と、段がほぼくっついている画面（ⓘなし）の2通り
@@ -521,6 +525,7 @@ const Core = (() => {
       if (good) cards.push({ y0: Math.max(0, Math.round(g[0][0] - up * sc)), y1: Math.min(H, Math.round(g[2][1] + dn * sc)) });
       else if (med >= 40 * sc) skipped++;
     }
+    if (anyWide && cards.length > 1) cards.length = 1;
     return { cards, skipped, frame };
   }
   function bgPix(r, g, b, side) {
@@ -2993,7 +2998,7 @@ function renderGuide() {
     <p>ログインした人の記録は、仕組み上、運営者がFirebaseの管理画面から見られる状態にあります（ログインに使ったメールアドレスも含みます）。運営者は、不具合の調査など必要な場合を除いて、これらを見ません。また、ほかの目的に使ったり、第三者に渡したりしません。これが気になる場合は、ログインせずに使ってください（記録は端末の中だけにあり、運営者を含めて誰にも見えません）。</p>
     <h4>みんなの統計への提供（任意）</h4>
     <ul>
-      <li>統計タブかデータタブで「提供する」を選んだ人だけ、登録した試合のうち、ヒーロー・カード・メダル・ランク・勝敗・ステージ・対戦モード・日時を送ります。プレイヤー名・ニックネーム・メモ・スクショ・メールアドレスは送りません。</li>
+      <li>統計タブかデータタブで「提供する」を選んだ人だけ、登録した試合のうち、ヒーロー・カード・メダル・ランク・勝敗・ステージ・対戦モード・日時を送ります。統計にまだ載っていないカードは、カードの絵の部分だけを小さく切り取った画像も送ります。プレイヤー名・ニックネーム・メモ・スクショ全体・メールアドレスは送りません。</li>
       <li>送ったデータは、ほかの提供者の分と合わせて集計し、統計タブで誰でも見られる形で公開します。個人ごとの記録は公開しません。</li>
       <li>運営者と、運営者が指名した集計の管理者は、送られた試合の内容（上の項目）を見られます。</li>
       <li>提供をやめると、送ったデータはすぐに削除されます。集計の数字からは、次に集計し直した時に消えます。</li>
@@ -3530,7 +3535,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-01-C', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-01-E', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4189,7 +4194,7 @@ const ADMIN_UIDS = ['OHVoIZI3n7cioMO8ZvsU89Kr7qv1'];
 const STAT_THIN = 30, STAT_HOURS = 12, STAT_WAIT = 5 * 60000, PUB_PART = 800;
 const STAT_BANDS = ['A以下', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9'];
 const pubS = { on: false, loaded: false, busy: false, ask: false, msg: '', err: false };
-const statS = { meta: null, docs: new Map(), loading: false, err: '', run: false, cfg: null, msg: '', merr: false, more: {} };
+const statS = { cimg: null, cimgV: -1, meta: null, docs: new Map(), loading: false, err: '', run: false, cfg: null, msg: '', merr: false, more: {} };
 const isAdmin = () => !!(syncS.user && ADMIN_UIDS.includes(syncS.user.uid));
 const pad2 = n => String(n).padStart(2, '0');
 // 第2木曜日の0時（日本時間）
@@ -4202,7 +4207,7 @@ function statBandOf(r) { const m = /^S([1-9])$/.exec(r || ''); if (m) return +m[
 function statFp(s) { let a = 0x811c9dc5, b = 0x9747b28c; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); a = Math.imul(a ^ c, 16777619) >>> 0; b = Math.imul(b ^ c, 2246822519) >>> 0; } return a.toString(36) + b.toString(36); }
 
 /* --- 送る側：自分の試合を、名前を含まない記録にする --- */
-function pubBuild() {
+function pubBuild(have) {
   const hn = new Map(db.heroes.map(h => [h.id, h.name])), sn = new Map(db.stages.map(s => [s.id, s.name])), cn = new Map((db.cards || []).map(c => [c.id, c.name]));
   const out = [];
   for (const m of db.matches) {
@@ -4230,7 +4235,16 @@ function pubBuild() {
     }
     parts.push(JSON.stringify({ v: 1, n: names, r }));
   }
+  // 統計にまだ画像がないカードだけ、小さな画像（カード部分の切り抜き）を送る
+  { const seen = new Set(have || []), imgs = [];
+    for (const c of db.cards || []) { if (!c.name || !c.img || c.img.length > 9000 || seen.has(c.name) || !/^data:image\/jpeg;base64,/.test(c.img)) continue; seen.add(c.name); imgs.push([c.name, c.img]); }
+    for (let i = 0, k = 0; i < imgs.length && k < 6; i += 150, k++) parts.push(JSON.stringify({ v: 1, img: Object.fromEntries(imgs.slice(i, i + 150)) })); }
   return parts;
+}
+const pubIdx = { t: 0, set: new Set() };
+async function pubIdxLoad() {
+  if (Date.now() - pubIdx.t < 600000) return;
+  try { const d = await FBA.statGet('cardidx'); pubIdx.set = new Set(d ? JSON.parse(d.d || '[]') : []); pubIdx.t = Date.now(); } catch (e) {}
 }
 let pubTimer = null;
 function pubAuto() { if (!pubS.on || !syncS.user || !FBA || view.on) return; clearTimeout(pubTimer); pubTimer = setTimeout(() => pubPush().catch(() => {}), 8000); }
@@ -4238,7 +4252,8 @@ async function pubPush() {
   const u = syncS.user; if (!u || !FBA || !pubS.on || pubS.busy) return;
   pubS.busy = true;
   try {
-    const parts = pubBuild(), key = DBKEY + '-pubsig'; let last = {};
+    await pubIdxLoad();
+    const parts = pubBuild(pubIdx.set), key = DBKEY + '-pubsig'; let last = {};
     try { last = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) {}
     if (last.uid !== u.uid) last = { uid: u.uid, h: [] };
     const sig = parts.map(statFp), ch = [];
@@ -4271,7 +4286,7 @@ async function pubOff() {
 function pubHTML(withId) { return pubHTML0() + (withId ? pubIdHTML() : ''); }
 function pubHTML0() {
   const u = syncS.user, msg = pubS.msg ? `<p class="small" style="margin:6px 0 0;${pubS.err ? 'color:var(--lose)' : ''}">${esc(pubS.msg)}</p>` : '';
-  const what = `<p class="small muted" style="margin:0">登録した試合から、<b>ヒーロー・カード・メダル・ランク・勝敗・ステージ・対戦モード・日時</b>だけを匿名で送り、みんなの集計（統計タブ）に使います。<b>プレイヤー名・ニックネーム・メモ・スクショ・メールアドレスは送りません。</b>運営者は、送られた試合の内容（上の項目）を見られます。</p>`;
+  const what = `<p class="small muted" style="margin:0">登録した試合から、<b>ヒーロー・カード・メダル・ランク・勝敗・ステージ・対戦モード・日時</b>だけを匿名で送り、みんなの集計（統計タブ）に使います。統計にまだ載っていないカードは、<b>カードの絵の部分だけを小さく切り取った画像</b>も送ります。<b>プレイヤー名・ニックネーム・メモ・スクショ全体・メールアドレスは送りません。</b>運営者は、送られた試合の内容（上の項目）を見られます。</p>`;
   if (!u) return `<h2>みんなの統計に提供</h2>${what}<p class="small" style="margin:8px 0 0">提供するには、先にGoogleでログインしてください。</p><div class="row"><button class="btn primary" data-act="sync-login">Googleでログイン</button></div>`;
   if (!pubS.loaded && !pubS.msg) return `<h2>みんなの統計に提供</h2>${what}<p class="small muted" style="margin:8px 0 0">状態を確認しています…</p>`;
   const stop = '提供をやめると、送ったデータはすぐに消えます。集計の数字からは、次に集計し直した時（目安は半日以内）に消えます。';
@@ -4359,9 +4374,26 @@ async function statRun(manual) {
     const [parts, cfgDoc, outs, old] = await Promise.all([FBA.pubAll(), FBA.statGet('seasons'), FBA.pubOutList(), FBA.statGet('meta')]);
     let cfg = []; try { cfg = JSON.parse((cfgDoc && cfgDoc.d) || '[]') || []; } catch (e) {}
     const res = statAgg(parts, cfg, Date.now());
-    let oldIds = []; try { oldIds = JSON.parse((old && old.d) || '{}').docs || []; } catch (e) {}
+    let oldIds = [], oldD = {}; try { oldD = JSON.parse((old && old.d) || '{}') || {}; oldIds = oldD.docs || []; } catch (e) {}
     const del = oldIds.filter(i => !res.docs.has(i));
-    await FBA.statWrite([...res.docs].map(([id, v]) => [id, v]), del, res.meta);
+    // カードの小さな画像：すでにあるものは残し、新しいカード名の分だけ足す
+    const oldCi = oldD.ci | 0, imgs = new Map();
+    for (let i = 0; i < oldCi; i++) { const d = await FBA.statGet('cardimg_' + i); if (d) { try { for (const [k, v] of Object.entries(JSON.parse(d.d))) imgs.set(k, v); } catch (e) {} } }
+    let added = 0;
+    for (const p of parts) { let o; try { o = JSON.parse(p.text); } catch (e) { continue; } if (!o || !o.img || typeof o.img !== 'object') continue;
+      for (const [k, v] of Object.entries(o.img)) { if (imgs.size >= 3000) break; if (typeof k === 'string' && k.length < 80 && typeof v === 'string' && v.length < 9000 && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(v) && !imgs.has(k)) { imgs.set(k, v); added++; } } }
+    const extra = [];
+    let md = {}; try { md = JSON.parse(res.meta.d); } catch (e) {}
+    if (added || (imgs.size && !oldCi)) {
+      const names = [...imgs.keys()].sort(), nDocs = Math.ceil(names.length / 200);
+      for (let i = 0; i < nDocs; i++) extra.push(['cardimg_' + i, { t: res.meta.t, d: JSON.stringify(Object.fromEntries(names.slice(i * 200, i * 200 + 200).map(n => [n, imgs.get(n)]))) }]);
+      extra.push(['cardidx', { t: res.meta.t, d: JSON.stringify(names) }]);
+      for (let i = nDocs; i < oldCi; i++) del.push('cardimg_' + i);
+      md.ci = nDocs; md.cv = res.meta.t;
+    } else { if (oldCi) { md.ci = oldCi; md.cv = oldD.cv || 0; } }
+    res.meta.d = JSON.stringify(md);
+    await FBA.statWrite([...res.docs].map(([id, v]) => [id, v]).concat(extra), del, res.meta);
+    statS.cimg = imgs; statS.cimgV = md.cv | 0;
     await FBA.pubOutClear(outs);
     statS.docs.clear(); statS.meta = res.meta; statS.cfg = cfg;
     statS.msg = `集計しました（${res.meta.p}人／${res.meta.n}試合）。`;
@@ -4395,7 +4427,21 @@ async function statEnsure() {
   try { await syncLoad(); if (!statS.meta) statS.meta = (await FBA.statGet('meta')) || { none: true }; }
   catch (e) { statS.err = '読み込めませんでした。通信を確認して、もう一度開いてください。'; }
   statS.loading = false; statRender();
-  if (!statS.err && !statS.meta.none) statDocLoad();
+  if (!statS.err && !statS.meta.none) { statDocLoad(); statImgLoad().catch(() => {}); }
+}
+const CIMG_DB = 'senseki-cimg';
+const cimgOpen = () => new Promise(res => { try { const r = indexedDB.open(CIMG_DB, 1); r.onupgradeneeded = () => r.result.createObjectStore('k'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } });
+async function idbGetImg() { const d = await cimgOpen(); if (!d) return null; return new Promise(res => { try { const g = d.transaction('k').objectStore('k').get('v'); g.onsuccess = () => res(g.result || null); g.onerror = () => res(null); } catch (e) { res(null); } }); }
+async function idbPutImg(v) { const d = await cimgOpen(); if (!d) return; try { d.transaction('k', 'readwrite').objectStore('k').put(v, 'v'); } catch (e) {} }
+// 統計に載っているカードの小さな画像（自分の端末が知らないカードの絵）。更新があった時だけ読み直す
+async function statImgLoad() {
+  const md = statMetaD(), n = md.ci | 0, cv = md.cv | 0;
+  if (!n) { statS.cimg = new Map(); statS.cimgV = 0; return; }
+  if (statS.cimg && statS.cimgV === cv) return;
+  const c = await idbGetImg(); let o;
+  if (c && c.cv === cv && c.o) o = c.o;
+  else { o = {}; const ds = await Promise.all(Array.from({ length: n }, (_, i) => FBA.statGet('cardimg_' + i))); for (const d of ds) if (d) { try { Object.assign(o, JSON.parse(d.d)); } catch (e) {} } idbPutImg({ cv, o }); }
+  statS.cimg = new Map(Object.entries(o)); statS.cimgV = cv; statRender();
 }
 function statSel() {
   const el = document.getElementById('view-stat'), md = statMetaD(), docs = md.docs || [];
@@ -4474,7 +4520,7 @@ function statRender() {
     const hc = withC.find(e => e.k === s.el.dataset.hc) || withC[0], hm = withM.find(e => e.k === s.el.dataset.hm) || withM[0];
     const bar = (p, thin) => `<div class="mbar${thin ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
     const cardRows = hc ? [...hc.cards].sort((a, b) => b[1] - a[1]) : [];
-    const cr = cardRows.slice(0, lim('c')).map(([c, v]) => { const p = v / hc.cn * 100, u = cardThumb('n:' + c); return `<div class="mrow${hc.cn < STAT_THIN ? ' thin' : ''}"><span class="mh">${u ? `<img class="cthumb" src="${u}" alt="">` : '<span class="cthumb"></span>'}<span class="pn" style="white-space:normal;line-height:1.3">${esc(c)}</span></span>${bar(p, hc.cn < STAT_THIN)}<span class="mn">${f2(p)}%<span class="cir">${v}/${hc.cn}人</span></span></div>`; }).join('');
+    const cr = cardRows.slice(0, lim('c')).map(([c, v]) => { const p = v / hc.cn * 100, u = cardThumb('n:' + c) || (statS.cimg && statS.cimg.get(c)) || ''; return `<div class="mrow${hc.cn < STAT_THIN ? ' thin' : ''}"><span class="mh">${u ? `<img class="cthumb" src="${u}" alt="">` : '<span class="cthumb"></span>'}<span class="pn" style="white-space:normal;line-height:1.3">${esc(c)}</span></span>${bar(p, hc.cn < STAT_THIN)}<span class="mn">${f2(p)}%<span class="cir">${v}/${hc.cn}人</span></span></div>`; }).join('');
     const medRows = hm ? [...hm.med].sort((a, b) => b[1] - a[1]) : [];
     const mr = medRows.slice(0, lim('m')).map(([i, v]) => { const k = Core.MEDAL_KEYS[i], p = v / hm.mn * 100; return `<div class="mrow${hm.mn < STAT_THIN ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, hm.mn < STAT_THIN)}<span class="mn">${f2(p)}%<span class="cir">${v}/${hm.mn}人</span></span></div>`; }).join('');
     body = `<p class="small" style="margin:10px 0 0"><b>集計：${doc.p}人／${doc.n}試合</b>（同じ試合は1回だけ数えます）　<span class="muted">最終更新 ${statMsTime(doc.t)}</span></p>
