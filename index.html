@@ -205,7 +205,7 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .cscroll{min-width:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
 .cscroll svg{display:block}
 .cgrid svg.chart{width:auto;height:auto;max-width:none}
-.segs{gap:4px}
+.segs{gap:4px}.trseg{flex-wrap:nowrap}.trseg .seg{flex:1 1 0;min-width:0;padding:4px 1px;font-size:.7rem;white-space:nowrap}.seg.trall{display:block;width:100%;margin-top:6px;padding:11px 10px;font-size:1rem;text-align:center}
 .seg{font:inherit;font-family:var(--f-ui);font-weight:700;font-size:.8rem;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
 .seg.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .gainbox{display:flex;flex-direction:column;gap:4px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--soft)}
@@ -1813,7 +1813,7 @@ function lineChart(pts, o) {
 }
 // 点が多い折れ線（左の目盛りは固定、グラフ部分は横にスライド。win個ぶんが1画面）
 function slideLine(pts, o) {
-  const H = o.h || 200, L = 46, R = 16, T = 18, B = pts.some(p => p.x2) ? 36 : 24, PADL = 8, n = pts.length, cw = chartWidth();
+  const H = o.h || 200, L = 46, R = 36, T = 18, B = pts.some(p => p.x2) ? 36 : 24, PADL = 28, n = pts.length, cw = chartWidth();
   const lo = o.min, hi = o.max, step0 = o.step, PV = Math.max(160, cw - L), step = (PV - R - PADL) / (o.win - 1), PT = Math.max(PV, PADL + step * (n - 1) + R);
   const Y = v => T + (hi - v) * (H - T - B) / (hi - lo), X = i => PADL + i * step;
   let ax = '', grid = '';
@@ -2133,7 +2133,7 @@ function renderStats() {
   if (real) h += medalHTML(base);
   if (!real) h += '</div>';
   el.innerHTML = h;
-  el.querySelectorAll('.cscroll').forEach(c => { c.scrollLeft = c.scrollWidth; c.addEventListener('scroll', () => hideTips(), { passive: true }); });
+  el.querySelectorAll('.cscroll').forEach(c => { c.scrollLeft = c.scrollWidth; requestAnimationFrame(() => { c.scrollLeft = c.scrollWidth; }); c.addEventListener('scroll', () => hideTips(), { passive: true }); });
 }
 
 // ヒーローを選んだときの項目（ステージ・モードの絞り込みは使わず、そのヒーローの全試合で計算）
@@ -2222,7 +2222,7 @@ function heroSections(ms, hk, nm, sn, el) {
         html: `<b>${a + 1}〜${a + part.length}試合目</b>${part.length < k ? `（${part.length}試合・途中）` : ''}<br>勝率<span class="pt2">${f2(x.rate)}%</span><br>95%の範囲 ${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%・${x.w}勝${x.l}敗` });
     }
     const all = el.dataset.trendAll === '1', slid = cps.length > 20;
-    const segs = `<div class="row segs" role="group" aria-label="まとめる試合数">${[10, 20, 50, 100].map(v => `<button class="seg${k === v ? ' on' : ''}" data-trendn="${v}">${v}試合ごと</button>`).join('')}${slid ? `<button class="seg${all ? ' on' : ''}" data-trendall="1" aria-pressed="${all}">全試合表示</button>` : ''}</div>`;
+    const segs = `<div class="row segs trseg" role="group" aria-label="まとめる試合数">${[10, 20, 50, 100].map(v => `<button class="seg${k === v ? ' on' : ''}" data-trendn="${v}">${v}試合ごと</button>`).join('')}</div>${slid ? `<button class="seg trall${all ? ' on' : ''}" data-trendall="1" aria-pressed="${all}">全試合表示 ${all ? 'ON' : 'OFF'}</button>` : ''}`;
     const body = cps.length ? lineChart(cps, { min: 0, max: 100, step: 25, mid: 50, fmt: v => v.toFixed(2) + '%', label: `${k}試合ごとの勝率の推移`, maxLabels: 6, h: 200, win: 20, all, note: '○を押すと、その区切りの勝率と範囲が出ます。' }) : '<div class="small muted">まだ試合がありません。</div>';
     h += pnl('全体勝率推移（試合数）', segs + body, `使った順に${k}試合ずつ区切った勝率です。使い込むほど勝てるようになっているか（慣れ）を見るのに向いています。${hm.length % k ? '最後の区切りは途中までの試合数です。' : ''}`);
   }
@@ -3558,7 +3558,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-01-F', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-01-H', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
