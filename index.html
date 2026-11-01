@@ -132,6 +132,8 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .bar i{position:absolute;left:0;top:4px;bottom:4px;border-radius:2px}
 .bar .ci{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--ink) 16%,transparent);border-radius:3px}
 .bar.nodash::after{display:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--soft);color:var(--ink);font:inherit;font-size:.85rem;cursor:pointer}.chip.on{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:700}
+.hpick{position:relative}.hpick-b,.hpick-i{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;box-sizing:border-box;text-align:left;font:inherit;color:var(--ink);background:var(--surface);cursor:pointer}.hpick-b{padding:8px 12px;border:1px solid var(--line);border-radius:10px;min-height:44px}.hpick-l{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;max-height:50vh;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.25)}.hpick-i{padding:6px 12px;border:0;border-bottom:1px solid var(--line);min-height:44px}.hpick-i.on{background:var(--soft);font-weight:700}
 .hvsel{font:inherit;font-weight:inherit;color:inherit;background:transparent;border:0;border-bottom:2px dashed var(--accent);border-radius:0;padding:0 .2em;margin-left:.15em;width:auto;cursor:pointer}
 .mrow .cir{display:block;font-size:.66rem;color:var(--muted);font-weight:400;text-align:right;white-space:nowrap}
 .stat .cir{display:block;font-size:.66rem;color:var(--muted);font-weight:400}
@@ -1205,6 +1207,8 @@ const HERO_ICON = {"オクトバリ・ニャル・タココ": "data:image/png;ba
 // 優先順：シルエット → リプレイのスクショから切り抜いた顔 → 頭文字
 const heroIco = name => { const u = HERO_ICON[name]; const f = !u && name ? (db.heroes.find(h => h.name === name) || {}).face : null; const d = dispName(name || '?');
   return `<span class="hico${f ? ' face' : ''}" aria-hidden="true">${u ? `<img src="${u}" alt="">` : f ? `<img src="${f}" alt="">` : `<b>${esc([...d][0] || '?')}</b>`}</span>`; };
+const hasIco = n => !!HERO_ICON[n] || !!(db.heroes.find(h => h.name === n) || {}).face;
+const statIco = (k, ex) => hasIco(k) ? `<span style="display:inline-flex;width:30px;height:30px;flex:0 0 30px;transform:scale(.83);transform-origin:left center;${ex || ''}">${heroIco(k)}</span>` : '';
 const dispName = n => DISPLAY_NAME[n] || n;
 // 実装順（古い順）。ヒーローは実装順、ステージは拓の指定、カードは恒常（F→Sランク）→コラボの古い順
 const HERO_ORDER = ["十文字 アタリ","ジャスティス ハンコック","リリカ","双挽 乃保","桜華 忠臣","ジャンヌ ダルク","マルコス’55","ルチアーノ","Voidoll","深川 まとい","ソル＝バッドガイ","ディズィー","グスタフ ハイドリヒ","ニコラ テスラ","初音 ミク","ヴィオレッタ ノワール","コクリコット ブランシュ","リュウ","春麗","マリア=S=レオンブルク","アダム=ユーリエフ","13 †サーティーン†","かけだし勇者","エミリア","レム","カイ＝キスク","メグメグ","鏡音 リン","鏡音 レン","イスタカ","ザック & レイチェル","輝龍院 きらら","モノクマ","ヴィーナス ポロロッチョ","アクア","めぐみん","ソーン=ユーリエフ","リヴァイ","デビルミント鬼龍 デルミン","トマス","猫宮 ひなた","岡部 倫太郎","零夜","セイバーオルタ","ギルガメッシュ","ルルカ","ピエール 77世","佐藤四郎兵衛忠信","アイズ・ヴァレンシュタイン","狐ヶ咲 甘色","ノクティス","HM-WA100 ニーズヘッグ","中島 敦","芥川 龍之介","ゲームバズーカガール","ライザリン・シュタウト","青春 アリス","ジョーカー","イグニス=ウィル=ウィスプ","アインズ・ウール・ゴウン","糸廻 輪廻","キリト","アスナ","Bugdoll","ステリア・ララ・シルワ","ラム","2B","ラヴィ・シュシュマルシュ","リムル=テンペスト","アル・ダハブ=アルカティア","御坂 美琴","アクセラレータ","天空王 ぶれいずどらごん","ベル・クラネル","ロキシー・ミグルディア","某 <なにがし>","ロックマン.EXE ＆ 光熱斗","クー・シー","デンジ","パワー","アミスター=バランディン","シノン","ターニャ・デグレチャフ","鬼ヶ式 うら","コラプス","ボンドルド","みりぽゆ","ゴン=フリークス","キルア=ゾルディック","チーちゃん","上条当麻","ーペルリニエ","シャドウ","ポプ子＆ピピ美","メルーニャ・ランチェルナ","セイバー","アーチャー","ランサー","†ファースト†","レゼ","シャルル・リヒター","一姫","エドワード・エルリック","オクトバリ・ニャル・タココ"];
@@ -3526,7 +3530,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-10-31-AG', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-01-B', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4412,7 +4416,7 @@ async function statDocLoad() {
 }
 function statData(doc, band) {
   let o = {}; try { o = JSON.parse(doc.d) || {}; } catch (e) {}
-  const bands = band === 'all' ? Object.keys(o.h || {}).concat(Object.keys(o.g || {})) : [String(band)];
+  const bands = band === 'all' ? Object.keys(o.h || {}).concat(Object.keys(o.g || {})) : String(band).split(',');
   const H = new Map(), G = new Map(), GH = new Map(), ct = o.c || [];
   for (const b of new Set(bands)) {
     for (const [n, a] of Object.entries((o.h || {})[b] || {})) {
@@ -4445,7 +4449,7 @@ function statRender() {
   const fl = (label, idv, opts) => `<label class="fl"><span class="label">${label}</span><select id="${idv}">${opts}</select></label>`;
   const filters = `<div style="display:grid;gap:8px;margin-top:10px">${
     fl('シーズン', 'st-season', s.ids.map(i => opt(i, statSeasonLabel(i, names.get(i)), s.season)).join(''))}${
-    fl('ランク', 'st-band', opt('all', '全ランク', s.band) + STAT_BANDS.map((b, i) => opt(i, b, s.band)).join(''))}${
+    `<div class="fl"><span class="label">ランク（複数選べます）</span><div class="chips">${[['all', '全ランク']].concat(STAT_BANDS.map((b, i) => [String(i), b])).map(([v, t]) => `<button type="button" class="chip${(v === 'all' ? s.band === 'all' : s.band !== 'all' && s.band.split(',').includes(v)) ? ' on' : ''}" data-act="st-band" data-b="${v}">${esc(t)}</button>`).join('')}</div></div>`}${
     (s.season !== 'out' ? fl('対戦モード', 'st-mode" disabled title="シーズンはバトルアリーナだけです', opt(s.mode, ARENA, s.mode)) : fl('対戦モード', 'st-mode', s.modes.map(i => opt(i, i === 'a' ? '全対戦モード' : MODES[+i], s.mode)).join('')))}</div>`;
   let body = '';
   if (!doc) body = `<p class="small muted" style="margin:10px 0 0">読み込んでいます…</p>`;
@@ -4458,14 +4462,15 @@ function statRender() {
     const lim = k => statS.more[k] || 10;
     const hv = s.el.dataset.hv === 'use' ? 'use' : 'wr';
     const useMax = D.H.reduce((a, e) => Math.max(a, e.n), 0) || 1;
-    const hrUse = [...D.H].sort((a, b) => b.n - a.n || (b.w / b.n - a.w / a.n)).slice(0, lim('h')).map((e, i) => `<div class="stat" style="margin:9px 0"><span class="nm" style="display:flex;align-items:center;gap:6px"><span style="flex:0 0 1.2em;text-align:right;font-weight:700;color:var(--muted)">${i + 1}</span><span style="display:inline-flex;width:30px;height:30px;flex:0 0 30px;transform:scale(.83);transform-origin:left center">${heroIco(e.k)}</span><span style="margin-left:-4px;display:flex;flex-direction:column;line-height:1.3;min-width:0"><span>${esc(dispName(e.k))}</span><span class="small muted" style="font-size:.78rem">勝率${e.n ? f2(e.w / e.n * 100) : '−'}%</span></span></span><span class="bar nodash" role="img" aria-label="使用率${f2(slots ? e.n / slots * 100 : 0)}%"><i style="width:${e.n / useMax * 100}%;background:var(--accent)"></i></span><span class="num">${f2(slots ? e.n / slots * 100 : 0)}%<span class="cir">${e.n}/${slots}回</span></span></div>`).join('');
-    const hr = byWr(D.H).slice(0, lim('h')).map(e => nmRow(e.k, e.n, e.w, `<span style="display:inline-flex;width:30px;height:30px;flex:0 0 30px;transform:scale(.83);transform-origin:left center">${heroIco(e.k)}</span><span style="margin-left:-4px;display:flex;flex-direction:column;line-height:1.3;min-width:0"><span>${esc(dispName(e.k))}</span><span class="small muted" style="font-size:.78rem">使用率${f2(slots ? e.n / slots * 100 : 0)}%</span></span>`, e.n < STAT_THIN)).join('');
+    const hrUse = [...D.H].sort((a, b) => b.n - a.n || (b.w / b.n - a.w / a.n)).slice(0, lim('h')).map((e, i) => `<div class="stat" style="margin:9px 0"><span class="nm" style="display:flex;align-items:center;gap:6px"><span style="flex:0 0 1.2em;text-align:right;font-weight:700;color:var(--muted)">${i + 1}</span>${statIco(e.k)}<span style="margin-left:-4px;display:flex;flex-direction:column;line-height:1.3;min-width:0"><span>${esc(dispName(e.k))}</span><span class="small muted" style="font-size:.78rem">勝率${e.n ? f2(e.w / e.n * 100) : '−'}%</span></span></span><span class="bar nodash" role="img" aria-label="使用率${f2(slots ? e.n / slots * 100 : 0)}%"><i style="width:${e.n / useMax * 100}%;background:var(--accent)"></i></span><span class="num">${f2(slots ? e.n / slots * 100 : 0)}%<span class="cir">${e.n}/${slots}回</span></span></div>`).join('');
+    const hr = byWr(D.H).slice(0, lim('h')).map(e => nmRow(e.k, e.n, e.w, `${statIco(e.k)}<span style="margin-left:-4px;display:flex;flex-direction:column;line-height:1.3;min-width:0"><span>${esc(dispName(e.k))}</span><span class="small muted" style="font-size:.78rem">使用率${f2(slots ? e.n / slots * 100 : 0)}%</span></span>`, e.n < STAT_THIN)).join('');
     const byIx = l => l.slice().sort((x, y) => heroOrd(x.k) - heroOrd(y.k));
     const hgList = byIx(D.H.filter(e => D.GH.has(e.k))), hg = hgList.find(e => e.k === s.el.dataset.hg) ? s.el.dataset.hg : '';
     const GL = hg ? D.GH.get(hg) : D.G;
     const gr = byWr(GL).slice(0, lim('g')).map(e => nmRow(e.k, e.n, e.w, esc(e.k), e.n < STAT_THIN)).join('');
     const withC = byIx(D.H.filter(e => e.cn > 0)), withM = byIx(D.H.filter(e => e.mn > 0));
-    const hsel = (idv, list, cur, fld) => `<label class="fl"><span class="label">ヒーロー</span><select id="${idv}">${list.map(e => opt(e.k, `${dispName(e.k)}（${e[fld]}人）`, cur)).join('')}</select></label>`;
+    const hpick = (idv, items, cur) => { const c = items.find(x => x.k === cur) || items[0] || { t: '' }; const row = x => `<span style="display:inline-flex;align-items:center;gap:8px;min-width:0">${x.k ? statIco(x.k, 'margin-right:-4px') : ''}<span>${esc(x.t)}</span></span>`; return `<div class="fl"><span class="label">ヒーロー</span><div class="hpick"><button type="button" class="hpick-b" data-act="hp-toggle">${row(c)}<span aria-hidden="true">▾</span></button><div class="hpick-l" hidden>${items.map(x => `<button type="button" class="hpick-i${x.k === (c.k) ? ' on' : ''}" data-act="hp-pick" data-id="${idv}" data-v="${esc(x.k)}">${row(x)}</button>`).join('')}</div></div></div>`; };
+    const hsel = (idv, list, cur, fld) => hpick(idv, list.map(e => ({ k: e.k, t: `${dispName(e.k)}（${e[fld]}人）` })), cur);
     const hc = withC.find(e => e.k === s.el.dataset.hc) || withC[0], hm = withM.find(e => e.k === s.el.dataset.hm) || withM[0];
     const bar = (p, thin) => `<div class="mbar${thin ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
     const cardRows = hc ? [...hc.cards].sort((a, b) => b[1] - a[1]) : [];
@@ -4477,7 +4482,7 @@ function statRender() {
     <div class="section"><div class="panel"><h2>ヒーローの<select id="st-hv" class="hvsel" aria-label="表示する内容"><option value="use"${hv === 'use' ? ' selected' : ''}>使用率</option><option value="wr"${hv === 'wr' ? ' selected' : ''}>勝率</option></select></h2><p class="small muted" style="margin:0 0 6px">${hv === 'use' ? '使われた回数の多い順です。棒は1位を100%とした長さで、右の数字は「そのヒーローを使った回数／ヒーロー全体の回数」です。' : '勝率の高い順です。使用率は、ヒーロー全体のうち使われた割合です。棒の薄い帯と下の数字は、勝率の95%信頼区間（ウィルソン）です。'}</p>${(hv === 'use' ? hrUse : hr) || '<p class="small muted">この条件のデータはありません。</p>'}${more('h', D.H.length, lim('h'))}</div></div>
     <div class="section"><div class="panel"><h2>カードの使用率</h2>${hc ? `${hsel('st-hc', withC, hc.k, 'cn')}<p class="small muted" style="margin:8px 0 4px">「${esc(dispName(hc.k))}」を使っていた${hc.cn}人のうち、そのカードを入れていた人の割合です。${hc.cn < STAT_THIN ? `<b>まだ${hc.cn}人なので参考程度です。</b>` : ''}</p><div class="mlist">${cr}</div>${more('c', cardRows.length, lim('c'))}` : '<p class="small muted" style="margin:0">この条件では、カードの記録がありません。</p>'}</div></div>
     <div class="section"><div class="panel"><h2>メダルの使用率</h2>${hm ? `${hsel('st-hm', withM, hm.k, 'mn')}<p class="small muted" style="margin:8px 0 4px">同じ絵柄は、何個付けていても1つと数えます。${hm.mn < STAT_THIN ? `<b>まだ${hm.mn}人なので参考程度です。</b>` : ''}</p><div class="mlist">${mr}</div>${more('m', medRows.length, lim('m'))}` : '<p class="small muted" style="margin:0">この条件では、メダルの記録がありません。</p>'}</div></div>
-    <div class="section"><div class="panel"><h2>ステージの勝率</h2><label class="fl"><span class="label">ヒーロー</span><select id="st-hg">${opt('', '全ヒーロー', hg)}${hgList.map(e => opt(e.k, dispName(e.k), hg)).join('')}</select></label><p class="small muted" style="margin:8px 0 6px">${hg ? `「${esc(dispName(hg))}」を使っていた人（味方・敵を含む全員）の、ステージごとの勝率です。` : '提供した人自身の、ステージごとの勝率です。'}</p>${gr || '<p class="small muted">この条件のデータはありません。</p>'}${more('g', GL.length, lim('g'))}`;
+    <div class="section"><div class="panel"><h2>ステージの勝率</h2>${hpick('st-hg', [{ k: '', t: '全ヒーロー' }].concat(hgList.map(e => ({ k: e.k, t: dispName(e.k) }))), hg)}<p class="small muted" style="margin:8px 0 6px">${hg ? `「${esc(dispName(hg))}」を使っていた人（味方・敵を含む全員）の、ステージごとの勝率です。` : '提供した人自身の、ステージごとの勝率です。'}</p>${gr || '<p class="small muted">この条件のデータはありません。</p>'}${more('g', GL.length, lim('g'))}`;
   }
   el.innerHTML = head + `<div class="section"><div class="panel">${filters}${body}</div></div>` + pubBox + admin;
   if (keep) { const k = document.getElementById(keep); if (k && k.focus) try { k.focus(); } catch (e) {} }
@@ -4494,6 +4499,7 @@ function statAdminHTML() {
     <div class="row"><button class="btn" data-act="stat-seasons"${statS.run ? ' disabled' : ''}>保存して集計し直す</button></div></div></div>`;
 }
 document.addEventListener('click', e => {
+  if (!(e.target.closest && e.target.closest('.hpick'))) document.querySelectorAll('.hpick-l').forEach(x => { x.hidden = true; });
   const t = e.target.closest && e.target.closest('[data-act]'); if (!t) return; const a = t.dataset.act;
   if (a === 'pub-ask') { pubS.ask = true; pubRender(); }
   else if (a === 'pub-no') { pubS.ask = false; pubRender(); }
@@ -4502,6 +4508,14 @@ document.addEventListener('click', e => {
   else if (a === 'stat-run') statRun(true);
   else if (a === 'uid-copy') { const v = syncS.user ? syncS.user.uid : '', m = document.getElementById('uid-msg'); if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(() => { if (m) m.textContent = 'コピーしました'; }, () => { if (m) m.textContent = '長押しで選んでコピーしてください'; }); }
   else if (a === 'stat-seasons') statSaveSeasons();
+  else if (a === 'st-band') {
+    const el = document.getElementById('view-stat'), cur = (el.dataset.band || 'all'), b = t.dataset.b;
+    let set = cur === 'all' ? [] : cur.split(',');
+    if (b === 'all') set = []; else set = set.includes(b) ? set.filter(x => x !== b) : set.concat(b);
+    el.dataset.band = set.length ? set.sort((x, y) => x - y).join(',') : 'all'; statS.more = {}; statRender();
+  }
+  else if (a === 'hp-toggle') { const l = t.parentNode.querySelector('.hpick-l'); const open = l.hidden; document.querySelectorAll('.hpick-l').forEach(x => { x.hidden = true; }); l.hidden = !open; if (open) { const on = l.querySelector('.on'); if (on) l.scrollTop = Math.max(0, on.offsetTop - 40); } }
+  else if (a === 'hp-pick') { const m = { 'st-hc': 'hc', 'st-hm': 'hm', 'st-hg': 'hg' }, el = document.getElementById('view-stat'); el.dataset[m[t.dataset.id]] = t.dataset.v; statS.more = {}; statRender(); }
   else if (a === 'stat-less') { delete statS.more[t.dataset.k]; statRender(); }
   else if (a === 'stat-more') { statS.more[t.dataset.k] = (statS.more[t.dataset.k] || 10) + 20; statRender(); }
 });
