@@ -2448,7 +2448,8 @@ async function seasonShareCanvas(se) {
   const rr = (px, py, w, h, r) => { x.beginPath(); x.moveTo(px + r, py); x.arcTo(px + w, py, px + w, py + h, r); x.arcTo(px + w, py + h, px, py + h, r); x.arcTo(px, py + h, px, py, r); x.arcTo(px, py, px + w, py, r); x.closePath(); };
   // 見出し
   txt('#コンパス シーズン総括', 48, 62, `700 22px ${JP}`, C.acc);
-  txt('【戦績摂理◆解析システム】', W - 40, 62, `700 20px ${JP}`, C.muted, 'right');
+  const prem = !!(skinNow() && SKINS[skinNow()]);
+  txt('【戦績摂理◆解析システム】', W - (prem ? 215 : 40), 62, `700 20px ${JP}`, C.muted, 'right');
   const title = se.name || 'シーズン';
   txt(title, 48, 124, fit(title, 760, 54, 900, JP), C.ink);
   txt(`${d.period}（${d.state}）`, 48, 162, `700 22px ${JP}`, C.muted);
@@ -2521,6 +2522,12 @@ async function seasonShareCanvas(se) {
   x.fillStyle = C.bd; x.fillRect(0, H - 62, W, 62);
   txt(SITE_URL, 48, H - 24, `700 20px ${NUM}`, C.muted);
   txt('非公式ファンツール', W - 40, H - 24, `700 18px ${JP}`, C.muted, 'right');
+  // Premium（色を変えている時）：右上の斜めの帯
+  if (prem) {
+    x.save(); x.beginPath(); x.moveTo(W - 250, 0); x.lineTo(W - 165, 0); x.lineTo(W, 165); x.lineTo(W, 250); x.closePath(); x.fillStyle = C.acc; x.fill();
+    x.translate(W - 103.5, 103.5); x.rotate(Math.PI / 4); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = C.ai; x.font = `900 28px "Archivo",${JP}`;
+    if ('letterSpacing' in x) x.letterSpacing = '3px'; x.fillText('Premium', 0, 2); x.restore();
+  }
   return { c, d };
 }
 let shareImg = null;
@@ -3357,6 +3364,7 @@ document.addEventListener('click', e => {
   else if (t.dataset.ask !== undefined && !t.dataset.del) { $('#view-hist').dataset.ask = t.dataset.ask; renderHist(); }
   else if (t.dataset.del) { db.matches = db.matches.filter(m => m.id !== t.dataset.del); $('#view-hist').dataset.ask = ''; persist(); renderAll(); }
   else if (act === 'skin') { skinSet(t.dataset.skin); syncRender(); }
+  else if (act === 'fxv') { fxvSet(t.dataset.v); syncRender(); }
   else if (act === 'copy') {
     const ta = $('#backup-out'), str = JSON.stringify(db), big = str.length > 300000;
     // 大きいときは欄に入れない（描画で固まるため）。クリップボードへ直接送る
@@ -3563,7 +3571,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-01-K', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-01-M', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4010,7 +4018,7 @@ function syncLoad() {
   syncLoading = (async () => {
     try { FBA = window.__FB_MOCK || await fbReal(); }
     catch (e) { syncLoading = null; throw e; }
-    FBA.onUser(u => { togStop(); viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = u; if (!isAdmin() && skinGet()) skinSet(''); syncS.links = []; syncS.fmsg = ''; syncS.delAsk = ''; if (!u) { syncS.status = 'out'; pubS.on = false; pubS.loaded = false; pubS.ask = false; pubS.msg = ''; pubRender(); syncRender(''); return; } syncRun(); pubLoad(); });
+    FBA.onUser(u => { togStop(); viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = u; if (!isAdmin()) { if (skinGet()) skinSet(''); if (fxvGet() !== 'diamond') fxvSet(''); } syncS.links = []; syncS.fmsg = ''; syncS.delAsk = ''; if (!u) { syncS.status = 'out'; pubS.on = false; pubS.loaded = false; pubS.ask = false; pubS.msg = ''; pubRender(); syncRender(''); return; } syncRun(); pubLoad(); });
   })();
   return syncLoading;
 }
@@ -4229,11 +4237,17 @@ const SKIN_KEY = 'senseki-skin';
 const skinGet = () => { try { return localStorage.getItem(SKIN_KEY) || ''; } catch (e) { return ''; } };
 const skinNow = () => document.documentElement.dataset.skin || '';
 function skinApply(k) { if (k && SKINS[k] && k !== 'base') document.documentElement.dataset.skin = k; else delete document.documentElement.dataset.skin; }
-function skinSet(k) { try { if (k && k !== 'base') localStorage.setItem(SKIN_KEY, k); else localStorage.removeItem(SKIN_KEY); } catch (e) {} skinApply(k); }
+function skinSet(k) { try { if (k && k !== 'base') localStorage.setItem(SKIN_KEY, k); else localStorage.removeItem(SKIN_KEY); } catch (e) {} skinApply(k); if (window.__fxRefresh) window.__fxRefresh(); }
 skinApply(skinGet());
+const FXV = { diamond: '◆（いつもの）', petal: '花びら', spark: '光の粒', meteor: '流れ星' };
+const FXV_KEY = 'senseki-fxv';
+const fxvGet = () => { try { const v = localStorage.getItem(FXV_KEY) || ''; return FXV[v] ? v : 'diamond'; } catch (e) { return 'diamond'; } };
+function fxvSet(v) { try { if (v && v !== 'diamond') localStorage.setItem(FXV_KEY, v); else localStorage.removeItem(FXV_KEY); } catch (e) {} if (window.__fxRefresh) window.__fxRefresh(); }
 // いまは管理者（開発者）だけが選べる。管理者でなくなったら元に戻す
 const skinHTML = () => !isAdmin() ? '' : `<h2>色・背景（開発者用）</h2><p class="small muted" style="margin:0">この端末の見た目だけが変わります。シーズン総括の画像にも反映されます。</p>
-  <div class="row segs" style="margin-top:8px;flex-wrap:wrap">${Object.keys(SKINS).map(k => `<button class="seg${(skinNow() || 'base') === k ? ' on' : ''}" data-act="skin" data-skin="${k}">${SKINS[k].n}</button>`).join('')}</div>`;
+  <div class="row segs" style="margin-top:8px;flex-wrap:wrap">${Object.keys(SKINS).map(k => `<button class="seg${(skinNow() || 'base') === k ? ' on' : ''}" data-act="skin" data-skin="${k}">${SKINS[k].n}</button>`).join('')}</div>
+  <p class="small muted" style="margin:10px 0 0">動く背景の種類（「◆ 動く背景」がONの時に出ます）</p>
+  <div class="row segs" style="margin-top:6px;flex-wrap:wrap">${Object.keys(FXV).map(k => `<button class="seg${fxvGet() === k ? ' on' : ''}" data-act="fxv" data-v="${k}">${FXV[k]}</button>`).join('')}</div>`;
 const ADMIN_UIDS = ['OHVoIZI3n7cioMO8ZvsU89Kr7qv1'];
 const STAT_THIN = 30, STAT_HOURS = 12, STAT_WAIT = 5 * 60000, PUB_PART = 800;
 const STAT_BANDS = ['A以下', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9'];
@@ -4662,6 +4676,58 @@ storeInit().then(() => {
   let on = false, cv = null, cx = null, W = 0, H = 0, raf = 0, last = 0, t0 = 0;
   try { const v = localStorage.getItem(KEY); on = v === null ? !reduce : v === '1'; } catch (e) { on = !reduce; }
   function size() { if (!cv) return; const d = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; cv.width = W * d; cv.height = H * d; cx.setTransform(d, 0, 0, d, 0, 0); }
+  let V = 'diamond', ACC = '#ff8a3d';
+  const DRAW = {
+    // 薄い◆が下から浮かぶ（いつもの）
+    diamond(t) {
+      const u = t / LOOP * 1.5;
+      for (const i of ORD) {
+        const sz = 18 + rnd(i) * 54, sp = 1 + Math.round(rnd(i + 9) * 2), px = rnd(i + 3) * W, ph2 = rnd(i + 5);
+        const y = (1 - ((u * sp + ph2) % 1)) * (H + 2 * sz) - sz, sx = px + Math.sin((u * sp + ph2) * TAU) * 14 * (sz / 50);
+        cx.save(); cx.translate(sx, y); cx.rotate(Math.sin((u * sp + ph2) * TAU) * 0.35);
+        // 重なっても濃くならないように、先に下の◆をこの形で消してから描く
+        cx.globalCompositeOperation = 'destination-out'; cx.globalAlpha = 1; cx.drawImage(logo, -sz / 2, -sz / 2, sz, sz);
+        cx.globalCompositeOperation = 'source-over'; cx.globalAlpha = 0.14 + 0.22 * (sz / 72); cx.drawImage(logo, -sz / 2, -sz / 2, sz, sz); cx.restore();
+      }
+    },
+    // 花びらが上からひらひら落ちる
+    petal(t) {
+      cx.fillStyle = ACC;
+      for (let i = 0; i < 26; i++) {
+        const sz = 9 + rnd(i) * 11, sp = 0.5 + rnd(i + 9) * 0.7, px = rnd(i + 3) * W, ph2 = rnd(i + 5), k = (t / 12 * sp + ph2) % 1;
+        const y = k * (H + 2 * sz) - sz, sx = px + Math.sin(k * TAU * 2 + i) * 34;
+        cx.save(); cx.translate(sx, y); cx.rotate(k * TAU * 1.6 + i); cx.scale(1, 0.55 + 0.45 * Math.cos(k * TAU * 3 + i)); cx.globalAlpha = 0.2 + 0.25 * rnd(i + 1);
+        cx.beginPath(); cx.moveTo(0, -sz); cx.bezierCurveTo(sz * 0.8, -sz * 0.5, sz * 0.6, sz * 0.6, 0, sz * 0.9); cx.bezierCurveTo(-sz * 0.6, sz * 0.6, -sz * 0.8, -sz * 0.5, 0, -sz); cx.fill(); cx.restore();
+      }
+    },
+    // 光の粒がゆっくり上る（またたく）
+    spark(t) {
+      cx.fillStyle = ACC;
+      for (let i = 0; i < 40; i++) {
+        const r = 1.4 + rnd(i) * 3, sp = 0.4 + rnd(i + 9) * 0.8, px = rnd(i + 3) * W, ph2 = rnd(i + 5), k = (t / 14 * sp + ph2) % 1;
+        const y = (1 - k) * (H + 20) - 10, sx = px + Math.sin(k * TAU + i) * 12, tw = 0.5 + 0.5 * Math.sin(t * (1 + rnd(i + 2) * 2) + i * 3);
+        cx.globalAlpha = 0.07 + 0.1 * tw; cx.beginPath(); cx.arc(sx, y, r * 3.2, 0, TAU); cx.fill();
+        cx.globalAlpha = 0.25 + 0.4 * tw; cx.beginPath(); cx.arc(sx, y, r, 0, TAU); cx.fill();
+      }
+      cx.globalAlpha = 1;
+    },
+    // 斜めに流れ星が走る
+    meteor(t) {
+      cx.strokeStyle = ACC; cx.lineCap = 'round';
+      for (let i = 0; i < 7; i++) {
+        const dur = 4 + rnd(i) * 4, k = (t / dur + rnd(i + 5)) % 1; if (k > 0.55) continue; const p = k / 0.55;
+        const x0 = W * (0.25 + rnd(i + 3) * 0.9) - p * W * 0.55, y0 = -40 + p * (H * 0.75), len = 90 + rnd(i + 8) * 90, dx = 0.55, dy = 1, n = Math.hypot(dx, dy);
+        for (let s0 = 0; s0 < 9; s0++) {
+          const a = s0 / 9, b = (s0 + 1) / 9;
+          cx.globalAlpha = (1 - a) * 0.4 * Math.sin(Math.PI * Math.min(1, p * 1.2)); cx.lineWidth = 3 - 2 * a;
+          cx.beginPath(); cx.moveTo(x0 + dx / n * len * a, y0 - dy / n * len * a); cx.lineTo(x0 + dx / n * len * b, y0 - dy / n * len * b); cx.stroke();
+        }
+      }
+      cx.globalAlpha = 1;
+    }
+  };
+  function pick() { V = fxvGet(); try { ACC = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || ACC; } catch (e) {} }
+  window.__fxRefresh = () => { pick(); };
   function frame(now) {
     raf = requestAnimationFrame(frame);
     if (now - last < 33) return; last = now;
@@ -4670,20 +4736,12 @@ storeInit().then(() => {
     const ph = (t / 3) % 1, e = ph < 0.35 ? 0.5 - 0.5 * Math.cos(Math.PI * ph / 0.35) : 0, g = 0.5 + 0.5 * Math.sin(t / 3 * TAU);
     logo.style.transform = e ? 'perspective(300px) rotateY(' + (e * 360) + 'deg)' : '';
     logo.style.filter = 'drop-shadow(0 0 ' + (6 + 10 * g) + 'px rgba(240,100,12,' + (0.25 + 0.35 * g) + '))';
-    // 背景：薄い◆が下から浮かぶ
-    cx.clearRect(0, 0, W, H); const u = t / LOOP * 1.5;
-    for (const i of ORD) {
-      const sz = 18 + rnd(i) * 54, sp = 1 + Math.round(rnd(i + 9) * 2), px = rnd(i + 3) * W, ph2 = rnd(i + 5);
-      const y = (1 - ((u * sp + ph2) % 1)) * (H + 2 * sz) - sz, sx = px + Math.sin((u * sp + ph2) * TAU) * 14 * (sz / 50);
-      cx.save(); cx.translate(sx, y); cx.rotate(Math.sin((u * sp + ph2) * TAU) * 0.35);
-      // 重なっても濃くならないように、先に下の◆をこの形で消してから描く
-      cx.globalCompositeOperation = 'destination-out'; cx.globalAlpha = 1; cx.drawImage(logo, -sz / 2, -sz / 2, sz, sz);
-      cx.globalCompositeOperation = 'source-over'; cx.globalAlpha = 0.14 + 0.22 * (sz / 72); cx.drawImage(logo, -sz / 2, -sz / 2, sz, sz); cx.restore();
-    }
+    // 背景
+    cx.clearRect(0, 0, W, H); (DRAW[V] || DRAW.diamond)(t);
   }
   function start() {
     if (!cv) { cv = document.createElement('canvas'); cv.setAttribute('aria-hidden', 'true'); cv.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:-1;pointer-events:none'; document.body.appendChild(cv); cx = cv.getContext('2d'); }
-    size(); t0 = performance.now(); last = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
+    pick(); size(); t0 = performance.now(); last = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
   }
   function stop() { cancelAnimationFrame(raf); raf = 0; if (cv) { cv.remove(); cv = null; cx = null; } logo.style.transform = ''; logo.style.filter = ''; }
   function apply() { btn.setAttribute('aria-pressed', on ? 'true' : 'false'); btn.textContent = '◆ 動く背景：' + (on ? 'ON' : 'OFF'); if (on && !document.hidden) start(); else stop(); }
