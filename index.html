@@ -1777,6 +1777,7 @@ const fmtPt = v => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v);
 function niceStep(span) { const r = Math.max(span, 1) / 4, p = Math.pow(10, Math.floor(Math.log10(r))), f = r / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
 // 折れ線。pts=[{v, x1, x2, top}]（x1/x2は下の2行のラベル、topは点の上の数字）
 function lineChart(pts, o) {
+  if (o.win && pts.length > o.win && !o.all) return slideLine(pts, o);
   const W = 340, H = o.h || 190, L = o.L || 38, R = 14, T = 18, B = pts.some(p => p.x2) ? 36 : 24;
   let lo = o.min, hi = o.max;
   if (o.minor && (lo == null || hi == null)) {
@@ -1809,6 +1810,25 @@ function lineChart(pts, o) {
   const tops = pts.map((p, i) => p.top && (pts.length <= 12 || i === pts.length - 1) ? `<text class="vl" x="${X(i)}" y="${Y(p.v) - 8}" text-anchor="${pts.length > 1 && i === pts.length - 1 ? 'end' : 'middle'}">${esc(p.top)}</text>` : '').join('');
   const svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label || 'グラフ')}">${g}<path class="ln" d="${path}"/>${tops}${xl}${dots}</svg>`;
   return tap ? `<div class="chartwrap">${svg}<div class="ctip" hidden></div><p class="small muted" style="margin:4px 0 0">${o.note || '○を押すと、その試合の結果が出ます。'}</p></div>` : svg;
+}
+// 点が多い折れ線（左の目盛りは固定、グラフ部分は横にスライド。win個ぶんが1画面）
+function slideLine(pts, o) {
+  const H = o.h || 200, L = 46, R = 16, T = 18, B = pts.some(p => p.x2) ? 36 : 24, PADL = 8, n = pts.length, cw = chartWidth();
+  const lo = o.min, hi = o.max, step0 = o.step, PV = Math.max(160, cw - L), step = (PV - R - PADL) / (o.win - 1), PT = Math.max(PV, PADL + step * (n - 1) + R);
+  const Y = v => T + (hi - v) * (H - T - B) / (hi - lo), X = i => PADL + i * step;
+  let ax = '', grid = '';
+  for (let v = lo; v <= hi + 1e-9; v += step0) { grid += `<line class="grid" x1="0" x2="${PT}" y1="${Y(v)}" y2="${Y(v)}"/>`; ax += `<text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${o.fmt ? o.fmt(v) : v}</text>`; }
+  if (o.mid != null) grid += `<line class="mid" x1="0" x2="${PT}" y1="${Y(o.mid)}" y2="${Y(o.mid)}"/>`;
+  const every = Math.max(1, Math.ceil(64 / step));
+  const xl = pts.map((p, i) => (i % every === 0 && n - 1 - i >= every * 0.6) || i === n - 1 ? `<text x="${X(i)}" y="${H - B + 14}" text-anchor="middle">${esc(p.x1 || '')}</text>${p.x2 ? `<text x="${X(i)}" y="${H - B + 27}" text-anchor="middle">${esc(p.x2)}</text>` : ''}` : '').join('');
+  const path = pts.map((p, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join('');
+  const hitR = Math.max(5, Math.min(11, step / 2));
+  const dots = pts.map((p, i) => `<circle class="pt" cx="${X(i)}" cy="${Y(p.v)}" r="3.2"/>${p.html ? `<circle class="hit" cx="${X(i)}" cy="${Y(p.v)}" r="${hitR}" data-tip="${esc(p.html)}" tabindex="0" role="button" aria-label="${esc(p.tip || '')}"/>` : ''}`).join('');
+  const top = pts[n - 1].top ? `<text class="vl" x="${X(n - 1)}" y="${Y(pts[n - 1].v) - 8}" text-anchor="end">${esc(pts[n - 1].top)}</text>` : '';
+  return `<div class="chartwrap"><div class="cgrid" style="grid-template-columns:${L}px minmax(0,1fr)">
+      <svg class="chart" width="${L}" height="${H}" aria-hidden="true">${ax}</svg>
+      <div class="cscroll"><svg class="chart" width="${PT}" height="${H}" role="img" aria-label="${esc(o.label || 'グラフ')}">${grid}<path class="ln" d="${path}"/>${top}${xl}${dots}</svg></div></div>
+    <div class="ctip" hidden></div><p class="small muted" style="margin:4px 0 0">横にスライドすると前の区切りも見られます。${o.note || ''}</p></div>`;
 }
 // 毎月25日で区切った期間（25日〜翌月24日）
 function periodOf(at) { const d = new Date(at); let y = d.getFullYear(), m = d.getMonth(); if (d.getDate() < 25) { m--; if (m < 0) { m = 11; y--; } } return { key: y * 12 + m, y, m }; }
@@ -2113,6 +2133,7 @@ function renderStats() {
   if (real) h += medalHTML(base);
   if (!real) h += '</div>';
   el.innerHTML = h;
+  el.querySelectorAll('.cscroll').forEach(c => { c.scrollLeft = c.scrollWidth; c.addEventListener('scroll', () => hideTips(), { passive: true }); });
 }
 
 // ヒーローを選んだときの項目（ステージ・モードの絞り込みは使わず、そのヒーローの全試合で計算）
@@ -2200,8 +2221,9 @@ function heroSections(ms, hk, nm, sn, el) {
       cps.push({ v: x.rate, x1: `${a + 1}-${a + part.length}`, x2: part.length < k ? `${part.length}試合` : '', top: f2(x.rate) + '%', tip: `${a + 1}〜${a + part.length}試合目 勝率${f2(x.rate)}%`,
         html: `<b>${a + 1}〜${a + part.length}試合目</b>${part.length < k ? `（${part.length}試合・途中）` : ''}<br>勝率<span class="pt2">${f2(x.rate)}%</span><br>95%の範囲 ${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%・${x.w}勝${x.l}敗` });
     }
-    const segs = `<div class="row segs" role="group" aria-label="まとめる試合数">${[10, 20, 50].map(v => `<button class="seg${k === v ? ' on' : ''}" data-trendn="${v}">${v}試合ごと</button>`).join('')}</div>`;
-    const body = cps.length ? lineChart(cps, { min: 0, max: 100, step: 25, mid: 50, fmt: v => v.toFixed(2) + '%', label: `${k}試合ごとの勝率の推移`, maxLabels: 6, h: 200, note: '○を押すと、その区切りの勝率と範囲が出ます。' }) : '<div class="small muted">まだ試合がありません。</div>';
+    const all = el.dataset.trendAll === '1', slid = cps.length > 20;
+    const segs = `<div class="row segs" role="group" aria-label="まとめる試合数">${[10, 20, 50, 100].map(v => `<button class="seg${k === v ? ' on' : ''}" data-trendn="${v}">${v}試合ごと</button>`).join('')}${slid ? `<button class="seg${all ? ' on' : ''}" data-trendall="1" aria-pressed="${all}">全試合表示</button>` : ''}</div>`;
+    const body = cps.length ? lineChart(cps, { min: 0, max: 100, step: 25, mid: 50, fmt: v => v.toFixed(2) + '%', label: `${k}試合ごとの勝率の推移`, maxLabels: 6, h: 200, win: 20, all, note: '○を押すと、その区切りの勝率と範囲が出ます。' }) : '<div class="small muted">まだ試合がありません。</div>';
     h += pnl('全体勝率推移（試合数）', segs + body, `使った順に${k}試合ずつ区切った勝率です。使い込むほど勝てるようになっているか（慣れ）を見るのに向いています。${hm.length % k ? '最後の区切りは途中までの試合数です。' : ''}`);
   }
   // 5. ステージ勝率
@@ -3236,7 +3258,7 @@ document.addEventListener('click', e => {
   tip.style.left = x + 'px'; tip.style.top = cy + 'px'; tip.style.setProperty('--ax', (half + cx - x) + 'px');
 }, true);
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-act],[data-own],[data-ask],[data-del],[data-pick],[data-ptsign],[data-mptsign],[data-copy],[data-dup],[data-fillno],[data-unseason],[data-reseason],[data-outmode],[data-drill],[data-pickopen],[data-pickstage],[data-pickhero],[data-season-toggle],[data-swin],[data-schunk],[data-srange-reset],[data-trendn]');
+  const t = e.target.closest('[data-act],[data-own],[data-ask],[data-del],[data-pick],[data-ptsign],[data-mptsign],[data-copy],[data-dup],[data-fillno],[data-unseason],[data-reseason],[data-outmode],[data-drill],[data-pickopen],[data-pickstage],[data-pickhero],[data-season-toggle],[data-swin],[data-schunk],[data-srange-reset],[data-trendn],[data-trendall]');
   if (!t) return;
   if (t.dataset.pickopen) { const v = $('#view-stats'); v.dataset.pick = v.dataset.pick === t.dataset.pickopen ? '' : t.dataset.pickopen; renderStats(); return; }
   if (t.dataset.pickhero !== undefined) { const v = $('#view-stats'); v.dataset.hero = t.dataset.pickhero; v.dataset.recent = 20; v.dataset.mapAll = v.dataset.enemyAll = v.dataset.heroAll = ''; v.dataset.pick = ''; renderStats(); return; }
@@ -3280,6 +3302,7 @@ document.addEventListener('click', e => {
     alignResult(m, ns === '-' ? 'l' : 'w'); persist();
     renderSeason(); renderHist(); renderStats(); return;
   }
+  if (t.dataset.trendall) { sv.dataset.trendAll = sv.dataset.trendAll === '1' ? '' : '1'; renderStats(); return; }
   if (t.dataset.trendn) { sv.dataset.trendN = t.dataset.trendn; renderStats(); return; }
   if (act === 'recent-more') { sv.dataset.recent = Math.max(20, +(sv.dataset.recent || 20)) + 20; renderStats(); return; }
   if (act === 'recent-reset') { sv.dataset.recent = 20; renderStats(); return; }
@@ -3535,7 +3558,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-01-E', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-01-F', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
