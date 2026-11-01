@@ -29,6 +29,12 @@
 :root[data-skin="gold"]{--bg:#17130a;--surface:#221b0d;--ink:#fbf1d2;--muted:#b9a672;--line:#5a4719;--stripe:rgba(245,197,66,.05);--blue:#7088ff;--red:#ff5d66;--accent:#f5c542;--accent-ink:#241a00;--win:#43c682;--lose:#ff6f80;--draw:#b9a672;--soft:#2c2410;color-scheme:dark}
 :root[data-skin="sakura"]{--bg:#fbeef2;--surface:#fff8fa;--ink:#3a1f2b;--muted:#8d6676;--line:#efc3d0;--stripe:rgba(224,69,123,.05);--blue:#1f3fd1;--red:#d8232f;--accent:#e0457b;--accent-ink:#fff;--win:#16814a;--lose:#b02a3c;--draw:#8d6676;--soft:#f7dde6;color-scheme:light}
 :root[data-skin="team"]{--bg:#0f1430;--surface:#171d45;--ink:#eaf0ff;--muted:#98a4dc;--line:#2f3a82;--stripe:rgba(112,136,255,.07);--blue:#7088ff;--red:#ff5d66;--accent:#ff5d66;--accent-ink:#fff;--win:#43c682;--lose:#ff8a96;--draw:#98a4dc;--soft:#1f2756;color-scheme:dark}
+:root[data-skin="maru"]{--bg:#171419;--surface:#221e26;--ink:#f4ece6;--muted:#b3a5a8;--line:#3b3446;--stripe:rgba(255,200,170,.025);--blue:#7088ff;--red:#ff5d66;--accent:#ffa05c;--accent-ink:#2a1500;--win:#43c682;--lose:#ff6f80;--draw:#b3a5a8;--soft:#2c2732;color-scheme:dark;--f-ui:"Zen Maru Gothic","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-display:"Zen Maru Gothic","Archivo","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-body:"Zen Maru Gothic","Hiragino Sans","Noto Sans JP",system-ui,sans-serif}
+:root[data-skin="dot"]{--bg:#101612;--surface:#17211b;--ink:#dcf2d8;--muted:#8fae94;--line:#2b3d31;--stripe:rgba(107,224,139,.03);--blue:#7088ff;--red:#ff5d66;--accent:#6be08b;--accent-ink:#06210f;--win:#43c682;--lose:#ff6f80;--draw:#8fae94;--soft:#1f2d24;color-scheme:dark;--f-ui:"DotGothic16","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-display:"DotGothic16","Archivo","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-body:"DotGothic16","Hiragino Sans","Noto Sans JP",system-ui,sans-serif}
+:root[data-skin="mincho"]{--bg:#161411;--surface:#211d18;--ink:#f1e8d8;--muted:#aaa08c;--line:#3d362c;--stripe:rgba(240,220,180,.025);--blue:#7088ff;--red:#ff5d66;--accent:#e0694a;--accent-ink:#ffffff;--win:#43c682;--lose:#ff6f80;--draw:#aaa08c;--soft:#2a251f;color-scheme:dark;--f-ui:"Shippori Mincho","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-display:"Shippori Mincho","Archivo","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-body:"Shippori Mincho","Hiragino Sans","Noto Sans JP",system-ui,sans-serif}
+:root[data-skin="pop"]{--bg:#16131d;--surface:#201b2c;--ink:#f4effd;--muted:#a99fc4;--line:#372f4d;--stripe:rgba(255,122,192,.03);--blue:#7088ff;--red:#ff5d66;--accent:#ff7ac0;--accent-ink:#2a0a1c;--win:#43c682;--lose:#ff6f80;--draw:#a99fc4;--soft:#292337;color-scheme:dark;--f-ui:"RocknRoll One","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-display:"RocknRoll One","Archivo","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-body:"RocknRoll One","Hiragino Sans","Noto Sans JP",system-ui,sans-serif}
+:root[data-skin="bold"]{--bg:#0f1013;--surface:#181a20;--ink:#ffffff;--muted:#aab0c0;--line:#3a3f4d;--stripe:rgba(255,210,63,.025);--blue:#7088ff;--red:#ff5d66;--accent:#ffd23f;--accent-ink:#1a1500;--win:#43c682;--lose:#ff6f80;--draw:#aab0c0;--soft:#22252e;color-scheme:dark;--f-ui:"Dela Gothic One","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-display:"Dela Gothic One","Archivo","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-body:"Dela Gothic One","Hiragino Sans","Noto Sans JP",system-ui,sans-serif}
+:root[data-skin="dot"] *,:root[data-skin="pop"] *,:root[data-skin="bold"] *{font-synthesis:none}
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.7;
@@ -2435,9 +2441,10 @@ function seasonShareData(se) {
 function loadImg(src) { return new Promise(res => { if (!src) { res(null); return; } const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; }); }
 async function seasonShareCanvas(se) {
   const d = seasonShareData(se), W = 1200, H = 675;
+  try { const f0 = (SKINS[skinNow()] || {}).ff; if (f0) { skinFontLoad(skinNow()); await Promise.all(['400', '700', '900'].map(w => document.fonts.load(`${w} 24px "${f0}"`, '戦績摂理シーズン勝率0123'))); } } catch (e) {}
   try { await Promise.all(['900 60px "Zen Kaku Gothic New"', '700 24px "Zen Kaku Gothic New"', '800 40px "JetBrains Mono"', '900 40px "Archivo"'].map(f => document.fonts.load(f))); } catch (e) {}
   const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
-  const JP = '"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif', NUM = '"JetBrains Mono",ui-monospace,monospace';
+  const sk0 = SKINS[skinNow()], JP = (sk0 && sk0.ff ? `"${sk0.ff}",` : '') + '"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif', NUM = '"JetBrains Mono",ui-monospace,monospace';
   const C = Object.assign({}, SKINS.base.c, (SKINS[skinNow()] || SKINS.base).c);
   // 背景（アプリと同じ斜めのストライプ）
   x.fillStyle = C.bg; x.fillRect(0, 0, W, H);
@@ -3571,7 +3578,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-01-M', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-01-N', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4231,12 +4238,23 @@ const SKINS = {
   base: { n: 'いつもの色', c: { bg: '#13151b', panel: '#1c1f28', line: '#2e3341', ink: '#e7e9f0', muted: '#9aa1b3', acc: '#ff8a3d', blue: '#7088ff', red: '#ff5d66', win: '#43c682', lose: '#ff6f80', ai: '#1a1206', st: 'rgba(255,255,255,.025)', gl1: 'rgba(255,255,255,.16)', gl2: 'rgba(255,255,255,.07)', gr: '255,138,61', ib: '#2a2f3c', bd: 'rgba(255,255,255,.04)' } },
   gold: { n: 'ゴールド', c: { bg: '#17130a', panel: '#221b0d', line: '#5a4719', ink: '#fbf1d2', muted: '#b9a672', acc: '#f5c542', ai: '#241a00', st: 'rgba(245,197,66,.05)', gl1: 'rgba(245,197,66,.2)', gl2: 'rgba(245,197,66,.09)', gr: '245,197,66', ib: '#3a2f14', bd: 'rgba(245,197,66,.06)' } },
   sakura: { n: 'サクラ', c: { bg: '#fbeef2', panel: '#fff8fa', line: '#efc3d0', ink: '#3a1f2b', muted: '#8d6676', acc: '#e0457b', blue: '#1f3fd1', red: '#d8232f', win: '#16814a', lose: '#b02a3c', ai: '#ffffff', st: 'rgba(224,69,123,.05)', gl1: 'rgba(58,31,43,.2)', gl2: 'rgba(58,31,43,.09)', gr: '224,69,123', ib: '#f3d6e0', bd: 'rgba(224,69,123,.07)' } },
-  team: { n: 'ブルー×レッド', c: { bg: '#0f1430', panel: '#171d45', line: '#2f3a82', ink: '#eaf0ff', muted: '#98a4dc', acc: '#ff5d66', ai: '#ffffff', st: 'rgba(112,136,255,.07)', gl1: 'rgba(152,164,220,.25)', gl2: 'rgba(152,164,220,.1)', gr: '255,93,102', ib: '#222b63', bd: 'rgba(112,136,255,.08)' } }
+  team: { n: 'ブルー×レッド', c: { bg: '#0f1430', panel: '#171d45', line: '#2f3a82', ink: '#eaf0ff', muted: '#98a4dc', acc: '#ff5d66', ai: '#ffffff', st: 'rgba(112,136,255,.07)', gl1: 'rgba(152,164,220,.25)', gl2: 'rgba(152,164,220,.1)', gr: '255,93,102', ib: '#222b63', bd: 'rgba(112,136,255,.08)' } },
+  maru: { n: '丸ゴシック', ff: 'Zen Maru Gothic', c: { bg: '#171419', panel: '#221e26', line: '#3b3446', ink: '#f4ece6', muted: '#b3a5a8', acc: '#ffa05c', ai: '#2a1500', st: 'rgba(255,200,170,.025)', gl1: 'rgba(255,200,170,.22)', gl2: 'rgba(255,200,170,.1)', gr: '255,160,92', ib: '#2c2732', bd: 'rgba(255,200,170,.06)' } },
+  dot: { n: 'ドット', ff: 'DotGothic16', c: { bg: '#101612', panel: '#17211b', line: '#2b3d31', ink: '#dcf2d8', muted: '#8fae94', acc: '#6be08b', ai: '#06210f', st: 'rgba(107,224,139,.03)', gl1: 'rgba(107,224,139,.22)', gl2: 'rgba(107,224,139,.1)', gr: '107,224,139', ib: '#1f2d24', bd: 'rgba(107,224,139,.06)' } },
+  mincho: { n: '明朝', ff: 'Shippori Mincho', c: { bg: '#161411', panel: '#211d18', line: '#3d362c', ink: '#f1e8d8', muted: '#aaa08c', acc: '#e0694a', ai: '#ffffff', st: 'rgba(240,220,180,.025)', gl1: 'rgba(240,220,180,.22)', gl2: 'rgba(240,220,180,.1)', gr: '224,105,74', ib: '#2a251f', bd: 'rgba(240,220,180,.06)' } },
+  pop: { n: 'ポップ', ff: 'RocknRoll One', c: { bg: '#16131d', panel: '#201b2c', line: '#372f4d', ink: '#f4effd', muted: '#a99fc4', acc: '#ff7ac0', ai: '#2a0a1c', st: 'rgba(255,122,192,.03)', gl1: 'rgba(255,122,192,.22)', gl2: 'rgba(255,122,192,.1)', gr: '255,122,192', ib: '#292337', bd: 'rgba(255,122,192,.06)' } },
+  bold: { n: '極太', ff: 'Dela Gothic One', c: { bg: '#0f1013', panel: '#181a20', line: '#3a3f4d', ink: '#ffffff', muted: '#aab0c0', acc: '#ffd23f', ai: '#1a1500', st: 'rgba(255,210,63,.025)', gl1: 'rgba(255,210,63,.22)', gl2: 'rgba(255,210,63,.1)', gr: '255,210,63', ib: '#22252e', bd: 'rgba(255,210,63,.06)' } }
 };
 const SKIN_KEY = 'senseki-skin';
 const skinGet = () => { try { return localStorage.getItem(SKIN_KEY) || ''; } catch (e) { return ''; } };
 const skinNow = () => document.documentElement.dataset.skin || '';
-function skinApply(k) { if (k && SKINS[k] && k !== 'base') document.documentElement.dataset.skin = k; else delete document.documentElement.dataset.skin; }
+// 文字を変える色セットは、選んだ時にだけその文字を読み込む（使わない人には読み込みません）
+const SKIN_FONT_W = { 'Zen Maru Gothic': ':wght@500;700;900', 'DotGothic16': '', 'Shippori Mincho': ':wght@500;700;800', 'RocknRoll One': '', 'Dela Gothic One': '' };
+function skinFontLoad(k) {
+  const ff = SKINS[k] && SKINS[k].ff; if (!ff || document.getElementById('skinfont-' + k)) return;
+  const l = document.createElement('link'); l.id = 'skinfont-' + k; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(ff).replace(/%20/g, '+') + (SKIN_FONT_W[ff] || '') + '&display=swap'; document.head.appendChild(l);
+}
+function skinApply(k) { if (k && SKINS[k] && k !== 'base') { document.documentElement.dataset.skin = k; skinFontLoad(k); } else delete document.documentElement.dataset.skin; }
 function skinSet(k) { try { if (k && k !== 'base') localStorage.setItem(SKIN_KEY, k); else localStorage.removeItem(SKIN_KEY); } catch (e) {} skinApply(k); if (window.__fxRefresh) window.__fxRefresh(); }
 skinApply(skinGet());
 const FXV = { diamond: '◆（いつもの）', petal: '花びら', spark: '光の粒', meteor: '流れ星' };
