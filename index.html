@@ -3008,7 +3008,7 @@ function renderGuide() {
       <li><b>分析：</b>「使ったヒーロー」「ステージ」「対戦モード」「メダル/カード」で絞り込んで、勝率・使用率・直近の勝率などを見ます。「この条件の履歴を見る」で、その条件の試合の一覧に移れます。「全体勝率推移（試合数）」は、10・20・50・100試合ごとに切り替えられます。区切りが20個より多い時は横にスライドして見られ、「全試合表示」を押すと全部を1画面で見られます。</li>
       <li><b>シーズンpt：</b>バトルアリーナの増減ptを入れると、シーズンptの推移をグラフにします。最初に、シーズン名・開始時のpt・開始日を入れてください。</li>
       <li><b>シーズン外：</b>フリーバトルやカスタムバトル、シーズン期間外のバトルアリーナなど、シーズンptに入らない試合です。試合ごとにメモを書けます。</li>
-      <li><b>統計：</b>提供に同意した人の試合をまとめた、みんなの統計です。シーズン・ランク（複数選べます）・対戦モードごとに、ヒーローの使用率と勝率、ヒーローごとのカードとメダルの使用率、ステージの勝率を見られます。ヒーローの欄は「使用率」と「勝率」を切り替えられ、使用率ではn回/全体の回数も出ます。上の「最終更新」と、カード・メダルの「何人中何人」で、集計の新しさと元の人数を確かめられます。同じ試合は1回だけ数え、自分とフレンド連携した固定の仲間のデッキが同じ時も1回にまとめます。カードの絵は、提供者から送られた小さな切り抜きも使います。カードとメダルの使用率には「期間ごと」のボタンがあり、ONにすると、毎月25日〜翌月24日を1期間として、1ヶ月・3ヶ月・6ヶ月・1年（または1ヶ月刻みで好きな長さ）でまとめて見られます。◀▶で前後の期間に動けます。この表では、シーズンの内外と対戦モードを、ボタンの下の欄で別に選べます。提供するかどうかは、統計タブかデータタブで選べます（最初は「提供しない」）。</li>
+      <li><b>統計：</b>提供に同意した人の試合をまとめた、みんなの統計です。シーズン（「全期間」「シーズン外」「各シーズン」から選べます）・ランク（複数選べます）・対戦モードごとに、ヒーローの使用率と勝率、ヒーローごとのカードとメダルの使用率、ステージの勝率を見られます。ヒーローの欄は「使用率」と「勝率」を切り替えられ、使用率ではn回/全体の回数も出ます。上の「最終更新」と、カード・メダルの「何人中何人」で、集計の新しさと元の人数を確かめられます。同じ試合は1回だけ数え、自分とフレンド連携した固定の仲間のデッキが同じ時も1回にまとめます。カードの絵は、提供者から送られた小さな切り抜きも使います。カードとメダルの使用率には「期間ごと」のボタンがあり、ONにすると、毎月25日〜翌月24日を1期間として、1ヶ月・3ヶ月・6ヶ月・1年（または1ヶ月刻みで好きな長さ）でまとめて見られます。◀▶で前後の期間に動けます。この表では、シーズンの内外と対戦モードを、ボタンの下の欄で別に選べます。提供するかどうかは、統計タブかデータタブで選べます（最初は「提供しない」）。</li>
       <li><b>履歴：</b>登録した全試合を、新しい順に見られます。ヒーロー・ステージ・対戦モード・敵ヒーロー・自分のランクで絞り込めます。試合の削除もここでできます（削除は元に戻せません）。</li>
       <li><b>データ：</b>ログイン、フレンド連携、バックアップと復元、ヒーロー名の修正、カードの名前付け、全データの削除があります。</li>
     </ul>`)}
@@ -3641,7 +3641,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-03-D', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-03-F', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4628,11 +4628,11 @@ function statSel() {
   const el = document.getElementById('view-stat'), md = statMetaD(), docs = md.docs || [];
   const ss = (md.ss || []).filter(s => docs.some(d => d.startsWith(`s_${s.id}_`))).sort((a, b) => b.start - a.start);
   const ids = ss.map(s => s.id); if (docs.some(d => d.startsWith('s_out_'))) ids.unshift('out');
-  let season = el.dataset.season; if (!ids.includes(season)) season = ids[0];
-  const modes = ['a'].concat(MODES.map((n, i) => String(i))).filter(i => docs.includes(`s_${season}_${i}`));
+  let season = el.dataset.season; if (!ids.includes(season) && season !== 'all') season = 'all';
+  const modes = ['a'].concat(MODES.map((n, i) => String(i))).filter(i => season === 'all' ? docs.some(d => d.startsWith('s_') && d.endsWith('_' + i)) : docs.includes(`s_${season}_${i}`));
   let mode = el.dataset.mode || 'a'; if (!modes.includes(mode)) mode = modes[0];
   // シーズンはバトルアリーナだけなので、対戦モードは固定
-  if (season !== 'out') mode = modes.includes(String(MODES.indexOf(ARENA))) ? String(MODES.indexOf(ARENA)) : 'a';
+  if (season !== 'out' && season !== 'all') mode = modes.includes(String(MODES.indexOf(ARENA))) ? String(MODES.indexOf(ARENA)) : 'a';
   return { el, md, ss, ids, season, modes, mode, band: el.dataset.band || 'all' };
 }
 async function statDocLoad() {
@@ -4641,6 +4641,11 @@ async function statDocLoad() {
   if (perOn(pel) && pk.length) {
     const need = statPerIds(pel, pk, statMetaD().docs || []).filter(i => !statS.docs.has(i));
     if (need.length) { await Promise.all(need.map(async i => { try { statS.docs.set(i, await FBA.statGet(i)); } catch (e) { statS.err = '読み込めませんでした。'; } })); statRender(); }
+  }
+  if (s.season === 'all') {
+    const need = statAllIds(s.md.docs, s.mode).filter(i => !statS.docs.has(i));
+    if (need.length) { await Promise.all(need.map(async i => { try { statS.docs.set(i, await FBA.statGet(i)); } catch (e) { statS.err = '読み込めませんでした。'; } })); statRender(); }
+    return;
   }
   const id = `s_${s.season}_${s.mode}`; if (statS.docs.has(id)) return;
   try { statS.docs.set(id, await FBA.statGet(id)); } catch (e) { statS.err = '読み込めませんでした。'; }
@@ -4676,6 +4681,19 @@ function perSelHTML(el, sfx) {
   const o = (v, t, c) => `<option value="${v}"${String(v) === String(c) ? ' selected' : ''}>${esc(t)}</option>`;
   return `<div style="display:grid;gap:8px;margin-top:8px"><label class="fl"><span class="label">シーズンの内外</span><select id="st-pss${sfx}">${o('a', '両方', ss)}${o('i', 'シーズン内（バトルアリーナ）', ss)}${o('o', 'シーズン外', ss)}</select></label><label class="fl"><span class="label">対戦モード</span><select id="st-pmd${sfx}"${ss === 'i' ? ' disabled' : ''}>${o('a', '全対戦モード', md)}${MODES.map((n, i) => o(i, n, md)).join('')}</select></label></div>`;
 }
+// 「全部（シーズン＋シーズン外）」：シーズンごとのデータを、読む側で足し合わせる
+const statAllIds = (docs, mode) => (docs || []).filter(d => /^s_/.test(d) && d.endsWith('_' + mode));
+function statMerge(docs, band) {
+  const H = new Map(), G = new Map(), GH = new Map(); let n = 0;
+  for (const d of docs) {
+    n += d.n || 0; const D = statData(d, band);
+    for (const e of D.H) { let x = H.get(e.k); if (!x) { x = { k: e.k, n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map() }; H.set(e.k, x); } x.n += e.n; x.w += e.w; x.cn += e.cn; x.mn += e.mn; for (const [c, v] of e.cards) x.cards.set(c, (x.cards.get(c) || 0) + v); for (const [i, v] of e.med) x.med.set(i, (x.med.get(i) || 0) + v); }
+    for (const e of D.G) { const x = G.get(e.k) || { k: e.k, n: 0, w: 0 }; x.n += e.n; x.w += e.w; G.set(e.k, x); }
+    for (const [h, l] of D.GH) { let m = GH.get(h); if (!m) { m = new Map(); GH.set(h, m); } for (const e of l) { const x = m.get(e.k) || { k: e.k, n: 0, w: 0 }; x.n += e.n; x.w += e.w; m.set(e.k, x); } }
+  }
+  const srt = l => [...l].sort((a, b) => b.n - a.n);
+  return { H: srt(H.values()), G: srt(G.values()), GH: new Map([...GH].map(([h, m]) => [h, srt(m.values())])), n };
+}
 function statDataP(docs, band) {
   const H = new Map(); let n = 0;
   for (const d of docs) { if (!d) continue; n += d.n || 0; for (const e of statData(d, band).H) { let x = H.get(e.k); if (!x) { x = { k: e.k, n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map() }; H.set(e.k, x); } x.n += e.n; x.cn += e.cn; x.mn += e.mn; for (const [c, v] of e.cards) x.cards.set(c, (x.cards.get(c) || 0) + v); for (const [i, v] of e.med) x.med.set(i, (x.med.get(i) || 0) + v); } }
@@ -4690,18 +4708,19 @@ function statRender() {
   if (statS.err) { el.innerHTML = head + `<div class="section"><div class="panel"><p class="small" style="margin:0;color:var(--lose)">${esc(statS.err)}</p></div></div>` + pubBox + admin; return; }
   if (!statS.meta) { el.innerHTML = head + `<div class="section"><div class="panel"><p class="small muted" style="margin:0">読み込んでいます…</p></div></div>` + pubBox + admin; return; }
   if (statS.meta.none || !statSel().ids.length) { el.innerHTML = head + `<div class="section"><div class="panel"><p class="small muted" style="margin:0">まだ集計がありません。提供する人が増えると、ここに表示されます。</p></div></div>` + pubBox + admin; return; }
-  const s = statSel(), id = `s_${s.season}_${s.mode}`, doc = statS.docs.get(id);
+  const s = statSel(), id = `s_${s.season}_${s.mode}`; let doc = statS.docs.get(id), Dm = null;
+  if (s.season === 'all') { const aids = statAllIds(s.md.docs, s.mode); doc = null; if (aids.every(i => statS.docs.has(i))) { Dm = statMerge(aids.map(i => statS.docs.get(i)).filter(Boolean), s.band); doc = { p: statS.meta.p, n: Dm.n, t: statS.meta.t }; } }
   const names = new Map((s.md.ss || []).map(x => [x.id, x.name]));
   const opt = (v, t, cur) => `<option value="${esc(String(v))}"${String(v) === String(cur) ? ' selected' : ''}>${esc(t)}</option>`;
   const fl = (label, idv, opts) => `<label class="fl"><span class="label">${label}</span><select id="${idv}">${opts}</select></label>`;
   const filters = `<div style="display:grid;gap:8px;margin-top:10px">${
-    fl('シーズン', 'st-season', s.ids.map(i => opt(i, statSeasonLabel(i, names.get(i)), s.season)).join(''))}${
+    fl('シーズン', 'st-season', opt('all', '全期間（シーズン＋シーズン外）', s.season) + s.ids.map(i => opt(i, statSeasonLabel(i, names.get(i)), s.season)).join(''))}${
     `<div class="fl"><span class="label">ランク（複数選べます）</span><div class="chips">${[['all', '全ランク']].concat(STAT_BANDS.map((b, i) => [String(i), b])).map(([v, t]) => `<button type="button" class="chip${(v === 'all' ? s.band === 'all' : s.band !== 'all' && s.band.split(',').includes(v)) ? ' on' : ''}" data-act="st-band" data-b="${v}">${esc(t)}</button>`).join('')}</div></div>`}${
-    (s.season !== 'out' ? fl('対戦モード', 'st-mode" disabled title="シーズンはバトルアリーナだけです', opt(s.mode, ARENA, s.mode)) : fl('対戦モード', 'st-mode', s.modes.map(i => opt(i, i === 'a' ? '全対戦モード' : MODES[+i], s.mode)).join('')))}</div>`;
+    (s.season !== 'out' && s.season !== 'all' ? fl('対戦モード', 'st-mode" disabled title="シーズンはバトルアリーナだけです', opt(s.mode, ARENA, s.mode)) : fl('対戦モード', 'st-mode', s.modes.map(i => opt(i, i === 'a' ? '全対戦モード' : MODES[+i], s.mode)).join('')))}</div>`;
   let body = '';
   if (!doc) body = `<p class="small muted" style="margin:10px 0 0">読み込んでいます…</p>`;
   else {
-    const D = statData(doc, s.band), slots = D.H.reduce((a, e) => a + e.n, 0);
+    const D = Dm || statData(doc, s.band), slots = D.H.reduce((a, e) => a + e.n, 0);
     const nmRow = (k, n, w, extra, thin) => { const p = n ? w / n * 100 : 0, c = wilson(w, n); return `<div class="stat" style="margin:9px 0${thin ? ';opacity:.55' : ''}"><span class="nm" style="display:flex;align-items:center;gap:6px">${extra}</span><span class="bar" role="img" aria-label="勝率${f2(p)}%（95%の範囲 ${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%）"><b class="ci" style="left:${c.lo}%;width:${c.hi - c.lo}%"></b><i class="${p >= 50 ? 'w' : 'l'}" style="width:${p}%"></i></span><span class="num">${f2(p)}% <span class="muted">${w}/${n}</span><span class="cir">${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%</span></span></div>`; };
     // 勝率の高い順。ただし件数が少ない項目（STAT_THIN未満）は、あとにまとめる
     const byWr = l => [...l].sort((a, b) => ((b.n >= STAT_THIN) - (a.n >= STAT_THIN)) || (b.w / b.n - a.w / a.n) || b.n - a.n);
