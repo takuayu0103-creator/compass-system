@@ -1104,6 +1104,26 @@ function cardThumb(k) {
 const stageSeed = {};
 for (const s of STAGE_SEED) stageSeed[s.name] = [enc.unstage(s.f)];
 const STAGE_ALIAS = { '東西たこさん広場': '東西たかさん広場' };
+// 統計の集計用：ユーザーが自由に書いたステージ名（「たかさん」「でらくら」など）を、公式のステージ名のうち一番近いものに寄せる。
+// 近いものが1つに決まらない時や、似ていない時（新しいステージなど）は、書かれたままにする
+const stageNorm = t => String(t).normalize('NFKC').toLowerCase().replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 96)).replace(/[\s\-・！!？?～〜~()（）【】\[\]「」『』:：;；,，.。、*＊♪☆★#＃]/g, '');
+let stageCanonList = null;
+function stageCanon(name, fix) {
+  const raw = STAGE_ALIAS[String(name).trim()] || String(name).trim();
+  // 管理者が手で決めた訂正が最優先（直す先が自分と同じなら「寄せない」）
+  if (fix && Object.prototype.hasOwnProperty.call(fix, raw) && fix[raw]) return String(fix[raw]).trim() || raw;
+  if (!stageCanonList) stageCanonList = Object.keys(STAGE_IMG).map(n => ({ n, k: stageNorm(n) }));
+  if (stageCanonList.some(c => c.n === raw)) return raw;
+  const k = stageNorm(raw); if (k.length < 3) return raw;
+  const hit = stageCanonList.filter(c => c.k.includes(k));
+  if (hit.length === 1) return hit[0].n;
+  if (hit.length > 1) return raw;
+  const bg = t => { const m = new Map(); for (let i = 0; i < t.length - 1; i++) { const g = t.slice(i, i + 2); m.set(g, (m.get(g) || 0) + 1); } return m; };
+  const a = bg(k); if (!a.size) return raw;
+  let best = null, bs = 0, second = 0;
+  for (const c of stageCanonList) { const b = bg(c.k); let inter = 0; for (const [g, n] of a) inter += Math.min(n, b.get(g) || 0); const sc = 2 * inter / (Math.max(1, k.length - 1) + Math.max(1, c.k.length - 1)); if (sc > bs) { second = bs; bs = sc; best = c; } else if (sc > second) second = sc; }
+  return best && bs >= 0.6 && bs - second >= 0.15 ? best.n : raw;
+}
 function seedHeroes() {
   const rid = () => Math.random().toString(36).slice(2, 9);
   for (const s of SEED) if (!db.heroes.some(h => h.name === s.name)) db.heroes.push({ id: 'h-' + rid(), name: s.name, refs: [] });
@@ -3578,7 +3598,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-01-N', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-03-A', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4374,7 +4394,8 @@ function pubRender() { for (const id of ['pub-box-d', 'pub-box-s']) { const el =
 const pubIdHTML = () => syncS.user ? `<p class="small muted" style="margin:10px 0 0">あなたのID：<code id="my-uid" style="user-select:all">${esc(syncS.user.uid)}</code> <button class="btn ghost" data-act="uid-copy" style="padding:2px 10px">コピー</button><span class="small" id="uid-msg"></span><br>統計の管理者を追加する時だけ使います。ふだんは使いません。</p>` : '';
 
 /* --- 集計する（管理者のみ） --- */
-function statAgg(parts, cfg, now) {
+function statAgg(parts, cfg, now, fix) {
+  const unk = new Map(), am = new Map(), isOff = n => Object.prototype.hasOwnProperty.call(STAGE_IMG, n);
   const recs = [];
   for (const p of parts) {
     let o; try { o = JSON.parse(p.text); } catch (e) { continue; }
@@ -4403,8 +4424,9 @@ function statAgg(parts, cfg, now) {
     // アプリの「シーズン外」と同じ：期間内のバトルアリーナだけがシーズン。それ以外の試合はシーズン外
     const t = r[1] * 60000, se = r[2] !== AR || r[6] === 1 ? { id: 'out' } : seasonOf(t); if (!se) continue;
     const name = i => (i >= 0 && i < nm.length ? String(nm[i]) : ''), w = r[4], side = r[5] === 1 ? 1 : 0;
-    const stage = STAGE_ALIAS[name(r[3])] || name(r[3]), own = r[8 + side * 3 + (r[7] | 0)], fp = String(r[0]), sk = fp + '|' + se.id;
+    const st0 = name(r[3]), stage = stageCanon(st0, fix), own = r[8 + side * 3 + (r[7] | 0)], fp = String(r[0]), sk = fp + '|' + se.id;
     const dup = seen.has(sk) && seen.get(sk) !== u; if (!dup) { seen.set(sk, u); total++; }
+    if (!dup && stage) { if (!isOff(stage)) unk.set(stage, (unk.get(stage) || 0) + 1); const r0 = STAGE_ALIAS[st0.trim()] || st0.trim(); if (r0 !== stage && isOff(stage) && !(fix && fix[r0])) { const ak = r0 + '\t' + stage; am.set(ak, (am.get(ak) || 0) + 1); } }
     for (const d of [doc(se.id, r[2]), doc(se.id, 'a')]) {
     d.us.add(u);
     if (stage && (w === 0 || w === 1)) { const x = bucket(d.g, own && Number.isFinite(own[1]) ? own[1] : 10); const a = x.get(stage) || [0, 0]; a[0]++; a[1] += w; x.set(stage, a); }
@@ -4440,16 +4462,17 @@ function statAgg(parts, cfg, now) {
   const persons = new Set(recs.map(x => x.u));
   const usedIds = [...out.keys()];
   // 1試合は「その対戦モード」と「全対戦モード」の2か所に入るので、足し合わせずに数える
-  const meta = { t: now, n: total, p: persons.size, d: JSON.stringify({ docs: usedIds, ss: ss.map(s => ({ id: s.id, start: s.start, name: s.name, custom: s.custom })) }) };
+  const meta = { t: now, n: total, p: persons.size, d: JSON.stringify({ docs: usedIds, ss: ss.map(s => ({ id: s.id, start: s.start, name: s.name, custom: s.custom })), un: [...unk].sort((a, b) => b[1] - a[1]).slice(0, 40), am: [...am].map(([k, n]) => [...k.split('\t'), n]).sort((a, b) => b[2] - a[2]).slice(0, 40), sf: fix || {} }) };
   return { docs: out, meta };
 }
 async function statRun(manual) {
   if (!isAdmin() || !FBA || statS.run) return;
   statS.run = true; statS.msg = '集計しています…'; statS.merr = false; statRender();
   try {
-    const [parts, cfgDoc, outs, old] = await Promise.all([FBA.pubAll(), FBA.statGet('seasons'), FBA.pubOutList(), FBA.statGet('meta')]);
+    const [parts, cfgDoc, outs, old, fxDoc] = await Promise.all([FBA.pubAll(), FBA.statGet('seasons'), FBA.pubOutList(), FBA.statGet('meta'), FBA.statGet('stagefix')]);
+    let fix = {}; try { fix = JSON.parse((fxDoc && fxDoc.d) || '{}') || {}; } catch (e) {}
     let cfg = []; try { cfg = JSON.parse((cfgDoc && cfgDoc.d) || '[]') || []; } catch (e) {}
-    const res = statAgg(parts, cfg, Date.now());
+    const res = statAgg(parts, cfg, Date.now(), fix);
     let oldIds = [], oldD = {}; try { oldD = JSON.parse((old && old.d) || '{}') || {}; oldIds = oldD.docs || []; } catch (e) {}
     const del = oldIds.filter(i => !res.docs.has(i));
     // カードの小さな画像：すでにあるものは残し、新しいカード名の分だけ足す
@@ -4483,6 +4506,14 @@ async function statAdminCheck() {
     statS.meta = meta || statS.meta;
     if (!meta || Date.now() - meta.t > STAT_HOURS * 3600000 || outs.length) statRun(false);
   } catch (e) {}
+}
+async function statSaveStageFix(noFix) {
+  if (!isAdmin() || !FBA || statS.run) return;
+  const fix = Object.assign({}, statMetaD().sf || {});
+  if (noFix) fix[noFix] = noFix;
+  else document.querySelectorAll('[data-sfn]').forEach(i => { const n = i.dataset.sfn, v = i.value.trim().slice(0, 40); if (v) fix[n] = v; else delete fix[n]; });
+  try { await FBA.statPut('stagefix', { t: Date.now(), d: JSON.stringify(fix) }); } catch (e) { statS.msg = '保存できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; statRender(); return; }
+  await statRun(true);
 }
 async function statSaveSeasons() {
   if (!isAdmin() || !FBA || statS.run) return;
@@ -4609,6 +4640,17 @@ function statRender() {
   el.innerHTML = head + `<div class="section"><div class="panel">${filters}${body}</div></div>` + pubBox + admin;
   if (keep) { const k = document.getElementById(keep); if (k && k.focus) try { k.focus(); } catch (e) {} }
 }
+function stageFixHTML(md) {
+  const sf = md.sf || {}, un = md.un || [], am = md.am || [], names = [...new Set(un.map(x => x[0]).concat(Object.keys(sf)))];
+  const dl = `<datalist id="sf-dl">${Object.keys(STAGE_IMG).map(n => `<option value="${esc(n)}">`).join('')}</datalist>`;
+  const cnt = n => (un.find(x => x[0] === n) || [0, 0])[1];
+  const rows = names.map(n => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(n)}${cnt(n) ? `（${cnt(n)}件）` : ''}</span><span class="small muted">→</span><input type="text" data-sfn="${esc(n)}" list="sf-dl" value="${esc(sf[n] && sf[n] !== n ? sf[n] : '')}" placeholder="直す先" maxlength="40" style="flex:1.2;min-width:0"></div>`).join('');
+  const auto = am.map(([a, b, c]) => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(a)} → ${esc(b)}（${c}件）</span><button class="btn ghost" data-act="stat-nofix" data-n="${esc(a)}" style="padding:2px 10px">寄せない</button></div>`).join('');
+  return `<h3>ステージ名の訂正</h3><p class="small muted" style="margin:0 0 6px">公式にない名前で入ってきたものを、直す先の名前に変えて集計します。直す先は、候補から選ぶか、自分で書けます。空にすると訂正をやめます。</p>${dl}
+    ${rows || '<p class="small muted" style="margin:0">いま、公式にない名前はありません。</p>'}
+    ${rows ? '<div class="row"><button class="btn" data-act="stat-stagefix"' + (statS.run ? ' disabled' : '') + '>保存して集計し直す</button></div>' : ''}
+    ${auto ? '<p class="small muted" style="margin:10px 0 4px">自動で寄せているもの（間違っていたら「寄せない」）</p>' + auto : ''}`;
+}
 function statAdminHTML() {
   const md = statMetaD(), m = statS.meta && !statS.meta.none ? statS.meta : null, ss = (md.ss || []).slice().sort((a, b) => b.start - a.start).slice(0, 8);
   const wait = m && Date.now() - m.t < STAT_WAIT;
@@ -4617,6 +4659,7 @@ function statAdminHTML() {
   return `<div class="section"><div class="panel"><h2>管理者用</h2>
     <p class="small muted" style="margin:0">${m ? `最終の集計：${new Date(m.t).toLocaleString('ja-JP')}（${m.p}人／${m.n}試合）` : 'まだ集計していません'}。集計は、開いた時に${STAT_HOURS}時間以上たっていれば自動で行います。</p>
     <div class="row"><button class="btn primary" data-act="stat-run"${statS.run || wait ? ' disabled' : ''}>今すぐ集計</button><span class="small muted">${wait ? '前の集計から5分たつと押せます' : ''}</span></div>${msg}
+    ${stageFixHTML(md)}
     <h3>シーズンの日付と名前</h3><p class="small muted" style="margin:0 0 6px">開始日は、決まった日（毎月第2木曜日）が最初から入っています。変える時だけ直してください。名前は、そのシーズンのヒーローを選びます。保存すると、集計し直します。</p>${rows}
     <div class="row"><button class="btn" data-act="stat-seasons"${statS.run ? ' disabled' : ''}>保存して集計し直す</button></div></div></div>`;
 }
@@ -4630,6 +4673,8 @@ document.addEventListener('click', e => {
   else if (a === 'stat-run') statRun(true);
   else if (a === 'uid-copy') { const v = syncS.user ? syncS.user.uid : '', m = document.getElementById('uid-msg'); if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(() => { if (m) m.textContent = 'コピーしました'; }, () => { if (m) m.textContent = '長押しで選んでコピーしてください'; }); }
   else if (a === 'stat-seasons') statSaveSeasons();
+  else if (a === 'stat-stagefix') statSaveStageFix();
+  else if (a === 'stat-nofix') statSaveStageFix(t.dataset.n);
   else if (a === 'st-band') {
     const el = document.getElementById('view-stat'), cur = (el.dataset.band || 'all'), b = t.dataset.b;
     let set = cur === 'all' ? [] : cur.split(',');
