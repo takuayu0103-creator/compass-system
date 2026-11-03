@@ -135,7 +135,7 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
 .kpi .v{font-family:var(--f-display);font-weight:900;letter-spacing:-.02em;font-size:1.6rem;line-height:1.2;font-variant-numeric:tabular-nums}
 .kpi .v small{font-size:.9rem;color:var(--muted);font-family:var(--f-body)}
-.stat{display:grid;grid-template-columns:minmax(0,9em) 1fr 6.6em;gap:10px;align-items:center;font-size:.88rem}
+.stat{display:grid;grid-template-columns:minmax(0,9em) minmax(24px,1fr) minmax(6.6em,max-content);gap:10px;align-items:center;font-size:.88rem}
 .stat .nm{overflow-wrap:anywhere;line-height:1.35}
 .bar{position:relative;height:14px;background:var(--soft);border-radius:3px}
 .bar i{position:absolute;left:0;top:4px;bottom:4px;border-radius:2px}
@@ -149,7 +149,7 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .ci-note{font-size:.74rem;color:var(--muted)}
 .bar i.w{background:var(--win)} .bar i.l{background:var(--lose)}
 .bar::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;border-left:1px dashed var(--muted)}
-.stat.drill{grid-template-columns:minmax(0,9em) 1fr 6.6em 1.1em;cursor:pointer;border-radius:6px;margin-inline:-4px;padding:3px 4px;min-height:40px}
+.stat.drill{grid-template-columns:minmax(0,9em) minmax(24px,1fr) minmax(6.6em,max-content) 1.1em;cursor:pointer;border-radius:6px;margin-inline:-4px;padding:3px 4px;min-height:40px}
 .stat.drill:hover,.stat.drill:focus-visible{background:color-mix(in srgb,var(--accent) 10%,transparent);outline:none}
 .stat.drill:active{background:color-mix(in srgb,var(--accent) 18%,transparent)}
 .chev2{color:var(--accent);font-family:var(--f-num);font-weight:800;font-size:1.05rem;text-align:right;opacity:.85}
@@ -313,8 +313,8 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
   nav.tabs button[aria-selected="true"]{box-shadow:inset 0 -2px 0 var(--accent)}
   .kpis{grid-template-columns:repeat(3,1fr)}
   .kpi .v{font-size:1.3rem}
-  .stat{grid-template-columns:minmax(0,8em) 1fr 6.2em;gap:8px}
-  .stat.drill{grid-template-columns:minmax(0,7.4em) 1fr 6em 1em;gap:6px}
+  .stat{grid-template-columns:minmax(0,8em) minmax(24px,1fr) minmax(6.2em,max-content);gap:8px}
+  .stat.drill{grid-template-columns:minmax(0,7.4em) minmax(24px,1fr) minmax(6em,max-content) 1em;gap:6px}
   .teams{grid-template-columns:1fr}
 }
 .medtbl{width:100%;border-collapse:collapse;font-size:.85rem}.medtbl th{text-align:left;font-weight:700;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--line,#444)}.medtbl td{padding:5px 6px;border-bottom:1px solid rgba(128,128,128,.18)}.medtbl .mic{display:flex;align-items:center;gap:6px;min-width:0}.medtbl .mic img{flex:0 0 auto}.medtbl .mic span{overflow-wrap:anywhere;line-height:1.3}.medtbl td{vertical-align:middle}.medtbl .mn{white-space:nowrap;width:1%}.medtbl .mn .avg{display:block;font-size:.75rem;color:var(--muted)}.medtbl th .thn{display:block;font-size:.72rem;font-weight:400}.medtbl .mn b{font-size:1rem}
@@ -1997,6 +1997,49 @@ function medalRecs(list) {
   }
   return out;
 }
+/* ---------- 円グラフ（カード・メダルの使用率）：分析と統計で共通 ---------- */
+const PIE_COL = ['#f5c542', '#ff8a3d', '#e2536b', '#b765e6', '#5a8cf0', '#38b6c8', '#5bc27a', '#d6728f', '#8fb63a', '#4fa3a5', '#c58a3d', '#7a7fe0'];
+const pieOn = el => !!el && el.dataset.pv === '1';
+function pieToggle(el, who) {
+  const on = pieOn(el), b = (v, t, a) => `<button class="seg${a ? ' on' : ''}" data-act="pie-mode" data-w="${who}" data-v="${v}" aria-pressed="${a}">${t}</button>`;
+  return `<div class="row segs" role="group" aria-label="表示のしかた" style="margin:6px 0">${b('', 'リスト', !on)}${b('1', '円グラフ', on)}</div>`;
+}
+// items: [{k, n, v, ic?, th?}]（v は回数）。kind: 'c'=カード / 'm'=メダル
+function pieHTML(el, who, kind, items, unit) {
+  const tot = items.reduce((a, b) => a + b.v, 0); if (!tot || !items.length) return '';
+  const lim = kind === 'm' ? 0.08 : 0.05, big = items.filter(x => x.v / tot >= lim), sm = items.filter(x => x.v / tot < lim);
+  const sl = big.map((x, i) => Object.assign({}, x, { c: PIE_COL[i % PIE_COL.length] }));
+  if (sm.length) sl.push({ k: '__o', n: `その他（${sm.length}種類）`, v: sm.reduce((a, b) => a + b.v, 0), c: '#9aa1b3', members: sm });
+  let si = sl.findIndex(x => x.k === el.dataset['ps' + kind]); if (si < 0) si = 0;
+  const R = kind === 'm' ? 118 : 100, S = R * 2 + 24, cx = S / 2, cy = S / 2;
+  const P = a => [cx + R * Math.sin(a), cy - R * Math.cos(a)], pc = v => f2(v / tot * 100) + '%';
+  let a = 0, g = '';
+  sl.forEach((x, i) => {
+    const a1 = a + x.v / tot * Math.PI * 2, am = (a + a1) / 2, sel = i === si, dx = sel ? Math.sin(am) * 7 : 0, dy = sel ? -Math.cos(am) * 7 : 0;
+    const [x0, y0] = P(a), [x1, y1] = P(a1 - (sl.length === 1 ? 0.0001 : 0));
+    const d = `M${cx} ${cy}L${x0} ${y0}A${R} ${R} 0 ${a1 - a > Math.PI ? 1 : 0} 1 ${x1} ${y1}Z`;
+    const rr = R * 0.68, tx = cx + rr * Math.sin(am), ty = cy - rr * Math.cos(am), share = x.v / tot;
+    let lab = '';
+    if (kind === 'm') { lab = (x.ic ? `<image href="${x.ic}" x="${tx - 13}" y="${ty - 20}" width="26" height="26" pointer-events="none"/>` : `<text x="${tx}" y="${ty - 3}" fill="#13151b" font-size="15" font-weight="700" text-anchor="middle" pointer-events="none">…</text>`) + `<text x="${tx}" y="${ty + 18}" fill="#13151b" font-size="11" font-weight="700" text-anchor="middle" pointer-events="none">${pc(x.v)}</text>`; }
+    else if (share >= 0.08) lab = `<text x="${tx}" y="${ty + 4}" fill="#13151b" font-size="12" font-weight="700" text-anchor="middle" pointer-events="none">${pc(x.v)}</text>`;
+    g += `<g data-act="pie-sel" data-w="${who}" data-kind="${kind}" data-k="${esc(x.k)}" role="button" tabindex="0" aria-label="${esc(x.n)} ${pc(x.v)}" style="cursor:pointer" transform="translate(${dx} ${dy})">${sl.length === 1 ? `<circle cx="${cx}" cy="${cy}" r="${R}" fill="${x.c}"/>` : `<path d="${d}" fill="${x.c}" stroke="${sel ? 'var(--ink)' : 'var(--surface)'}" stroke-width="${sel ? 3 : 2}"/>`}${lab}</g>`;
+    a = a1;
+  });
+  const svg = `<svg viewBox="0 0 ${S} ${S}" width="100%" style="max-width:${S}px;display:block;margin:6px auto" role="group" aria-label="円グラフ">${g}<circle cx="${cx}" cy="${cy}" r="${R * 0.34}" fill="var(--surface)" pointer-events="none"/><text x="${cx}" y="${cy + 5}" fill="var(--ink)" font-size="14" font-weight="700" text-anchor="middle" pointer-events="none">${tot}${unit}</text></svg>`;
+  const ico = x => x.ic ? `<img src="${x.ic}" alt="" width="26" height="26">` : (x.th ? `<img class="cthumb" src="${x.th}" alt="">` : (kind === 'c' ? '<span class="cthumb"></span>' : ''));
+  const row = (x, sw, first) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;${first ? '' : 'border-top:1px solid var(--line)'}">${ico(x)}<span style="flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.35">${sw ? `<span style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;background:${x.c}"></span>` : ''}${esc(x.n)}</span><span style="text-align:right;font-weight:700;white-space:nowrap">${pc(x.v)}<span class="small muted" style="display:block;font-weight:400">${x.v}${unit}</span></span></div>`;
+  const cur = sl[si];
+  const det = cur.k === '__o' ? `<div style="border:1px solid var(--accent);border-radius:10px;padding:6px 10px"><b class="small">「その他」の中身（${sm.length}種類・${pc(cur.v)}）</b>${cur.members.map(x => row(x, false)).join('')}</div>` : `<div style="border:1px solid var(--accent);border-radius:10px;padding:0 10px">${row(cur, true, true)}</div>`;
+  return `<p class="small muted" style="margin:6px 0 0">円グラフは、${kind === 'c' ? '入れられたカード' : '付けられたメダル'}全体のうち、それぞれが占める割合です（リストの「何%の人が」とは意味が違います）。${Math.round(lim * 100)}%未満は「その他」にまとめます。部分をタップすると、下に中身が出ます。</p>${svg}${det}`;
+}
+function pieAct(a, t) {
+  if (!a || a.slice(0, 4) !== 'pie-') return false;
+  const st = t.dataset.w === 'stat', el = document.getElementById(st ? 'view-stat' : 'view-stats'); if (!el) return true;
+  if (a === 'pie-mode') el.dataset.pv = t.dataset.v;
+  else if (a === 'pie-sel') el.dataset['ps' + t.dataset.kind] = t.dataset.k;
+  if (st) statRender(); else renderStats();
+  return true;
+}
 /* ---------- 期間ごと（毎月25日〜翌月24日）の切り替え：分析と統計で共通 ---------- */
 const perOn = el => !!el && el.dataset.pm === '1';
 function perWin(el, minK, maxK) {
@@ -2053,11 +2096,11 @@ function medalHeroHTML(list) {
   const o = byHero.get(cur), N = o.rs.length, cnt = {};
   for (const r of o.rs) for (const k of r.ks) cnt[k] = (cnt[k] || 0) + 1;
   const rows = keys.filter(k => cnt[k]).sort((a, b) => cnt[b] - cnt[a]);
-  return `<div class="section"><div class="panel"><h2>メダル</h2>${P.ui}
+  return `<div class="section"><div class="panel"><h2>メダル</h2>${P.ui}${pieToggle(el, 'stats')}
     <p class="small muted" style="margin:8px 0 8px">自分・連携フレンド・固定メンバーを除く、味方と敵の全員が対象です。同じ絵柄は、何個付けていても1つと数えます。</p>
     <label class="fl"><span class="label">ヒーロー</span><select id="mdl-pick" data-kind="mh">${heroes.map(x => `<option value="${esc(String(x.h))}"${String(x.h) === cur ? ' selected' : ''}>${esc(hn(x.h))}（${x.rs.length}人）</option>`).join('')}</select></label>
     <p class="small muted" style="margin:8px 0 4px">「${esc(hn(o.h))}」を使っていた${N}人のうち、そのメダルを付けていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
-    <div class="mlist">${rows.map(k => { const p = pct2(cnt[k], N), thin = N < THIN; return `<div class="mrow${thin ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, thin)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${cnt[k]}/${N}人</span></span></div>`; }).join('')}</div>
+    ${pieOn(el) ? pieHTML(el, 'stats', 'm', rows.map(k => ({ k, n: MEDAL_NAME[k] || k, v: cnt[k], ic: MEDAL_IMG[k] || '' })), '個') : ''}<div class="mlist"${pieOn(el) ? ' style="display:none"' : ''}>${rows.map(k => { const p = pct2(cnt[k], N), thin = N < THIN; return `<div class="mrow${thin ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, thin)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${cnt[k]}/${N}人</span></span></div>`; }).join('')}</div>
     <p class="small muted" style="margin:6px 0 0">1人が複数の絵柄を付けるので、合計は100%になりません。${THIN}人未満のヒーローは全体が薄く表示されます。</p></div></div>`;
 }
 // カード：ヒーローを選ぶと、そのヒーローを使っていた人のカード使用率（同じカードは1人1回）。種類が多いので上位10枚から広げる
@@ -2084,12 +2127,12 @@ function cardPanelHTML(list, el) {
   const rows = [...cnt.entries()].sort((a, b) => b[1] - a[1]), all = el.dataset.cardAll === '1', shown = all ? rows : rows.slice(0, 10);
   const unnamed = rows.filter(([k]) => !k.startsWith('n:')).length;
   const bar = p => `<div class="mbar${N < THIN ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
-  return `<div class="section"><div class="panel"><h2>カード</h2>${P.ui}
+  return `<div class="section"><div class="panel"><h2>カード</h2>${P.ui}${pieToggle(el, 'stats')}
     <p class="small muted" style="margin:8px 0 8px">自分・連携フレンド・固定メンバーを除く、味方と敵の全員が対象です。同じカードは1人1回と数えます。</p>
     <label class="fl"><span class="label">ヒーロー</span><select id="mdl-pick" data-kind="ch">${heroes.map(x => `<option value="${esc(String(x.h))}"${String(x.h) === cur ? ' selected' : ''}>${esc(heroName(x.h))}（${x.rs.length}人）</option>`).join('')}</select></label>
     <p class="small muted" style="margin:8px 0 4px">「${esc(heroName(o.h))}」を使っていた${N}人のうち、そのカードを入れていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
-    <div class="mlist">${shown.map(([k, n]) => { const p = pct2(n, N), u = cardThumb(k); return `<div class="mrow${N < THIN ? ' thin' : ''}"><span class="mh">${u ? `<img class="cthumb" src="${u}" alt="">` : '<span class="cthumb"></span>'}<span class="pn${k.startsWith('n:') ? '' : ' muted'}">${esc(cardLabel(k))}</span></span>${bar(p)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${n}/${N}人</span></span></div>`; }).join('')}</div>
-    ${rows.length > 10 ? `<div class="row"><button class="btn ghost" data-act="card-all">${all ? '上位10枚だけにする' : `全${rows.length}枚を表示`}</button></div>` : ''}
+    ${pieOn(el) ? pieHTML(el, 'stats', 'c', rows.map(([k, n]) => ({ k, n: cardLabel(k), v: n, th: cardThumb(k) || '' })), '枚') : ''}<div class="mlist"${pieOn(el) ? ' style="display:none"' : ''}>${shown.map(([k, n]) => { const p = pct2(n, N), u = cardThumb(k); return `<div class="mrow${N < THIN ? ' thin' : ''}"><span class="mh">${u ? `<img class="cthumb" src="${u}" alt="">` : '<span class="cthumb"></span>'}<span class="pn${k.startsWith('n:') ? '' : ' muted'}">${esc(cardLabel(k))}</span></span>${bar(p)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${n}/${N}人</span></span></div>`; }).join('')}</div>
+    ${rows.length > 10 && !pieOn(el) ? `<div class="row"><button class="btn ghost" data-act="card-all">${all ? '上位10枚だけにする' : `全${rows.length}枚を表示`}</button></div>` : ''}
     <p class="small muted" style="margin:6px 0 0">1人4枚なので、合計は100%になりません。${N < THIN ? `${THIN}人未満のヒーローは全体が薄く表示されます。` : ''}${unnamed && !view.on ? `名前のないカードが${unnamed}枚あります。名前は「データ」タブの「カードの名前」で付けられます。` : ''}</p></div></div>`;
 }
 function medalHTML(list) {
@@ -3386,7 +3429,7 @@ document.addEventListener('click', e => {
   if (t.dataset.trendn) { sv.dataset.trendN = t.dataset.trendn; renderStats(); return; }
   if (act === 'recent-more') { sv.dataset.recent = Math.max(20, +(sv.dataset.recent || 20)) + 20; renderStats(); return; }
   if (act === 'recent-reset') { sv.dataset.recent = 20; renderStats(); return; }
-  if (perAct(act, t)) return;
+  if (perAct(act, t) || pieAct(act, t)) return;
   if (act === 'card-all') { sv.dataset.cardAll = sv.dataset.cardAll === '1' ? '' : '1'; renderStats(); return; }
   if (act === 'card-more') { const d = $('#view-data'); d.dataset.cardLim = String(+(d.dataset.cardLim || 60) + 60); renderData(); return; }
   if (act === 'mdl-all') { sv.dataset.mAll = sv.dataset.mAll === '1' ? '' : '1'; renderStats(); return; }
@@ -3641,7 +3684,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-03-F', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-03-H', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4756,8 +4799,8 @@ function statRender() {
     body = `<p class="small" style="margin:10px 0 0"><b>集計：${doc.p}人／${doc.n}試合</b>（同じ試合は1回だけ数えます）　<span class="muted">最終更新 ${statMsTime(doc.t)}</span></p>
     </div></div>
     <div class="section"><div class="panel"><h2>ヒーローの<select id="st-hv" class="hvsel" aria-label="表示する内容"><option value="use"${hv === 'use' ? ' selected' : ''}>使用率</option><option value="wr"${hv === 'wr' ? ' selected' : ''}>勝率</option></select></h2><p class="small muted" style="margin:0 0 6px">${hv === 'use' ? '使われた回数の多い順です。棒は1位を100%とした長さで、右の数字は「そのヒーローを使った回数／ヒーロー全体の回数」です。' : '勝率の高い順です。使用率は、ヒーロー全体のうち使われた割合です。棒の薄い帯と下の数字は、勝率の95%信頼区間（ウィルソン）です。'}</p>${(hv === 'use' ? hrUse : hr) || '<p class="small muted">この条件のデータはありません。</p>'}${more('h', D.H.length, lim('h'))}</div></div>
-    <div class="section"><div class="panel"><h2>カードの使用率</h2>${perUI}${PM ? perSelHTML(s.el, '') : ''}${perNote}${hc ? `${hsel('st-hc', withC, hc.k, 'cn')}<p class="small muted" style="margin:8px 0 4px">「${esc(dispName(hc.k))}」を使っていた${hc.cn}人のうち、そのカードを入れていた人の割合です。${hc.cn < STAT_THIN ? `<b>まだ${hc.cn}人なので参考程度です。</b>` : ''}</p><div class="mlist">${cr}</div>${more('c', cardRows.length, lim('c'))}` : '<p class="small muted" style="margin:0">この条件では、カードの記録がありません。</p>'}</div></div>
-    <div class="section"><div class="panel"><h2>メダルの使用率</h2>${perUI}${PM ? perSelHTML(s.el, '2') : ''}${perNote}${hm ? `${hsel('st-hm', withM, hm.k, 'mn')}<p class="small muted" style="margin:8px 0 4px">同じ絵柄は、何個付けていても1つと数えます。${hm.mn < STAT_THIN ? `<b>まだ${hm.mn}人なので参考程度です。</b>` : ''}</p><div class="mlist">${mr}</div>${more('m', medRows.length, lim('m'))}` : '<p class="small muted" style="margin:0">この条件では、メダルの記録がありません。</p>'}</div></div>
+    <div class="section"><div class="panel"><h2>カードの使用率</h2>${perUI}${PM ? perSelHTML(s.el, '') : ''}${perNote}${hc ? pieToggle(s.el, 'stat') : ''}${hc ? `${hsel('st-hc', withC, hc.k, 'cn')}<p class="small muted" style="margin:8px 0 4px">「${esc(dispName(hc.k))}」を使っていた${hc.cn}人のうち、そのカードを入れていた人の割合です。${hc.cn < STAT_THIN ? `<b>まだ${hc.cn}人なので参考程度です。</b>` : ''}</p>${pieOn(s.el) ? pieHTML(s.el, 'stat', 'c', cardRows.map(([c, v]) => ({ k: c, n: c, v, th: cardThumb('n:' + c) || (statS.cimg && statS.cimg.get(c)) || '' })), '枚') : ''}<div class="mlist"${pieOn(s.el) ? ' style="display:none"' : ''}>${cr}</div>${pieOn(s.el) ? '' : more('c', cardRows.length, lim('c'))}` : '<p class="small muted" style="margin:0">この条件では、カードの記録がありません。</p>'}</div></div>
+    <div class="section"><div class="panel"><h2>メダルの使用率</h2>${perUI}${PM ? perSelHTML(s.el, '2') : ''}${perNote}${hm ? pieToggle(s.el, 'stat') : ''}${hm ? `${hsel('st-hm', withM, hm.k, 'mn')}<p class="small muted" style="margin:8px 0 4px">同じ絵柄は、何個付けていても1つと数えます。${hm.mn < STAT_THIN ? `<b>まだ${hm.mn}人なので参考程度です。</b>` : ''}</p>${pieOn(s.el) ? pieHTML(s.el, 'stat', 'm', medRows.map(([i, v]) => { const k = Core.MEDAL_KEYS[i]; return { k, n: MEDAL_NAME[k] || k, v, ic: MEDAL_IMG[k] || '' }; }), '個') : ''}<div class="mlist"${pieOn(s.el) ? ' style="display:none"' : ''}>${mr}</div>${pieOn(s.el) ? '' : more('m', medRows.length, lim('m'))}` : '<p class="small muted" style="margin:0">この条件では、メダルの記録がありません。</p>'}</div></div>
     <div class="section"><div class="panel"><h2>ステージの勝率</h2>${hpick('st-hg', [{ k: '', t: '全ヒーロー' }].concat(hgList.map(e => ({ k: e.k, t: dispName(e.k) }))), hg)}<p class="small muted" style="margin:8px 0 6px">${hg ? `「${esc(dispName(hg))}」を使っていた人（味方・敵を含む全員）の、ステージごとの勝率です。` : '提供した人自身の、ステージごとの勝率です。'}</p>${gr || '<p class="small muted">この条件のデータはありません。</p>'}${more('g', GL.length, lim('g'))}`;
   }
   el.innerHTML = head + `<div class="section"><div class="panel">${filters}${body}</div></div>` + pubBox + admin;
