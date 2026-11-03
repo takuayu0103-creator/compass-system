@@ -135,6 +135,7 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
 .kpi .v{font-family:var(--f-display);font-weight:900;letter-spacing:-.02em;font-size:1.6rem;line-height:1.2;font-variant-numeric:tabular-nums}
 .kpi .v small{font-size:.9rem;color:var(--muted);font-family:var(--f-body)}
+.nudge{border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface));border-radius:12px;padding:12px;margin:8px 0 10px}.nudge b{display:block;margin-bottom:4px}.nudge p{margin:0 0 8px;font-size:.85rem;line-height:1.6}.nudge .row{margin:0}
 .stat{display:grid;grid-template-columns:minmax(0,7.6em) minmax(0,1fr) 6.8em;gap:10px;align-items:center;font-size:.88rem}
 .stat .nm{overflow-wrap:anywhere;line-height:1.35}
 .bar{position:relative;height:14px;background:var(--soft);border-radius:3px}
@@ -388,6 +389,7 @@ body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],bod
         <div id="prog-wrap" hidden>
           <div class="progress"><i id="prog"></i></div>
           <div class="small muted" id="prog-text"></div>
+          <div class="nudge" id="card-nudge" hidden></div>
         </div>
       </div>
     </div>
@@ -1076,6 +1078,20 @@ function cardSuggest(f) {
   const top = out.filter((x, i, a) => a.findIndex(y => y.n === x.n) === i).slice(0, 3);
   return { top, ratio: top.length > 1 ? top[1].d / Math.max(top[0].d, 1e-6) : 9 };
 }
+// 名前がないカードの案内：データタブの「カードの名前」へ移る／読み込み後の知らせ
+function cardNamesGo() {
+  showTab('data');
+  setTimeout(() => { const e = document.getElementById('card-names'); if (e) e.scrollIntoView({ block: 'start' }); }, 80);
+}
+function cardNudgeShow() {
+  const n = $('#card-nudge'); if (!n) return;
+  const fresh = (db.cards || []).filter(c => !c.name && !c.nudged);
+  if (!fresh.length) { n.hidden = true; return; }
+  for (const c of fresh) c.nudged = 1; persist();
+  n.innerHTML = `<b>名前のないカードが ${fresh.length}枚 増えました</b><p>自動で名前が付けられなかったカードです。名前を付けておくと、分析タブのカードの使用率に名前が出ます。</p><div class="row"><button class="btn primary" data-act="go-cardnames">今、名前を付ける</button><button class="btn ghost" data-act="nudge-close">あとで</button></div>`;
+  n.hidden = false;
+}
+const cardUnnamedN = () => (db.cards || []).filter(c => !c.name).length;
 // まだ名前のないカードに、自信がある時だけ自動で名前を付ける（1回だけ。消した名前は付け直さない）
 function cardAutoName(c) {
   if (!c || c.name || c.sug) return false;
@@ -1207,7 +1223,7 @@ async function storeInit() {
   } catch (e) { store.useLS = true; }
   seedHeroes(); dbFix(); rebuildCache();
   store.ready = true;
-  try { if (cardAutoAll()) storeSave(); } catch (e) {}
+  try { let ch = cardAutoAll() > 0; if (!db.nudgeInit) { for (const c of db.cards || []) c.nudged = 1; db.nudgeInit = 1; ch = true; } if (ch) storeSave(); } catch (e) {}
 }
 async function storeWrite() {
   store.timer = 0;
@@ -1396,7 +1412,7 @@ function readBest(c, img, name, at0) {
   return best;
 }
 async function readFiles(files) {
-  $('#prog-wrap').hidden = false;
+  $('#prog-wrap').hidden = false; { const n = $('#card-nudge'); if (n) n.hidden = true; }
   const shots = []; let skippedN = 0;
   for (let i = 0; i < files.length; i++) {
     $('#prog-text').textContent = `${i + 1} / ${files.length} 枚目を読み取り中…`;
@@ -1771,6 +1787,7 @@ function saveBatch() {
   batch = null; renderReview();
   $('#prog-wrap').hidden = false; $('#prog').style.width = '100%';
   $('#prog-text').textContent = `${added}試合を保存しました。` + (filled ? `${filled}試合にランク・メダル・カードを書き足しました。` : '') + (dup + skipped ? `${dup + skipped}枚は登録しませんでした。` : '') + (saveOK ? '' : '（このブラウザでは保存できませんでした。データタブからバックアップを取ってください）');
+  cardNudgeShow();
   renderAll();
 }
 
@@ -2118,7 +2135,7 @@ function cardPanelHTML(list, el) {
       const k = String(h); if (!byHero.has(k)) byHero.set(k, { h, rs: [] }); byHero.get(k).rs.push(ks);
     });
   }
-  if (!byHero.size) return `<div class="section"><div class="panel"><h2>カード</h2>${P.ui}<p class="small muted" style="margin:8px 0 0">この条件では、カードが記録された試合がまだありません。カードは、新しく読み込んだ試合から記録されます。前に読み込んだ試合は、同じスクショをもう一度「読み込み」に入れると書き足せます。</p></div></div>`;
+  if (!byHero.size) return `<div class="section"><div class="panel"><h2>カード</h2>${P.ui}<div class="nudge"><b>カードの記録が、この条件ではまだありません</b><p>カードは、新しく読み込んだ試合から記録されます。前に登録した試合は、同じスクショをもう一度「読み込み」に入れると書き足せます。</p><div class="row"><button class="btn ghost" data-act="go-add">読み込みへ移る</button></div></div><p class="small muted" style="margin:8px 0 0;display:none">この条件では、カードが記録された試合がまだありません。カードは、新しく読み込んだ試合から記録されます。前に読み込んだ試合は、同じスクショをもう一度「読み込み」に入れると書き足せます。</p></div></div>`;
   const heroes = [...byHero.values()].sort((a, b) => heroOrd(a.h) - heroOrd(b.h) || b.rs.length - a.rs.length);
   const top = [...heroes].sort((a, b) => b.rs.length - a.rs.length)[0];
   const cur = byHero.has(String(el.dataset.ch)) ? String(el.dataset.ch) : String(top.h);
@@ -2127,7 +2144,7 @@ function cardPanelHTML(list, el) {
   const rows = [...cnt.entries()].sort((a, b) => b[1] - a[1]), all = el.dataset.cardAll === '1', shown = all ? rows : rows.slice(0, 10);
   const unnamed = rows.filter(([k]) => !k.startsWith('n:')).length;
   const bar = p => `<div class="mbar${N < THIN ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
-  return `<div class="section"><div class="panel"><h2>カード</h2>${P.ui}${pieToggle(el, 'stats')}
+  return `<div class="section"><div class="panel"><h2>カード</h2>${cardUnnamedN() ? `<div class="nudge"><b>名前のないカードが ${cardUnnamedN()}枚 あります</b><p>名前が付いていないカードは、下の表で「名前なし」になってしまい、どのカードか分かりません。名前を付けると、ここに名前が出ます。</p><div class="row"><button class="btn primary" data-act="go-cardnames">名前を付けに行く</button></div></div>` : ''}${P.ui}${pieToggle(el, 'stats')}
     <p class="small muted" style="margin:8px 0 8px">自分・連携フレンド・固定メンバーを除く、味方と敵の全員が対象です。同じカードは1人1回と数えます。</p>
     <label class="fl"><span class="label">ヒーロー</span><select id="mdl-pick" data-kind="ch">${heroes.map(x => `<option value="${esc(String(x.h))}"${String(x.h) === cur ? ' selected' : ''}>${esc(heroName(x.h))}（${x.rs.length}人）</option>`).join('')}</select></label>
     <p class="small muted" style="margin:8px 0 4px">「${esc(heroName(o.h))}」を使っていた${N}人のうち、そのカードを入れていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
@@ -2980,12 +2997,12 @@ function renderHist() {
 // カードの名前付け。名前がないものを先に、試合で見た回数の多い順
 function cardNameHTML(el) {
   const cs = db.cards || [];
-  if (!cs.length) return `<div class="section"><div class="panel"><h2>カードの名前</h2><p class="small muted" style="margin:0">まだカードの記録がありません。リプレイのスクショを読み込むと、映っているカードを覚えて、ここに並びます。</p></div></div>`;
+  if (!cs.length) return `<div class="section" id="card-names"><div class="panel"><h2>カードの名前</h2><p class="small muted" style="margin:0">まだカードの記録がありません。リプレイのスクショを読み込むと、映っているカードを覚えて、ここに並びます。</p></div></div>`;
   const cnt = new Map(); for (const m of db.matches) if (m.cards) for (const sd of ['blue', 'red']) for (const row of m.cards[sd] || []) if (row) for (const id of new Set(row)) if (id) cnt.set(id, (cnt.get(id) || 0) + 1);
   const only = el.dataset.cardOnly !== '0', lim = +(el.dataset.cardLim || 60);
   const list = cs.filter(c => !only || !c.name).sort((a, b) => (!!a.name - !!b.name) || (a.name ? cardOrd(a.name) - cardOrd(b.name) : 0) || ((cnt.get(b.id) || 0) - (cnt.get(a.id) || 0)));
   const named = cs.filter(c => c.name).length, names = [...new Set(cs.map(c => c.name).filter(Boolean))].sort((a, b) => cardOrd(a) - cardOrd(b) || a.localeCompare(b, 'ja'));
-  return `<div class="section"><div class="panel"><h2>カードの名前</h2>
+  return `<div class="section" id="card-names"><div class="panel"><h2>カードの名前</h2>
     <p class="small muted" style="margin:0">読み込んだスクショから覚えたカードです（${cs.length}枚・名前あり${named}枚）。名前を付けると、分析タブの「カードの使用率」に名前が出ます。「自動」は、カード一覧の絵と照らし合わせて自動で付けた名前です。名前がないカードには、絵が近い順に候補が出るので、合っていればタップしてください。候補にない時は、名前の右の「▼」から全カードの一覧を開いて、名前で検索して選べます。同じカードが2つに分かれて並んでいたら、同じ名前を付けると1つにまとまります。</p>
     <div class="row"><label class="small"><input type="checkbox" data-cardonly="1"${only ? ' checked' : ''}> 名前がないカードだけ表示</label></div>
     <datalist id="card-names">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
@@ -3087,7 +3104,7 @@ function renderGuide() {
   ${acc('5. カード分析', `
     <p>試合を読み込むと、6人が入れていた4枚のカードも、絵柄で見分けて記録します。</p>
     <ul>
-      <li><b>カードの使用率：</b>分析タブの「メダル/カード」で「カード」を選び、ヒーローを選びます。そのヒーローを使っていた人のうち、各カードを入れていた人の割合が、上位10枚まで出ます。「全○枚を表示」で全部見られます。「期間ごと」をONにすると、毎月25日〜翌月24日の期間（1ヶ月・3ヶ月・6ヶ月・1年、または1ヶ月刻みの長さ）に絞れます。メダルの表も同じです。◀▶で前後の期間に動けます。</li>
+      <li><b>カードの使用率：</b>分析タブの「メダル/カード」で「カード」を選び、ヒーローを選びます。そのヒーローを使っていた人のうち、各カードを入れていた人の割合が、上位10枚まで出ます。「全○枚を表示」で全部見られます。名前のないカードが残っている時は、この表の上に案内が出て、ボタンで名前を付ける画面（データタブ）に移れます。「期間ごと」をONにすると、毎月25日〜翌月24日の期間（1ヶ月・3ヶ月・6ヶ月・1年、または1ヶ月刻みの長さ）に絞れます。メダルの表も同じです。◀▶で前後の期間に動けます。</li>
       <li><b>カードの名前：</b>カード一覧の絵と照らし合わせて、自信がある時だけ自動で名前を付けます（「自動」と表示）。自信がないカードは「名前なし」のままになり、データタブの「カードの名前」に絵が近い順の候補が出るので、合っているものをタップするか、自分で入力してください。自動の名前が違っていたら、そこで直せます。同じカードが2つに分かれて並んでいたら、同じ名前を付けると1つにまとまります。</li>
     </ul>
     <h4>数え方</h4>
@@ -3515,6 +3532,8 @@ document.addEventListener('click', e => {
   else if (act === 'cloud-del') { syncS.cdAsk = true; syncRender(); }
   else if (act === 'cloud-del-no') { syncS.cdAsk = false; syncRender(); }
   else if (act === 'go-add') showTab('add');
+  else if (act === 'go-cardnames') cardNamesGo();
+  else if (act === 'nudge-close') { const n = $('#card-nudge'); if (n) n.hidden = true; }
   else if (act === 'sample-on') { sampleShow = true; renderStats(); }
   else if (act === 'sample-off') { sampleShow = false; renderStats(); }
   else if (act === 'cloud-del-yes') cloudDelete();
@@ -3684,7 +3703,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-03-I', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-03-J', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
