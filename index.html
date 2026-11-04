@@ -138,6 +138,7 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .nudge{border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface));border-radius:12px;padding:12px;margin:8px 0 10px}.nudge b{display:block;margin-bottom:4px}.nudge p{margin:0 0 8px;font-size:.85rem;line-height:1.6}.nudge .row{margin:0}
 .stat{display:grid;grid-template-columns:minmax(0,7.6em) minmax(0,1fr) 6.8em;gap:10px;align-items:center;font-size:.88rem}
 .stat .nm{overflow-wrap:anywhere;line-height:1.35}
+.stat.hh{row-gap:3px}.stat.hh .nm{grid-column:1/-1;gap:6px;font-weight:600}.stat.hh .sub{font-size:.72rem;text-align:right;white-space:nowrap;line-height:1.2}
 .bar{position:relative;height:14px;background:var(--soft);border-radius:3px}
 .bar i{position:absolute;left:0;top:4px;bottom:4px;border-radius:2px}
 .bar .ci{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--ink) 16%,transparent);border-radius:3px}
@@ -3703,7 +3704,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-04-A', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-04-B', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4800,15 +4801,15 @@ function statRender() {
   if (!doc) body = `<p class="small muted" style="margin:10px 0 0">読み込んでいます…</p>`;
   else {
     const D = Dm || statData(doc, s.band), slots = D.H.reduce((a, e) => a + e.n, 0);
-    const nmRow = (k, n, w, extra, thin) => { const p = n ? w / n * 100 : 0, c = wilson(w, n); return `<div class="stat" style="margin:9px 0${thin ? ';opacity:.55' : ''}"><span class="nm" style="display:flex;align-items:center;gap:6px">${extra}</span><span class="bar" role="img" aria-label="勝率${f2(p)}%（95%の範囲 ${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%）"><b class="ci" style="left:${c.lo}%;width:${c.hi - c.lo}%"></b><i class="${p >= 50 ? 'w' : 'l'}" style="width:${p}%"></i></span><span class="num">${f2(p)}% <span class="muted">${w}/${n}</span><span class="cir">${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%</span></span></div>`; };
+    const nmRow = (k, n, w, extra, thin, sub) => { const p = n ? w / n * 100 : 0, c = wilson(w, n); return `<div class="stat${sub != null ? ' hh' : ''}" style="margin:${sub != null ? 13 : 9}px 0${thin ? ';opacity:.55' : ''}"><span class="nm" style="display:flex;align-items:center;gap:6px">${extra}</span>${sub != null ? `<span class="sub muted">${sub}</span>` : ''}<span class="bar" role="img" aria-label="勝率${f2(p)}%（95%の範囲 ${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%）"><b class="ci" style="left:${c.lo}%;width:${c.hi - c.lo}%"></b><i class="${p >= 50 ? 'w' : 'l'}" style="width:${p}%"></i></span><span class="num">${f2(p)}% <span class="muted">${w}/${n}</span><span class="cir">${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%</span></span></div>`; };
     // 勝率の高い順。ただし件数が少ない項目（STAT_THIN未満）は、あとにまとめる
     const byWr = l => [...l].sort((a, b) => ((b.n >= STAT_THIN) - (a.n >= STAT_THIN)) || (b.w / b.n - a.w / a.n) || b.n - a.n);
     const more = (key, total, lim) => (total > lim ? `<div class="row"><button class="btn ghost" data-act="stat-more" data-k="${key}">もっと見る（残り${total - lim}件）</button></div>` : '') + (lim > 10 ? `<div class="row"><button class="btn ghost" data-act="stat-less" data-k="${key}">閉じる（10件に戻す）</button></div>` : '');
     const lim = k => statS.more[k] || 10;
     const hv = s.el.dataset.hv === 'use' ? 'use' : 'wr';
     const useMax = D.H.reduce((a, e) => Math.max(a, e.n), 0) || 1;
-    const hrUse = [...D.H].sort((a, b) => b.n - a.n || (b.w / b.n - a.w / a.n)).slice(0, lim('h')).map((e, i) => `<div class="stat" style="margin:9px 0"><span class="nm" style="display:flex;align-items:center;gap:6px"><span style="flex:0 0 1.2em;text-align:right;font-weight:700;color:var(--muted)">${i + 1}</span>${statIco(e.k)}<span style="margin-left:-4px;display:flex;flex-direction:column;line-height:1.3;min-width:0"><span>${esc(dispName(e.k))}</span><span class="small muted" style="font-size:.78rem">勝率${e.n ? f2(e.w / e.n * 100) : '−'}%</span></span></span><span class="bar nodash" role="img" aria-label="使用率${f2(slots ? e.n / slots * 100 : 0)}%"><i style="width:${e.n / useMax * 100}%;background:var(--accent)"></i></span><span class="num">${f2(slots ? e.n / slots * 100 : 0)}%<span class="cir">${e.n}/${slots}回</span></span></div>`).join('');
-    const hr = byWr(D.H).slice(0, lim('h')).map(e => nmRow(e.k, e.n, e.w, `${statIco(e.k)}<span style="margin-left:-4px;display:flex;flex-direction:column;line-height:1.3;min-width:0"><span>${esc(dispName(e.k))}</span><span class="small muted" style="font-size:.78rem">使用率${f2(slots ? e.n / slots * 100 : 0)}%</span></span>`, e.n < STAT_THIN)).join('');
+    const hrUse = [...D.H].sort((a, b) => b.n - a.n || (b.w / b.n - a.w / a.n)).slice(0, lim('h')).map((e, i) => `<div class="stat hh" style="margin:13px 0"><span class="nm" style="display:flex;align-items:center;gap:6px"><span style="flex:0 0 1.2em;text-align:right;font-weight:700;color:var(--muted)">${i + 1}</span>${statIco(e.k)}<span style="min-width:0">${esc(dispName(e.k))}</span></span><span class="sub muted">勝率${e.n ? f2(e.w / e.n * 100) : '−'}%</span><span class="bar nodash" role="img" aria-label="使用率${f2(slots ? e.n / slots * 100 : 0)}%"><i style="width:${e.n / useMax * 100}%;background:var(--accent)"></i></span><span class="num">${f2(slots ? e.n / slots * 100 : 0)}%<span class="cir">${e.n}/${slots}回</span></span></div>`).join('');
+    const hr = byWr(D.H).slice(0, lim('h')).map(e => nmRow(e.k, e.n, e.w, `${statIco(e.k)}<span style="min-width:0">${esc(dispName(e.k))}</span>`, e.n < STAT_THIN, `使用率${f2(slots ? e.n / slots * 100 : 0)}%`)).join('');
     const byIx = l => l.slice().sort((x, y) => heroOrd(x.k) - heroOrd(y.k));
     const hgList = byIx(D.H.filter(e => D.GH.has(e.k))), hg = hgList.find(e => e.k === s.el.dataset.hg) ? s.el.dataset.hg : '';
     const GL = hg ? D.GH.get(hg) : D.G;
