@@ -3173,7 +3173,7 @@ function renderGuide() {
     <h4>記録の削除</h4>
     <ul>
       <li>この端末の記録は、データタブの「全部消す」で削除できます。</li>
-      <li>サーバーに保存した記録は、データタブの「クラウドの記録を削除」で削除できます。フレンド連携と招待コードも一緒に消えます。</li>
+      <li>サーバーに保存した記録は、データタブの「クラウドの記録を削除」で削除できます。フレンド連携と招待コードも、統計に提供したデータも一緒に消えます（すでに集計に入った数字は、次の集計で外れます）。</li>
     </ul>
     <h4>禁止事項</h4>
     <ul>
@@ -3703,7 +3703,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-03-J', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-04-A', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -3759,6 +3759,7 @@ async function fbReal() {
       const q = await F.getDocs(F.collection(fs, 'pub', uid, 'parts')), b = F.writeBatch(fs);
       q.forEach(d => b.delete(d.ref)); b.delete(F.doc(fs, 'pub', uid)); b.set(F.doc(fs, 'pubout', uid), { t: Date.now() }); await b.commit();
     },
+    async pubHas(uid) { const d = await F.getDoc(F.doc(fs, 'pub', uid)); if (d.exists()) return true; const q = await F.getDocs(F.collection(fs, 'pub', uid, 'parts')); return !q.empty; },
     async pubAll() { const q = await F.getDocs(F.collectionGroup(fs, 'parts')), out = []; q.forEach(d => { const u = d.ref.parent.parent; if (u && u.parent && u.parent.id === 'pub') out.push({ uid: u.id, text: d.data().d || '' }); }); return out; },
     async pubOutList() { const q = await F.getDocs(F.collection(fs, 'pubout')), out = []; q.forEach(d => out.push(d.id)); return out; },
     async pubOutClear(ids) { if (!ids || !ids.length) return; const b = F.writeBatch(fs); ids.forEach(i => b.delete(F.doc(fs, 'pubout', i))); await b.commit(); },
@@ -4188,7 +4189,7 @@ async function hoStart() {
   const id = hoRand(24), raw = hoRand(16), nonce = await hoSha(raw);
   try { localStorage.setItem(HO_KEY, JSON.stringify({ id, raw, at: Date.now(), relay: hoTest() })); } catch (e) {}
   const url = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({ client_id: HO_CID, redirect_uri: hoUri(), response_type: 'id_token', scope: 'openid email profile', nonce, state: id, prompt: 'select_account' });
-  syncRender('Googleのログイン画面を開きました。ログインが終わったら、このアプリに戻ってください（自動でログインします）。');
+  syncRender('Googleのログイン画面を開きました。ログイン後に出る画面で、確認コード「' + hoCode(id) + '」と同じか見て、ボタンを押してからアプリに戻ってください。');
   const w = window.open(url, '_blank');
   if (!w) location.href = url;
   hoPoll();
@@ -4228,14 +4229,28 @@ async function hoLanding() {
   if (er) { if (p && p.id === st) hoClear(); syncRender('ログインできませんでした（' + er + '）。もう一度お試しください。', true); return true; }
   // アプリの中で戻ってきた（同じ保存場所）なら、そのままログイン
   if (p && p.id === st && !p.relay) { clearTimeout(hoTimer); hoClear(); try { await hoFinish(tok, p.raw); } catch (e) { syncRender(syncErr(e), true); } return true; }
-  // Safari側：トークンを置いて、アプリに戻ってもらう
+  // Safari側：確認コードを見せて、本人が押したらトークンを置く
+  hoConfirm(st, tok);
+  return true;
+}
+const hoCode = id => String(parseInt(String(id).slice(0, 8), 16) % 10000).padStart(4, '0');
+// Safari側：本人が確認してから渡す（他人に開かされたログインを、知らない端末に渡さないため）
+function hoConfirm(st, tok) {
+  hoNote('');
+  const el = document.getElementById('ho-note'); if (!el) return;
+  const code = hoCode(st);
+  const t = document.createElement('div'); t.textContent = 'ホーム画面のアプリに出ている「確認コード」は ' + code + ' ですか？ 同じ時だけ、下のボタンを押してください。アプリを開いていない／コードが違う時は押さずに、この画面を閉じてください。';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'btn primary'; b.style.marginTop = '10px'; b.textContent = 'コードが同じ → アプリに渡す';
+  b.onclick = () => { b.disabled = true; hoSend(st, tok); };
+  el.append(t, b);
+}
+async function hoSend(st, tok) {
   hoNote('ログイン情報をアプリに渡しています…');
   try {
     const r = await fetch(`${HO_DOCS}?documentId=${encodeURIComponent(st)}&key=${FB_CONFIG.apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { t: { stringValue: tok }, at: { integerValue: String(Date.now()) } } }) });
     if (!r.ok) throw new Error(String(r.status));
     hoNote('ログインできました。この画面を閉じて、ホーム画面のアプリに戻ってください。', 'ok');
   } catch (e) { hoNote('アプリにログイン情報を渡せませんでした（' + e.message + '）。アプリに戻って、もう一度ログインしてください。', 'err'); }
-  return true;
 }
 function hoNote(t, kind) {
   let el = document.getElementById('ho-note');
@@ -4270,11 +4285,13 @@ async function cloudDelete() {
   let links = []; try { links = await FBA.listLinks(u.uid); } catch (e) {}
   for (const l of links) { try { await FBA.delLink(l.id); } catch (e) {} }
   const m = syncMeta(); if (m.inv) { try { await FBA.delInvite(m.inv.code); } catch (e) {} }
+  try { pubS.on = false; await FBA.pubDel(u.uid); try { localStorage.removeItem(DBKEY + '-pubsig'); } catch (e) {} } catch (e) {}
   try { await FBA.delCloud(u.uid); } catch (e) {}
   // 確認
   try { if (await FBA.getShare(u.uid)) fail.push('フレンドに見せている記録'); } catch (e) { fail.push('フレンドに見せている記録（確認できませんでした）'); }
   try { if ((await FBA.listLinks(u.uid)).length) fail.push('フレンド連携'); } catch (e) { fail.push('フレンド連携（確認できませんでした）'); }
   try { if (m.inv && m.inv.exp > Date.now() && await FBA.getInvite(m.inv.code)) fail.push('招待コード'); } catch (e) {}
+  try { if (FBA.pubHas && await FBA.pubHas(u.uid)) fail.push('統計に提供したデータ'); } catch (e) { fail.push('統計に提供したデータ（確認できませんでした）'); }
   try { if (await FBA.getMeta(u.uid)) fail.push('自分の戦績のバックアップ'); } catch (e) { fail.push('自分の戦績のバックアップ（確認できませんでした）'); }
   syncS.busy = false; syncS.cdAsk = false;
   if (fail.length) {
