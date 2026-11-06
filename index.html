@@ -339,7 +339,14 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
 .cplist button:hover,.cplist button:focus-visible{border-color:var(--accent)}.cplist .ad{width:10px;height:10px;border-radius:50%;flex:none}.cplist .sh{font-size:.75rem;color:var(--muted);margin:6px 0 2px}.citem{align-items:flex-start}.cauto{color:var(--accent);font-weight:700}.csug{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.csug button{font:inherit;font-size:.72rem;line-height:1.3;padding:2px 6px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--ink);cursor:pointer;text-align:left}.mbar{height:8px;border-radius:4px;background:rgba(128,128,128,.22);overflow:hidden}.mbar i{display:block;height:100%;background:var(--accent,#4da3ff);border-radius:4px}
 .acc{border:1px solid var(--line);border-radius:8px;background:var(--surface)}.acc>summary{cursor:pointer;list-style:none;padding:12px 14px;font-family:var(--f-ui);font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:8px}.acc>summary::-webkit-details-marker{display:none}.acc>summary::after{content:'＋';margin-left:auto;color:var(--muted)}.acc[open]>summary::after{content:'－'}.acc .accb{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;font-size:.9rem;line-height:1.7}.acc .accb h4{margin:6px 0 0;font-size:.9rem;font-family:var(--f-ui)}.acc .accb p,.acc .accb ul,.acc .accb ol{margin:0}.acc .accb ul,.acc .accb ol{padding-left:1.3em;display:flex;flex-direction:column;gap:4px}.acc .note{font-size:.82rem;color:var(--muted)}
 .ho-note{position:sticky;top:0;z-index:80;padding:14px 16px;font-weight:700;background:var(--soft);color:var(--ink);border-bottom:2px solid var(--line)}.ho-note.ok{background:#1f6f3f;color:#fff}.ho-note.err{background:#8a2a2a;color:#fff}
-.frel{display:none;gap:12px;margin:2px 0 6px}.show-rel .frel{display:flex}.frel a{color:var(--ink);font-weight:700;text-decoration:underline}.flinks{display:inline-flex;gap:14px;margin:6px 0}.flinks a{color:var(--ink);font-weight:700}
+footer .support{position:relative}
+.jc{display:none;position:absolute;right:0;top:26px;bottom:2px;width:calc(100% - 205px);flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px 10px;border:1.5px solid var(--accent);border-radius:14px;background:color-mix(in srgb,var(--accent) 9%,var(--surface));color:var(--ink);text-decoration:none;text-align:center}
+.show-rel .jc{display:flex}
+.jc b{font-size:.95rem;font-weight:900;color:var(--accent);line-height:1.25}
+.jc .go,.jc .go2{font:inherit;font-size:.74rem;font-weight:700;border-radius:999px;padding:3px 14px;line-height:1.4;text-decoration:none;cursor:pointer}
+.jc .go{color:var(--accent-ink);background:var(--accent);border:1px solid var(--accent)}
+.jc .go2{color:var(--accent);background:var(--surface);border:1px solid var(--accent)}
+@media (max-width:379px){.jc{position:static;width:auto;margin-top:8px;flex-direction:row;flex-wrap:wrap;justify-content:space-between;padding:8px 14px}}.flinks{display:inline-flex;gap:14px;margin:6px 0}.flinks a{color:var(--ink);font-weight:700}
 #fb-text{width:100%;min-height:120px;resize:vertical;font:inherit;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);box-sizing:border-box}
 #pwa-bar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.25);max-width:560px;margin:0 auto}#pwa-bar img{border-radius:8px;flex:none}#pwa-bar span{flex:1;font-size:.85rem;line-height:1.4}#pwa-bar .btn{flex:none}
 .shimg{width:100%;height:auto;border-radius:8px;border:1px solid var(--line);display:block}.mfback{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);overflow-y:auto;padding:16px}.mfbox{max-width:560px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
@@ -419,11 +426,11 @@ body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],bod
   <main id="view-data" class="view" hidden></main>
   <main id="view-guide" class="view" hidden></main>
 
-  <footer><div class="support"><span class="label">応援コード</span>
+  <footer><div class="support"><span class="label">応援コード<span class="small muted" id="code-msg" style="margin-left:6px">（タップでコピー）</span></span>
     <div class="crow"><span class="crole">開発者</span><button class="code" data-copy="C-zUgT">C-zUgT</button></div>
     <div class="crow"><span class="crole">開発補佐</span><button class="code" data-copy="C-sEuU">C-sEuU</button></div>
-    <div class="crow"><span class="crole">アイデア</span><button class="code" data-copy="C-MQWL">C-MQWL</button><span class="small muted" id="code-msg">タップでコピー</span></div></div>
-    非公式のファンツールです。ゲームの開発・運営会社とは関係ありません。読み取りに使ったスクショは保存せず、照合用の特徴データだけをこのブラウザに保存します。<br><span class="flinks"><a href="#" data-act="go-feedback">フィードバック</a><a href="#" data-act="go-terms">利用規約とプライバシー</a></span><br><div class="frel">関連サイト<a href="https://compass-match.vercel.app/?src=x" target="_blank" rel="noopener">JOIN🔶COMPASS</a></div>ゲーム内の画像・名称などの著作権は各権利者に帰属します。©NHN PlayArt Corp. ©DWANGO Co., Ltd.</footer>
+    <div class="crow"><span class="crole">アイデア</span><button class="code" data-copy="C-MQWL">C-MQWL</button></div><div class="jc"><b>JOIN🔶COMPASS</b><button type="button" class="go2" data-act="go-rel">詳しく見る</button><a class="go" href="https://compass-match.vercel.app/?src=x" target="_blank" rel="noopener">開く ↗</a></div></div>
+    非公式のファンツールです。ゲームの開発・運営会社とは関係ありません。読み取りに使ったスクショは保存せず、照合用の特徴データだけをこのブラウザに保存します。<br><span class="flinks"><a href="#" data-act="go-feedback">フィードバック</a><a href="#" data-act="go-terms">利用規約とプライバシー</a></span><br>ゲーム内の画像・名称などの著作権は各権利者に帰属します。©NHN PlayArt Corp. ©DWANGO Co., Ltd.</footer>
 </div>
 
 <script id="core">
@@ -3388,7 +3395,7 @@ async function feedbackSend() {
 }
 function guideGo(which) {
   showTab('guide');
-  const el = which === 'terms' ? document.querySelectorAll('#view-guide .acc')[5] : $('#fb-box');
+  const el = which === 'terms' ? document.querySelectorAll('#view-guide .acc')[5] : which === 'rel' ? [...document.querySelectorAll('#view-guide .acc')].find(d => d.textContent.trim().startsWith('9.')) : $('#fb-box');
   if (!el) return; if (el.tagName === 'DETAILS') el.open = true;
   setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
 }
@@ -3698,6 +3705,7 @@ document.addEventListener('click', e => {
   else if (act === 'nick-save') nickSave();
   else if (act === 'go-feedback') { e.preventDefault(); guideGo('feedback'); }
   else if (act === 'go-terms') { e.preventDefault(); guideGo('terms'); }
+  else if (act === 'go-rel') { e.preventDefault(); guideGo('rel'); }
   else if (act === 'cloud-del') { syncS.cdAsk = true; syncRender(); }
   else if (act === 'cloud-del-no') { syncS.cdAsk = false; syncRender(); }
   else if (act === 'go-add') showTab('add');
@@ -3877,7 +3885,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-07-N', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-07-O', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
