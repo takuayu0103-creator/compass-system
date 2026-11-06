@@ -3721,7 +3721,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-07-D', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-07-E', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4881,7 +4881,8 @@ function statRender() {
     const hr = byWr(D.H).slice(0, lim('h')).map(e => nmRow(e.k, e.n, e.w, `${statIco(e.k)}<span style="min-width:0">${esc(dispName(e.k))}</span>`, e.n < STAT_THIN, `使用率${f2(slots ? e.n / slots * 100 : 0)}%`)).join('');
     const byIx = l => l.slice().sort((x, y) => heroOrd(x.k) - heroOrd(y.k));
     const hgList = byIx(D.H.filter(e => D.GH.has(e.k))), hg = hgList.find(e => e.k === s.el.dataset.hg) ? s.el.dataset.hg : '';
-    const GL = hg ? D.GH.get(hg) : D.G;
+    // カスタムバトル専用ステージは、すでに集計に入っていても表示しない
+    const GL = (hg ? D.GH.get(hg) : D.G).filter(e => !STAGE_NOSTAT.has(String(e.k).trim()));
     const gr = byWr(GL).slice(0, lim('g')).map(e => nmRow(e.k, e.n, e.w, esc(e.k), e.n < STAT_THIN)).join('');
     const PM = perOn(s.el), pk = s.md.pk || [];
     let DP = D, perUI = '', perNote = '';
