@@ -351,6 +351,8 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
 .strk{width:100%;border-collapse:collapse;font-size:.85rem;margin:8px 0}.strk th{font-weight:600;color:var(--muted);text-align:right;padding:4px 6px;border-bottom:1px solid var(--line)}.strk td{text-align:right;padding:6px;border-bottom:1px solid var(--line)}.strk th:first-child,.strk td:first-child{text-align:left}
 .nb{display:inline-block;max-width:100%}
 .fdet>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 2px;font-weight:700}.fdet>summary::-webkit-details-marker{display:none}.fdet>summary::after{content:'▼';margin-left:auto;font-size:12px;color:var(--muted);transition:transform .15s}.fdet[open]>summary::after{transform:rotate(180deg)}
+.fdet.fdbox{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:2px 14px 8px;margin-bottom:12px}.fdet.fdbox[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+.fdet .fdclr{margin-left:4px;padding:2px 10px;min-height:0;font-size:.8rem}
 .fdet .admn{font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--accent);color:var(--ai,#fff)}
 .foldb{float:right;margin-left:8px;width:26px;height:26px;padding:0;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font:inherit;font-size:11px;line-height:24px;cursor:pointer}.fold-hide{display:none!important}
 #view-stat .stoc{top:var(--tabsH,52px)}
@@ -2376,6 +2378,8 @@ let sampleShow = false; // 記録が無い時の「例を見る」（この画�
 // 分析タブの目次の名前（見出しから短く）
 const TOC_NAME = [[/の戦績$/, '戦績'], [/の分析$/, '概要'], [/^直近/, '直近'], [/^ヒーローの/, 'ヒーロー'], [/^デッキ/, 'デッキ'], [/^みんなの統計に提供/, '提供'], [/^みんなの統計$/, 'みんなの統計'], [/^連勝/, '連勝連敗'], [/推移（期間）/, '推移(期間)'], [/推移（試合数）/, '推移(試合数)'], [/勝率ランキング$/, 'ランキング'], [/^敵ヒーロー/, '敵ヒーロー'], [/^ランク別/, 'ランク別'], [/^敵ランク別/, '敵ランク'], [/^使ったヒーロー別/, 'ヒーロー別'], [/^ステージ勝率|ステージ の勝率/, 'ステージ'], [/^メダル/, 'メダル'], [/^カード/, 'カード']];
 const statsUI = { help: new Set(), fold: new Set(), fopen: new Set() };
+// 「絞り込み」の見出しの中のボタンは、押しても開閉しない
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.fdet>summary [data-act]')) e.preventDefault(); }, true);
 document.addEventListener('toggle', e => { const d = e.target; if (d && d.dataset && d.dataset.fd) { if (d.open) statsUI.fopen.add(d.dataset.fd); else statsUI.fopen.delete(d.dataset.fd); } }, true);
 // 描いた後に：目次を作り、見出しのすぐ下の説明を「？」の中にしまう
 function statsPost(vid) {
@@ -2507,7 +2511,7 @@ function renderStats0() {
   if (!real && !sampleShow) { el.innerHTML = h + `<div class="section"><div class="panel"><h2>まだ記録がありません</h2><p class="small muted" style="margin:0 0 10px">「読み込み」からリプレイのスクショを入れると、ここに勝率やヒーロー別の戦績が出ます。</p><div class="row"><button class="btn primary" data-act="go-add">登録へ</button><button class="btn ghost" data-act="sample-on">例を見る</button></div></div></div>`; return; }
   if (!real) h += `<div class="sbar"><span class="sample">サンプル表示</span><span class="grow"></span><button class="btn primary" data-act="go-add">登録へ</button><button class="btn ghost" data-act="sample-off">閉じる</button></div><div class="sampled">`;
   h += `<div class="section">
-    <details class="fdet" data-fd="stats"${statsUI.fopen.has('stats') || el.dataset.pick ? ' open' : ''}><summary>絞り込み${anySel ? '<span class="admn">変更中</span>' : ''}</summary>
+    <details class="fdet fdbox" data-fd="stats"${statsUI.fopen.has('stats') || el.dataset.pick ? ' open' : ''}><summary>絞り込み${anySel ? '<span class="admn">変更中</span><button type="button" class="btn ghost fdclr" data-act="clear-filter">解除</button>' : ''}</summary>
     <div class="filters">
       <div class="fl${heroKey != null ? ' wide' : ''}"><span class="label">使ったヒーロー</span>
         <select id="hero-filter" data-filter="hero" class="vh" tabindex="-1" aria-hidden="true">${head(rHero, 'すべてのヒーロー', nAllHero)}${opt(heroOpts, fHero, nm)}</select>
@@ -4140,7 +4144,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-07-AF', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-07-AH', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -5517,7 +5521,7 @@ function statRender0() {
     <div class="section"><div class="panel"><h2>メダルの使用率</h2>${perUI}${PM ? perSelHTML(s.el, '2') : ''}${perNote}${hm ? pieToggle(s.el, 'stat') : ''}${hm ? `${hsel('st-hm', withM, hm.k, 'mn')}<p class="small muted" style="margin:8px 0 4px">同じ絵柄は、何個付けていても1つと数えます。${hm.mn < STAT_THIN ? `<b>まだ${hm.mn}人なので参考程度です。</b>` : ''}</p>${pieOn(s.el) ? pieHTML(s.el, 'stat', 'm', medRows.map(([i, v]) => { const k = Core.MEDAL_KEYS[i]; return { k, n: MEDAL_NAME[k] || k, v, ic: MEDAL_IMG[k] || '' }; }), '個') : ''}<div class="mlist"${pieOn(s.el) ? ' style="display:none"' : ''}>${mr}</div>${pieOn(s.el) ? '' : more('m', medRows.length, lim('m'))}` : '<p class="small muted" style="margin:0">この条件では、メダルの記録がありません。</p>'}</div></div>
     <div class="section"><div class="panel"><h2>ステージの勝率</h2>${hpick('st-hg', [{ k: '', t: '全ヒーロー' }].concat(hgList.map(e => ({ k: e.k, t: dispName(e.k) }))), hg)}<p class="small muted" style="margin:8px 0 6px">${hg ? `「${esc(dispName(hg))}」を使っていた人（味方・敵を含む全員）の、ステージごとの勝率です。` : '提供した人自身の、ステージごとの勝率です。'}</p>${gr || '<p class="small muted">この条件のデータはありません。</p>'}${more('g', GL.length, lim('g'))}`;
   }
-  el.innerHTML = head + `<div class="section"><div class="panel"><details class="fdet" data-fd="stat"${statsUI.fopen.has('stat') ? ' open' : ''}><summary>絞り込み${s.season !== 'all' || s.band !== 'all' || s.mode !== 'a' ? '<span class="admn">変更中</span>' : ''}</summary>${filters}</details>${body}</div></div>` + pubBox + admin;
+  el.innerHTML = head + `<div class="section"><div class="panel"><details class="fdet" data-fd="stat"${statsUI.fopen.has('stat') ? ' open' : ''}><summary>絞り込み${s.season !== 'all' || s.band !== 'all' || s.mode !== 'a' ? '<span class="admn">変更中</span><button type="button" class="btn ghost fdclr" data-act="stat-clear-filter">解除</button>' : ''}</summary>${filters}</details>${body}</div></div>` + pubBox + admin;
   if (keep) { const k = document.getElementById(keep); if (k && k.focus) try { k.focus(); } catch (e) {} }
 }
 const HERO_SKIP = '（集計に入れない）';
@@ -5615,6 +5619,7 @@ document.addEventListener('click', e => {
   else if (a === 'hp-pick') { const m = { 'st-hc': 'hc', 'st-hm': 'hm', 'st-hg': 'hg', 'st-hd': 'hd' }, el = document.getElementById('view-stat'); el.dataset[m[t.dataset.id]] = t.dataset.v; statS.more = {}; statRender(); }
   else if (a === 'hq-pick' || a === 'hq-clr') { const el = document.getElementById('view-stat'), inp = document.getElementById('st-hq'); const v = a === 'hq-pick' ? t.dataset.v : ''; el.dataset.hq = v; if (inp) inp.value = v; hqUpdate(a === 'hq-pick'); }
   else if (a === 'stat-less') { delete statS.more[t.dataset.k]; statRender(); }
+  else if (a === 'stat-clear-filter') { const v = document.getElementById('view-stat'); delete v.dataset.season; delete v.dataset.band; delete v.dataset.mode; statS.more = {}; statRender(); statDocLoad(); }
   else if (a === 'stat-more') { statS.more[t.dataset.k] = (statS.more[t.dataset.k] || 10) + 20; statRender(); }
 });
 // 検索欄は、入力のたびに全体を描き直さず（キーボードが閉じてしまうため）、リストの部分だけ差し替える
