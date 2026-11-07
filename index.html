@@ -344,6 +344,14 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
 .btn.mon{background:var(--accent);color:var(--accent-ink);border-color:transparent}.mlist{display:flex;flex-direction:column;gap:2px}.mrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(36px,.7fr) auto;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(128,128,128,.18);font-size:.85rem}.mrow.thin{opacity:.5}.mrow .mh{display:flex;align-items:center;gap:6px;min-width:0}.mrow .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mrow .mnum{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25;white-space:nowrap}.mrow .mnum .small{font-size:.72rem}.cthumb{width:30px;height:35px;border-radius:3px;object-fit:cover;flex:none;background:rgba(128,128,128,.2);display:inline-block}.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px}.citem{display:flex;gap:6px;align-items:center;min-width:0}.citem img,.citem .cthumb{width:40px;height:47px;border-radius:4px;object-fit:cover;flex:none}.citem .cin{display:flex;flex-direction:column;min-width:0;flex:1}.citem input{width:100%;min-width:0}.cnrow{display:flex;gap:4px;min-width:0}.cpick{flex:none;width:40px;border-radius:8px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:.8rem;cursor:pointer}
 .cpbox{max-width:560px;max-height:calc(100vh - 32px);display:flex;flex-direction:column}.cphead{display:flex;gap:10px;align-items:center}.cphead img{width:48px;height:56px;border-radius:6px;object-fit:cover;flex:none}
 .cplist{overflow-y:auto;flex:1;min-height:200px;display:flex;flex-direction:column;gap:4px;padding-right:2px}.cplist button{font:inherit;text-align:left;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:flex;gap:8px;align-items:center}
+details.adm{border-top:1px solid var(--line);margin:0}details.adm:last-of-type{border-bottom:1px solid var(--line)}
+details.adm>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:12px 2px;font-weight:700}
+details.adm>summary::-webkit-details-marker{display:none}
+details.adm>summary::after{content:'▼';margin-left:auto;font-size:12px;color:var(--muted);transition:transform .15s}
+details.adm[open]>summary::after{transform:rotate(180deg)}
+details.adm .admn{font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--accent);color:var(--ai,#fff)}
+details.adm .admb{padding:0 2px 12px}
+.cwarn{display:block;color:var(--lose);line-height:1.5;margin-top:2px}.cwarn button{font:inherit;font-size:12px;margin:2px 4px 0 0;padding:1px 8px;border:1px solid var(--line);border-radius:99px;background:var(--surface);color:var(--ink);cursor:pointer}
 .cplist button:hover,.cplist button:focus-visible{border-color:var(--accent)}.cplist .ad{width:10px;height:10px;border-radius:50%;flex:none}.cplist .sh{font-size:.75rem;color:var(--muted);margin:6px 0 2px}.citem{align-items:flex-start}.cauto{color:var(--accent);font-weight:700}.csug{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.csug button{font:inherit;font-size:.72rem;line-height:1.3;padding:2px 6px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--ink);cursor:pointer;text-align:left}.mbar{height:8px;border-radius:4px;background:rgba(128,128,128,.22);overflow:hidden}.mbar i{display:block;height:100%;background:var(--accent,#4da3ff);border-radius:4px}
 .acc{border:1px solid var(--line);border-radius:8px;background:var(--surface)}.acc>summary{cursor:pointer;list-style:none;padding:12px 14px;font-family:var(--f-ui);font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:8px}.acc>summary::-webkit-details-marker{display:none}.acc>summary::after{content:'＋';margin-left:auto;color:var(--muted)}.acc[open]>summary::after{content:'－'}.acc .accb{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;font-size:.9rem;line-height:1.7}.acc .accb h4{margin:6px 0 0;font-size:.9rem;font-family:var(--f-ui)}.acc .accb p,.acc .accb ul,.acc .accb ol{margin:0}.acc .accb ul,.acc .accb ol{padding-left:1.3em;display:flex;flex-direction:column;gap:4px}.acc .note{font-size:.82rem;color:var(--muted)}
 .ho-note{position:sticky;top:0;z-index:80;padding:14px 16px;font-weight:700;background:var(--soft);color:var(--ink);border-bottom:2px solid var(--line)}.ho-note.ok{background:#1f6f3f;color:#fff}.ho-note.err{background:#8a2a2a;color:#fff}
@@ -1185,7 +1193,7 @@ async function crefPrep() {
       try { await syncLoad(); const d = FBA && await FBA.statGet('cardref'); const o = d ? JSON.parse(d.d || '{}') || {} : {}, l = []; for (const [n, a] of Object.entries(o)) if (Array.isArray(a)) for (const b of a) { const f = unb64(b); if (f.length === 312) l.push({ n, v: cardVec(f) }); } cref.list = l; }
       catch (e) { cref.list = []; }
     }
-    if (cref.list.length) for (const c of (db.cards || []).filter(c => !c.name && c.img && !thumbF.has(c.id))) { const f = await imgFeat(c.img); thumbF.set(c.id, f ? cardVec(f) : null); ch = true; }
+    if (cref.list.length) for (const c of (db.cards || []).filter(c => (!c.name || !CARD_OFF().has(c.name)) && c.img && !thumbF.has(c.id))) { const f = await imgFeat(c.img); thumbF.set(c.id, f ? cardVec(f) : null); ch = true; }
   } finally { cref.busy = false; }
   if (ch) crefRedraw();
 }
@@ -1225,6 +1233,13 @@ function pubTopHTML() {
     <p class="small muted" style="margin:6px 0 0">送るのは、ヒーロー・カード・メダル・ランク・勝敗・ステージなどだけ（名前やスクショ全体は送りません）。<b>初期設定は「提供しない」</b>なので、提供するには同意が必要です。いつでもやめられます。</p>
     <div class="row"><button class="btn primary" data-act="pubn-go" data-w="s">${syncS.user ? '提供について確認する' : 'ログインして提供する'}</button><button class="btn ghost" data-act="pubn-stat-later">あとで</button></div></div></div>`;
 }
+// 公式のカード一覧にない名前の時だけ、警告と候補を出す
+function cardWarn(c) {
+  if (!c || !c.name || CARD_OFF().has(c.name)) return '';
+  const sg = cardSuggest(unb64((c.f || [])[0] || ''), thumbF.get(c.id)), top = sg ? sg.top.filter(x => x.n !== c.name).slice(0, 3) : [];
+  return `⚠ 公式のカード名ではありません。統計では別のカードとして数えられます。${top.length ? '近いカード：' + top.map(x => `<button type="button" data-cardsug="${c.id}" data-n="${esc(x.n)}">${esc(x.n)}</button>`).join('') : '「▼」の一覧から選ぶと確実です。'}`;
+}
+function cardWarnUpd(c) { const w = document.querySelector(`.cwarn[data-for="${c.id}"]`); if (w) { const h = cardWarn(c); w.innerHTML = h; w.hidden = !h; } }
 const cardUnnamedN = () => (db.cards || []).filter(c => !c.name).length;
 // まだ名前のないカードに、自信がある時だけ自動で名前を付ける（1回だけ。消した名前は付け直さない）
 function cardAutoName(c) {
@@ -2896,7 +2911,7 @@ function cpClose() { const d = document.getElementById('cp'); if (d) d.remove();
 function cpSet(name) {
   const c = cpState && cardById(cpState.id); if (!c) return;
   c.name = name; delete c.auto; persist(); renderStats();
-  const inp = document.querySelector(`[data-cardname="${c.id}"]`); if (inp) inp.value = name;
+  const inp = document.querySelector(`[data-cardname="${c.id}"]`); if (inp) inp.value = name; cardWarnUpd(c);
   const sg = document.querySelector(`.csug[data-for="${c.id}"]`); if (sg && name) sg.remove();
   cpClose();
 }
@@ -2926,7 +2941,7 @@ document.addEventListener('click', e => {
   const c = cardById(b.dataset.cardsug); if (!c) return;
   c.name = b.dataset.n; delete c.auto; persist(); renderStats();
   const inp = document.querySelector(`[data-cardname="${c.id}"]`); if (inp) inp.value = c.name;
-  const sg = document.querySelector(`.csug[data-for="${c.id}"]`); if (sg) sg.remove();
+  const sg = document.querySelector(`.csug[data-for="${c.id}"]`); if (sg) sg.remove(); cardWarnUpd(c);
 });
 function heroSelect(attr, cur) {
   return `<select ${attr}><option value="">（選ばない）</option>${ORIGINALS.map(n => `<option value="${esc(n)}"${n === cur ? ' selected' : ''}>${esc(dispName(n))}</option>`).join('')}</select>`;
@@ -3204,15 +3219,15 @@ function cardNameHTML(el) {
   if (!cs.length) return `<div class="section" id="card-names"><div class="panel"><h2>カードの名前</h2><p class="small muted" style="margin:0">まだカードの記録がありません。リプレイのスクショを読み込むと、映っているカードを覚えて、ここに並びます。</p></div></div>`;
   const cnt = new Map(); for (const m of db.matches) if (m.cards) for (const sd of ['blue', 'red']) for (const row of m.cards[sd] || []) if (row) for (const id of new Set(row)) if (id) cnt.set(id, (cnt.get(id) || 0) + 1);
   const only = el.dataset.cardOnly !== '0', lim = +(el.dataset.cardLim || 60);
-  if (cs.some(c => !c.name && c.img && !thumbF.has(c.id)) || !cref.list) setTimeout(crefPrep, 0);
-  const list = cs.filter(c => !only || !c.name).sort((a, b) => (!!a.name - !!b.name) || (a.name ? cardOrd(a.name) - cardOrd(b.name) : 0) || ((cnt.get(b.id) || 0) - (cnt.get(a.id) || 0)));
+  if (cs.some(c => (!c.name || !CARD_OFF().has(c.name)) && c.img && !thumbF.has(c.id)) || !cref.list) setTimeout(crefPrep, 0);
+  const offN = c => !c.name || !CARD_OFF().has(c.name), list = cs.filter(c => !only || offN(c)).sort((a, b) => (!offN(a) - !offN(b)) || (!!a.name - !!b.name) || (a.name ? cardOrd(a.name) - cardOrd(b.name) : 0) || ((cnt.get(b.id) || 0) - (cnt.get(a.id) || 0)));
   const named = cs.filter(c => c.name).length, names = [...new Set(cs.map(c => c.name).filter(Boolean))].sort((a, b) => cardOrd(a) - cardOrd(b) || a.localeCompare(b, 'ja'));
   return `<div class="section" id="card-names"><div class="panel"><h2>カードの名前</h2>
     <p class="small muted" style="margin:0">読み込んだスクショから覚えたカードです（${cs.length}枚・名前あり${named}枚）。名前を付けると、分析タブの「カードの使用率」に名前が出ます。「自動」は、カード一覧の絵と照らし合わせて自動で付けた名前です。名前がないカードには、絵が近い順に候補が出るので、合っていればタップしてください。候補にない時は、名前の右の「▼」から全カードの一覧を開いて、名前で検索して選べます。同じカードが2つに分かれて並んでいたら、同じ名前を付けると1つにまとまります。</p>
-    <div class="row"><label class="small"><input type="checkbox" data-cardonly="1"${only ? ' checked' : ''}> 名前がないカードだけ表示</label></div>
+    <div class="row"><label class="small"><input type="checkbox" data-cardonly="1"${only ? ' checked' : ''}> 名前がないカードと、公式の一覧にない名前のカードだけ表示</label></div>
     <datalist id="card-names">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
     <div class="cgrid">${list.slice(0, lim).map(c => { const sg = !c.name ? cardSuggest(unb64((c.f || [])[0] || ''), thumbF.get(c.id)) : null;
-      return `<div class="citem">${c.img ? `<img src="${c.img}" alt="">` : '<span class="cthumb"></span>'}<span class="cin"><span class="cnrow"><input type="text" data-cardname="${c.id}" value="${esc(c.name || '')}" placeholder="カード名" list="card-names" aria-label="カードの名前"><button type="button" class="cpick" data-cardpick="${c.id}" aria-label="カード名を一覧から選ぶ" title="一覧から選ぶ">▼</button></span><span class="small muted">${cnt.get(c.id) || 0}人${c.name && c.auto ? '・<span class="cauto" title="カード一覧の絵と照らし合わせて、自動で付けた名前です">自動</span>' : ''}</span>${sg && sg.top.length ? `<span class="csug" data-for="${c.id}">${sg.top.map(x => `<button type="button" data-cardsug="${c.id}" data-n="${esc(x.n)}"${x.r ? ' title="ほかの人が同じ絵のカードに付けた名前です"' : ''}>${x.r ? '★ ' : ''}${esc(x.n)}</button>`).join('')}</span>` : ''}</span></div>`; }).join('')}</div>
+      return `<div class="citem">${c.img ? `<img src="${c.img}" alt="">` : '<span class="cthumb"></span>'}<span class="cin"><span class="cnrow"><input type="text" data-cardname="${c.id}" value="${esc(c.name || '')}" placeholder="カード名" list="card-names" aria-label="カードの名前"><button type="button" class="cpick" data-cardpick="${c.id}" aria-label="カード名を一覧から選ぶ" title="一覧から選ぶ">▼</button></span><span class="small muted">${cnt.get(c.id) || 0}人${c.name && c.auto ? '・<span class="cauto" title="カード一覧の絵と照らし合わせて、自動で付けた名前です">自動</span>' : ''}</span><span class="small cwarn" data-for="${c.id}"${cardWarn(c) ? '' : ' hidden'}>${cardWarn(c)}</span>${sg && sg.top.length ? `<span class="csug" data-for="${c.id}">${sg.top.map(x => `<button type="button" data-cardsug="${c.id}" data-n="${esc(x.n)}"${x.r ? ' title="ほかの人が同じ絵のカードに付けた名前です"' : ''}>${x.r ? '★ ' : ''}${esc(x.n)}</button>`).join('')}</span>` : ''}</span></div>`; }).join('')}</div>
     ${list.length > lim ? `<div class="row"><button class="btn ghost" data-act="card-more">もっと見る（残り${list.length - lim}枚）</button></div>` : ''}
   </div></div>`;
 }
@@ -3875,7 +3890,7 @@ document.addEventListener('change', e => {
   else if (t.dataset.cardonly) { const d = $('#view-data'); d.dataset.cardOnly = t.checked ? '1' : '0'; renderData(); }
   else if (t.dataset.cardname) {
     const c = cardById(t.dataset.cardname); if (!c) return;
-    c.name = t.value.trim(); delete c.auto; persist(); renderStats();
+    c.name = t.value.trim(); delete c.auto; persist(); renderStats(); cardWarnUpd(c);
     const dl = $('#card-names'); if (dl) { const ns = [...new Set(db.cards.map(c => c.name).filter(Boolean))].sort((a, b) => cardOrd(a) - cardOrd(b) || a.localeCompare(b, 'ja')); dl.innerHTML = ns.map(n => `<option value="${esc(n)}">`).join(''); }
   }
   else if (t.dataset.rename) {
@@ -3918,7 +3933,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-07-S', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-07-U', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4783,9 +4798,9 @@ function pubRender() { for (const id of ['pub-box-d', 'pub-box-s']) { const el =
 const pubIdHTML = () => syncS.user ? `<p class="small muted" style="margin:10px 0 0">あなたのID：<code id="my-uid" style="user-select:all">${esc(syncS.user.uid)}</code> <button class="btn ghost" data-act="uid-copy" style="padding:2px 10px">コピー</button><span class="small" id="uid-msg"></span><br>統計の管理者を追加する時だけ使います。ふだんは使いません。</p>` : '';
 
 /* --- 集計する（管理者のみ） --- */
-function statAgg(parts, cfg, now, fix, hfix) {
+function statAgg(parts, cfg, now, fix, hfix, cfix) {
   const unk = new Map(), am = new Map(), isOff = n => Object.prototype.hasOwnProperty.call(STAGE_IMG, n);
-  const recs = [], uh = new Map();
+  const recs = [], uh = new Map(), uc = new Map();
   for (const p of parts) {
     let o; try { o = JSON.parse(p.text); } catch (e) { continue; }
     if (!o || !Array.isArray(o.r) || !Array.isArray(o.n)) continue;
@@ -4799,6 +4814,11 @@ function statAgg(parts, cfg, now, fix, hfix) {
   const heroCanon = raw => { const t = String(raw).trim(); if (hcache.has(t)) return hcache.get(t); let v = t;
     if (hfix && Object.prototype.hasOwnProperty.call(hfix, t) && hfix[t]) { const g = String(hfix[t]).trim(); v = g === HERO_SKIP ? '' : (hform.get(ordNz(g)) || g); }
     hcache.set(t, v); return v; };
+  // カード名：管理者が手で決めた訂正だけを使う（「（集計に入れない）」なら数えない）
+  const ccache = new Map();
+  const cardCanon = raw => { const t = String(raw).trim(); if (ccache.has(t)) return ccache.get(t); let v = t;
+    if (cfix && Object.prototype.hasOwnProperty.call(cfix, t) && cfix[t]) { const g = String(cfix[t]).trim(); v = g === HERO_SKIP ? '' : g; }
+    ccache.set(t, v); return v; };
   const over = new Map((cfg || []).map(c => [c.id, c]));
   let minT = now; for (const x of recs) minT = Math.min(minT, x.r[1] * 60000);
   const d0 = new Date(minT + 9 * 3600000), d1 = new Date(now + 9 * 3600000);
@@ -4815,17 +4835,32 @@ function statAgg(parts, cfg, now, fix, hfix) {
   // シーズンは開始日から10日後の日いっぱい（日本時間）まで。それを過ぎたらシーズン外
   const seasonEndMs = st => { const d = new Date(st + 9 * 3600000); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + SEASON_DAYS + 1) - 9 * 3600000; };
   const seasonOf = t => { let r = null; for (const s of ss) { if (s.start <= t) r = s; else break; } return r && t < seasonEndMs(r.start) ? r : null; };
+  // 名前の付け方が違うだけの同じ試合（別の人が登録したもの）を見つける：公式名にそろえた6人・ステージ・対戦モード・勝ったチームが同じで、時刻が3日以内
+  const D2 = new Set(), k2m = new Map();
+  for (const rec of recs) {
+    const { u, nm, r } = rec, name = i => (i >= 0 && i < nm.length ? String(nm[i]) : ''), w = r[4], side = r[5] === 1 ? 1 : 0;
+    const hs = []; let known = 0;
+    for (let k = 0; k < 6; k++) { const p = r[8 + k], h = Array.isArray(p) ? heroCanon(name(p[0])) : ''; if (h) known++; hs.push(ordNz(h)); }
+    if (known < 5) continue;
+    const win = w === 2 ? 'd' : ((w === 1) === (side === 0) ? 'b' : 'r');
+    const key = hs.join('|') + '#' + stageNorm(stageCanon(name(r[3]), fix) || '') + '#' + r[2] + '#' + win;
+    const l = k2m.get(key) || []; if (!k2m.has(key)) k2m.set(key, l);
+    if (l.some(x => x.u !== u && Math.abs(x.t - r[1]) <= 3 * 1440)) D2.add(rec); else l.push({ u, t: r[1] });
+  }
+  let merged = 0;
   const docs = new Map(), seen = new Map();
   const doc = (sid, mode) => { const k = `s_${sid}_${mode}`; let d = docs.get(k); if (!d) { d = { fps: new Set(), us: new Set(), h: new Map(), g: new Map(), gh: new Map() }; docs.set(k, d); } return d; };
   const bucket = (m, b) => { let x = m.get(b); if (!x) { x = new Map(); m.set(b, x); } return x; };
   const AR = MODES.indexOf(ARENA); let total = 0;
-  for (const { u, nm, r } of recs) {
+  for (const rec of recs) {
+    const { u, nm, r } = rec;
     // アプリの「シーズン外」と同じ：期間内のバトルアリーナだけがシーズン。それ以外の試合はシーズン外
     const t = r[1] * 60000, se = r[2] !== AR || r[6] === 1 ? { id: 'out' } : (seasonOf(t) || { id: 'out' });
     const name = i => (i >= 0 && i < nm.length ? String(nm[i]) : ''), w = r[4], side = r[5] === 1 ? 1 : 0;
     const st0 = name(r[3]), stage = stageCanon(st0, fix), own = r[8 + side * 3 + (r[7] | 0)], fp = String(r[0]), sk = fp + '|' + se.id;
-    const dup = seen.has(sk) && seen.get(sk) !== u; if (!dup) { seen.set(sk, u); total++; }
-    if (!dup) for (let k = 0; k < 6; k++) { const p = r[8 + k]; if (!Array.isArray(p)) continue; const h0 = name(p[0]).trim(); if (!h0) continue; const h = heroCanon(h0); if (h && !HERO_IX.has(ordNz(h))) uh.set(h0, (uh.get(h0) || 0) + 1); }
+    const dup0 = seen.has(sk) && seen.get(sk) !== u, dup = dup0 || D2.has(rec); if (!dup0 && dup) merged++; if (!dup) { seen.set(sk, u); total++; }
+    if (!dup) for (let k = 0; k < 6; k++) { const p = r[8 + k]; if (!Array.isArray(p)) continue; const h0 = name(p[0]).trim(); if (!h0) continue; const h = heroCanon(h0); if (h && !HERO_IX.has(ordNz(h))) uh.set(h0, (uh.get(h0) || 0) + 1);
+      if (Array.isArray(p[2])) for (const c0 of new Set(p[2].map(name).map(x => x.trim()).filter(Boolean))) { const c = cardCanon(c0); if (c && !CARD_OFF().has(c)) uc.set(c0, (uc.get(c0) || 0) + 1); } }
     if (!dup && stage) { if (!isOff(stage)) unk.set(stage, (unk.get(stage) || 0) + 1); const r0 = STAGE_ALIAS[st0.trim()] || st0.trim(); if (r0 !== stage && isOff(stage) && !(fix && fix[r0])) { const ak = r0 + '\t' + stage; am.set(ak, (am.get(ak) || 0) + 1); } }
     for (const d of [doc(se.id, r[2]), doc(se.id, 'a')]) {
     d.us.add(u);
@@ -4840,7 +4875,7 @@ function statAgg(parts, cfg, now, fix, hfix) {
       e.n++; if (pw) e.w++;
       // ステージ×ヒーロー（その試合の全員ぶん。引き分けは数えない）
       if (stage && w !== 2) { const x = bucket(d.gh, band); let hm = x.get(h); if (!hm) { hm = new Map(); x.set(h, hm); } const a = hm.get(stage) || [0, 0]; a[0]++; if (pw) a[1]++; hm.set(stage, a); }
-      const cs = Array.isArray(p[2]) ? p[2].map(name).filter(Boolean) : [], ms = Array.isArray(p[3]) ? p[3].filter(i => i >= 0 && i < 13) : [];
+      const cs = Array.isArray(p[2]) ? p[2].map(name).map(cardCanon).filter(Boolean) : [], ms = Array.isArray(p[3]) ? p[3].filter(i => i >= 0 && i < 13) : [];
       // 提供した本人と、その人の固定の味方は同じ人が何度も出てくるので、デッキ（メダル）が完全に同じなら1回だけ数える
       const mine = (k < 3 ? 0 : 1) === side && ((k % 3) === (r[7] | 0) || ((r[14] | 0) >> (k % 3)) & 1);
       const once = (tag, list) => { if (!mine) return true; const key = u + '|' + tag + '|' + [...new Set(list)].sort().join(','); if (e.seen.has(key)) return false; e.seen.add(key); return true; };
@@ -4861,9 +4896,10 @@ function statAgg(parts, cfg, now, fix, hfix) {
   }
   // 期間ごと（毎月25日〜翌月24日）：カードとメダルだけ。シーズン外・全対戦モードをまとめる。1期間1つ（p_<期間>）
   const pd = new Map(), pseen = new Map(), pks = new Set();
-  for (const { u, nm, r } of recs) {
+  for (const rec of recs) {
+    const { u, nm, r } = rec;
     const t = r[1] * 60000, key = periodOf(t).key, sk = String(r[0]) + '|' + key;
-    if (pseen.has(sk) && pseen.get(sk) !== u) continue; pseen.set(sk, u); pks.add(key);
+    if ((pseen.has(sk) && pseen.get(sk) !== u) || D2.has(rec)) continue; pseen.set(sk, u); pks.add(key);
     // 置き場所：a_a（すべて）、a_<モード>、i_a（シーズン内）、o_a／o_<モード>（シーズン外）
     const inS = !(r[2] !== AR || r[6] === 1) && seasonOf(t);
     const bks = inS ? ['a_a', 'a_' + r[2], 'i_a'] : ['a_a', 'a_' + r[2], 'o_a', 'o_' + r[2]];
@@ -4877,7 +4913,7 @@ function statAgg(parts, cfg, now, fix, hfix) {
         let x = d.h.get(band); if (!x) { x = new Map(); d.h.set(band, x); }
         let e = x.get(h); if (!e) { e = { n: 0, cn: 0, cards: new Map(), mn: 0, med: new Map(), seen: new Set() }; x.set(h, e); }
         e.n++;
-        const cs = Array.isArray(p[2]) ? p[2].map(name).filter(Boolean) : [], ms = Array.isArray(p[3]) ? p[3].filter(i => i >= 0 && i < 13) : [];
+        const cs = Array.isArray(p[2]) ? p[2].map(name).map(cardCanon).filter(Boolean) : [], ms = Array.isArray(p[3]) ? p[3].filter(i => i >= 0 && i < 13) : [];
         const mine = (k < 3 ? 0 : 1) === side && ((k % 3) === (r[7] | 0) || ((r[14] | 0) >> (k % 3)) & 1);
         const once = (tag, list) => { if (!mine) return true; const kk = u + '|' + tag + '|' + [...new Set(list)].sort().join(','); if (e.seen.has(kk)) return false; e.seen.add(kk); return true; };
         if (cs.length && once('c', cs)) { e.cn++; for (const c of new Set(cs)) e.cards.set(c, (e.cards.get(c) || 0) + 1); }
@@ -4895,7 +4931,7 @@ function statAgg(parts, cfg, now, fix, hfix) {
   total = 0; for (const [k, d] of docs) if (k.endsWith('_a')) total += d.fps.size;
   const usedIds = [...out.keys()];
   // 1試合は「その対戦モード」と「全対戦モード」の2か所に入るので、足し合わせずに数える
-  const meta = { t: now, n: total, p: persons.size, d: JSON.stringify({ docs: usedIds, pk: [...pks].sort((a, b) => a - b), ss: ss.map(s => ({ id: s.id, start: s.start, name: s.name, custom: s.custom })), un: [...unk].sort((a, b) => b[1] - a[1]).slice(0, 40), am: [...am].map(([k, n]) => [...k.split('\t'), n]).sort((a, b) => b[2] - a[2]).slice(0, 40), sf: fix || {}, uh: [...uh].sort((a, b) => b[1] - a[1]).slice(0, 40), hf: hfix || {} }) };
+  const meta = { t: now, n: total, p: persons.size, d: JSON.stringify({ docs: usedIds, pk: [...pks].sort((a, b) => a - b), ss: ss.map(s => ({ id: s.id, start: s.start, name: s.name, custom: s.custom })), un: [...unk].sort((a, b) => b[1] - a[1]).slice(0, 40), am: [...am].map(([k, n]) => [...k.split('\t'), n]).sort((a, b) => b[2] - a[2]).slice(0, 40), sf: fix || {}, uh: [...uh].sort((a, b) => b[1] - a[1]).slice(0, 40), hf: hfix || {}, uc: [...uc].sort((a, b) => b[1] - a[1]).slice(0, 60), cf: cfix || {}, m2: merged }) };
   return { docs: out, meta };
 }
 async function statRun(manual) {
@@ -4907,8 +4943,9 @@ async function statRun(manual) {
     let fix = {}; try { fix = JSON.parse((fxDoc && fxDoc.d) || '{}') || {}; } catch (e) {}
     // ヒーロー名の訂正は、ステージ名の訂正と同じ保存場所の「__hero」に入れている
     const hfix = (fix.__hero && typeof fix.__hero === 'object') ? fix.__hero : {}; delete fix.__hero;
+    const cfix = (fix.__card && typeof fix.__card === 'object') ? fix.__card : {}; delete fix.__card;
     let cfg = []; try { cfg = JSON.parse((cfgDoc && cfgDoc.d) || '[]') || []; } catch (e) {}
-    const res = statAgg(parts, cfg, Date.now(), fix, hfix);
+    const res = statAgg(parts, cfg, Date.now(), fix, hfix, cfix);
     let oldIds = [], oldD = {}; try { oldD = JSON.parse((old && old.d) || '{}') || {}; oldIds = oldD.docs || []; } catch (e) {}
     const del = oldIds.filter(i => !res.docs.has(i));
     // カードの小さな画像：すでにあるものは残し、新しいカード名の分だけ足す
@@ -5001,10 +5038,10 @@ const crefOdd = (x, pd, kind) => x.odd && !(pd.ok && pd.ok.has(x.h)) && !pd.uid.
 const crefMark = (x, pd, kind) => !x.odd ? '' : crefOdd(x, pd, kind) ? '<span style="position:absolute;top:-6px;right:-6px;font-size:13px">⚠</span>' : (pd.ok && pd.ok.has(x.h) ? '<span style="position:absolute;top:-7px;right:-7px;width:16px;height:16px;border-radius:50%;background:var(--win);color:#fff;font-size:11px;line-height:16px;text-align:center;font-weight:700">✓</span>' : '');
 const crefOkBtn = (x, pd, kind) => x.odd && !pd.uid.has(x.u) && !(kind === 'rk' ? pd.rk.has(x.h) : pd.img.has(x.h)) ? `<button type="button" class="btn ghost" data-act="cref-ok" data-h="${x.h}" style="padding:0 6px;font-size:10px;min-height:0">${pd.ok && pd.ok.has(x.h) ? 'OK取消' : 'OK'}</button>` : '';
 function rkAdminHTML() {
-  const all = statS.rkAll, pd = statS.crefPend; if (!all || !pd) return '';
+  const all = statS.rkAll, pd = statS.crefPend; if (!all || !pd) return '<p class="small muted" style="margin:0">「カードの見本」の「一覧を読み込む」を押すと、ここにも出ます。</p>';
   const nImg = all.reduce((a, e) => a + e.a.length, 0), nOddR = all.reduce((a, e) => a + e.a.filter(x => crefOdd(x, pd, 'rk')).length, 0);
-  if (!nImg) return '<h3>ランク見本（みんなが手で直したもの）</h3><p class="small muted" style="margin:0">まだ集まっていません。</p>';
-  return `<h3>ランク見本（みんなが手で直したもの）${nOddR ? `<span class="small" style="margin-left:6px">⚠${nOddR}</span>` : ''}</h3><p class="small muted" style="margin:0 0 6px">統計に提供した人が手で直したランクの数字の形です。ランクごとに8つまで（1人は同じランクを2つまで）を、全員の読み取りの見本に使います。緑の枠が使っているものです。形が違うもの・いたずらは押して止めてください。⚠は、公式の見本のどれとも似ていないものです。合っていれば「OK」を押すと⚠が消えます（止めても消えます）。保存は上の「保存して集計し直す」です。</p>` + all.map(e => `<div style="margin:8px 0"><div class="small"><b>${esc(e.n)}</b>（${e.a.length}）</div><div class="row" style="gap:8px;flex-wrap:wrap;margin-top:4px">${e.a.map(x => { const off = pd.rk.has(x.h) || pd.uid.has(x.u); return `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px"><button type="button" data-act="rk-img" data-h="${x.h}" title="${off ? '止めている（押すと戻す）' : '押すと止める'}" style="position:relative;padding:0;border:2px solid ${x.used && !off ? 'var(--win)' : 'transparent'};border-radius:5px;background:none;opacity:${off ? .3 : 1}">${rkSvg(x.m)}${crefMark(x, pd, 'rk')}</button><span class="small" style="font-size:10px">${off ? '止め中' : (x.used ? '使用中' : '予備')}</span>${crefOkBtn(x, pd, 'rk')}<button type="button" class="btn ghost" data-act="cref-uid" data-u="${x.u}" style="padding:0 6px;font-size:10px;min-height:0">${pd.uid.has(x.u) ? '人ごと解除' : '人ごと'}</button></span>`; }).join('')}</div></div>`).join('');
+  if (!nImg) return '<p class="small muted" style="margin:0">まだ集まっていません。</p>';
+  return `<p class="small muted" style="margin:0 0 6px">統計に提供した人が手で直したランクの数字の形です。ランクごとに8つまで（1人は同じランクを2つまで）を、全員の読み取りの見本に使います。緑の枠が使っているものです。形が違うもの・いたずらは押して止めてください。⚠は、公式の見本のどれとも似ていないものです。合っていれば「OK」を押すと⚠が消えます（止めても消えます）。保存は上の「保存して集計し直す」です。</p>` + all.map(e => `<div style="margin:8px 0"><div class="small"><b>${esc(e.n)}</b>（${e.a.length}）</div><div class="row" style="gap:8px;flex-wrap:wrap;margin-top:4px">${e.a.map(x => { const off = pd.rk.has(x.h) || pd.uid.has(x.u); return `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px"><button type="button" data-act="rk-img" data-h="${x.h}" title="${off ? '止めている（押すと戻す）' : '押すと止める'}" style="position:relative;padding:0;border:2px solid ${x.used && !off ? 'var(--win)' : 'transparent'};border-radius:5px;background:none;opacity:${off ? .3 : 1}">${rkSvg(x.m)}${crefMark(x, pd, 'rk')}</button><span class="small" style="font-size:10px">${off ? '止め中' : (x.used ? '使用中' : '予備')}</span>${crefOkBtn(x, pd, 'rk')}<button type="button" class="btn ghost" data-act="cref-uid" data-u="${x.u}" style="padding:0 6px;font-size:10px;min-height:0">${pd.uid.has(x.u) ? '人ごと解除' : '人ごと'}</button></span>`; }).join('')}</div></div>`).join('');
 }
 // 管理者用：集計し直さずに、いまの見本の一覧だけ読む
 async function crefAdminLoad() {
@@ -5022,7 +5059,7 @@ async function crefSaveBan() {
 }
 function crefAdminHTML() {
   const all = statS.crefAll, pd = statS.crefPend;
-  const head = `<h3>カード見本（みんなが付けた名前）</h3><p class="small muted" style="margin:0 0 6px">統計に提供した人が名前を付けたカードの画像を、ほかの人のカード名の候補に使います（公式のカード名だけ。1つの名前につき、別々の人の画像を3枚まで）。緑の枠が使っている画像です。間違った名前や荒らしを見つけたら、画像を押して止めてください。「人ごと」は、その人が送った見本をすべて止めます。⚠は、同じ名前のほかの画像と似ていないものです。合っていれば「OK」を押すと⚠が消えます（止めても消えます）。数は⚠の画像の枚数です。止めた画像の代わりに、ほかの人の画像が使われます。</p>`;
+  const head = `<p class="small muted" style="margin:0 0 6px">統計に提供した人が名前を付けたカードの画像を、ほかの人のカード名の候補に使います（公式のカード名だけ。1つの名前につき、別々の人の画像を3枚まで）。緑の枠が使っている画像です。間違った名前や荒らしを見つけたら、画像を押して止めてください。「人ごと」は、その人が送った見本をすべて止めます。⚠は、同じ名前のほかの画像と似ていないものです。合っていれば「OK」を押すと⚠が消えます（止めても消えます）。数は⚠の画像の枚数です。止めた画像の代わりに、ほかの人の画像が使われます。</p>`;
   if (!all) return head + `<div class="row"><button class="btn" data-act="cref-load"${statS.run || statS.crefLoading ? ' disabled' : ''}>${statS.crefLoading ? '読み込んでいます…' : '一覧を読み込む'}</button></div>`;
   const nImg = all.reduce((a, e) => a + e.a.length, 0), nOdd = all.reduce((a, e) => a + e.a.filter(x => crefOdd(x, pd, 'c')).length, 0);
   let h = head + `<div class="row"><button class="btn ghost" data-act="cref-tog">${statS.crefOpen ? '一覧を閉じる' : `一覧を開く（${all.length}種類・${nImg}枚${nOdd ? `・⚠${nOdd}` : ''}）`}</button><button class="btn" data-act="cref-save"${statS.run ? ' disabled' : ''}>保存して集計し直す</button></div>`;
@@ -5043,14 +5080,30 @@ async function statSaveStageFix(noFix) {
   const fix = Object.assign({}, statMetaD().sf || {});
   if (noFix) fix[noFix] = noFix;
   else document.querySelectorAll('[data-sfn]').forEach(i => { const n = i.dataset.sfn, v = i.value.trim().slice(0, 40); if (v) fix[n] = v; else delete fix[n]; });
-  try { await FBA.statPut('stagefix', { t: Date.now(), d: JSON.stringify(Object.assign({}, fix, { __hero: statMetaD().hf || {} })) }); } catch (e) { statS.msg = '保存できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; statRender(); return; }
+  try { await FBA.statPut('stagefix', { t: Date.now(), d: JSON.stringify(Object.assign({}, fix, { __hero: statMetaD().hf || {}, __card: statMetaD().cf || {} })) }); } catch (e) { statS.msg = '保存できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; statRender(); return; }
   await statRun(true);
+}
+async function statSaveCardFix() {
+  if (!isAdmin() || !FBA || statS.run) return;
+  const cf = Object.assign({}, statMetaD().cf || {});
+  document.querySelectorAll('[data-cfn]').forEach(i => { const n = i.dataset.cfn, v = i.value.trim().slice(0, 80); if (v) cf[n] = v; else delete cf[n]; });
+  try { await FBA.statPut('stagefix', { t: Date.now(), d: JSON.stringify(Object.assign({}, statMetaD().sf || {}, { __hero: statMetaD().hf || {}, __card: cf })) }); } catch (e) { statS.msg = '保存できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; statRender(); return; }
+  await statRun(true);
+}
+// カード名の訂正の候補：送られてきたカードの絵を、カード一覧の絵と照らし合わせる（管理者の端末で、開いた時に1回だけ）
+async function cardFixSug(names) {
+  if (statS.cfsBusy) return; statS.cfsBusy = true; const out = statS.cfs || (statS.cfs = new Map());
+  try { if (!cref.list) await crefPrep(); } catch (e) {}   // みんなの見本（★）も候補に使う
+  for (const n of names) { if (out.has(n)) continue; const u = (statS.cimg && statS.cimg.get(n)) || ''; let top = [];
+    if (u) { const f = await imgFeat(u); const r = f ? cardSuggest(f, cardVec(f)) : null; if (r) top = r.top.map(x => x.n).slice(0, 3); }
+    out.set(n, top); }
+  statS.cfsBusy = false; statRender();
 }
 async function statSaveHeroFix() {
   if (!isAdmin() || !FBA || statS.run) return;
   const hf = Object.assign({}, statMetaD().hf || {});
   document.querySelectorAll('[data-hfn]').forEach(i => { const n = i.dataset.hfn, v = i.value.trim().slice(0, 40); if (v) hf[n] = v; else delete hf[n]; });
-  try { await FBA.statPut('stagefix', { t: Date.now(), d: JSON.stringify(Object.assign({}, statMetaD().sf || {}, { __hero: hf })) }); } catch (e) { statS.msg = '保存できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; statRender(); return; }
+  try { await FBA.statPut('stagefix', { t: Date.now(), d: JSON.stringify(Object.assign({}, statMetaD().sf || {}, { __hero: hf, __card: statMetaD().cf || {} })) }); } catch (e) { statS.msg = '保存できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; statRender(); return; }
   await statRun(true);
 }
 async function statSaveSeasons() {
@@ -5245,12 +5298,23 @@ function statRender() {
   if (keep) { const k = document.getElementById(keep); if (k && k.focus) try { k.focus(); } catch (e) {} }
 }
 const HERO_SKIP = '（集計に入れない）';
+function cardFixHTML(md) {
+  const cf = md.cf || {}, uc = md.uc || [], names = [...new Set(uc.map(x => x[0]).concat(Object.keys(cf)))];
+  const cnt = n => (uc.find(x => x[0] === n) || [0, 0])[1];
+  if (names.some(n => !(statS.cfs && statS.cfs.has(n))) && statS.cimg) setTimeout(() => cardFixSug(names), 0);
+  const dl = `<datalist id="cf-dl"><option value="${HERO_SKIP}">${CARD_DB.map(c => `<option value="${esc(c[0])}">`).join('')}</datalist>`;
+  const rows = names.map(n => { const u = (statS.cimg && statS.cimg.get(n)) || '', sg = (statS.cfs && statS.cfs.get(n)) || [];
+    return `<div style="display:flex;gap:8px;align-items:flex-start;margin:8px 0">${u ? `<img src="${u}" alt="" width="34" height="40" style="flex:none;border-radius:3px">` : '<span style="flex:none;width:34px;height:40px;border-radius:3px;background:var(--line)"></span>'}<div style="flex:1;min-width:0"><div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center;margin:0"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(n)}${cnt(n) ? `（${cnt(n)}件）` : '（訂正ずみ）'}</span><span class="small muted">→</span><input type="text" data-cfn="${esc(n)}" list="cf-dl" value="${esc(cf[n] || '')}" placeholder="直す先" maxlength="80" style="flex:1.4;min-width:0"></div>${sg.length && !cf[n] ? `<div class="row" style="gap:4px;margin:4px 0 0;flex-wrap:wrap"><span class="small muted">候補：</span>${sg.map(x => `<button type="button" class="btn ghost" data-act="cf-sug" data-n="${esc(n)}" data-v="${esc(x)}" style="padding:1px 8px;font-size:12px;min-height:0">${esc(x)}</button>`).join('')}</div>` : ''}</div></div>`; }).join('');
+  return `<p class="small muted" style="margin:0 0 6px">公式のカード一覧にない名前で入ってきたカードを、直す先の名前に変えて集計します。左は送られてきたカードの絵、「候補」はその絵をカード一覧と照らし合わせたものです。合っていれば候補を押してから保存してください。「${HERO_SKIP}」を選ぶと集計から外します。新しく出たばかりのカードがアプリの一覧にまだ無い時もここに出ますが、その時は空のままで大丈夫です。件数は、そのカードが出てきた枠の数です。</p>${dl}
+    ${rows || '<p class="small muted" style="margin:0">いま、公式にない名前はありません（次に集計した時に調べます）。</p>'}
+    ${rows ? '<div class="row"><button class="btn" data-act="stat-cardfix"' + (statS.run ? ' disabled' : '') + '>保存して集計し直す</button></div>' : ''}`;
+}
 function heroFixHTML(md) {
   const hf = md.hf || {}, uh = md.uh || [], names = [...new Set(uh.map(x => x[0]).concat(Object.keys(hf)))];
   const dl = `<datalist id="hf-dl"><option value="${HERO_SKIP}">${HERO_ORDER.map(n => `<option value="${esc(dispName(n))}">`).join('')}</datalist>`;
   const cnt = n => (uh.find(x => x[0] === n) || [0, 0])[1];
   const rows = names.map(n => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(n)}${cnt(n) ? `（${cnt(n)}件）` : '（訂正ずみ）'}</span><span class="small muted">→</span><input type="text" data-hfn="${esc(n)}" list="hf-dl" value="${esc(hf[n] || '')}" placeholder="直す先" maxlength="40" style="flex:1.2;min-width:0"></div>`).join('');
-  return `<h3>ヒーロー名の訂正</h3><p class="small muted" style="margin:0 0 6px">公式にない名前で入ってきたヒーローを、直す先の名前に変えて集計します。直す先は候補から選ぶか、自分で書けます。「${HERO_SKIP}」を選ぶと、そのヒーローの枠を集計から外します。空にすると訂正をやめます。件数は、そのヒーローが出てきた枠の数です。</p>${dl}
+  return `<p class="small muted" style="margin:0 0 6px">公式にない名前で入ってきたヒーローを、直す先の名前に変えて集計します。直す先は候補から選ぶか、自分で書けます。「${HERO_SKIP}」を選ぶと、そのヒーローの枠を集計から外します。空にすると訂正をやめます。件数は、そのヒーローが出てきた枠の数です。</p>${dl}
     ${rows || '<p class="small muted" style="margin:0">いま、公式にない名前はありません（次に集計した時に調べます）。</p>'}
     ${rows ? '<div class="row"><button class="btn" data-act="stat-herofix"' + (statS.run ? ' disabled' : '') + '>保存して集計し直す</button></div>' : ''}`;
 }
@@ -5260,7 +5324,7 @@ function stageFixHTML(md) {
   const cnt = n => (un.find(x => x[0] === n) || [0, 0])[1];
   const rows = names.map(n => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(n)}${cnt(n) ? `（${cnt(n)}件）` : ''}</span><span class="small muted">→</span><input type="text" data-sfn="${esc(n)}" list="sf-dl" value="${esc(sf[n] && sf[n] !== n ? sf[n] : '')}" placeholder="直す先" maxlength="40" style="flex:1.2;min-width:0"></div>`).join('');
   const auto = am.map(([a, b, c]) => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(a)} → ${esc(b)}（${c}件）</span><button class="btn ghost" data-act="stat-nofix" data-n="${esc(a)}" style="padding:2px 10px">寄せない</button></div>`).join('');
-  return `<h3>ステージ名の訂正</h3><p class="small muted" style="margin:0 0 6px">公式にない名前で入ってきたものを、直す先の名前に変えて集計します。直す先は、候補から選ぶか、自分で書けます。空にすると訂正をやめます。</p>${dl}
+  return `<p class="small muted" style="margin:0 0 6px">公式にない名前で入ってきたものを、直す先の名前に変えて集計します。直す先は、候補から選ぶか、自分で書けます。空にすると訂正をやめます。</p>${dl}
     ${rows || '<p class="small muted" style="margin:0">いま、公式にない名前はありません。</p>'}
     ${rows ? '<div class="row"><button class="btn" data-act="stat-stagefix"' + (statS.run ? ' disabled' : '') + '>保存して集計し直す</button></div>' : ''}
     ${auto ? '<p class="small muted" style="margin:10px 0 4px">自動で寄せているもの（間違っていたら「寄せない」）</p>' + auto : ''}`;
@@ -5273,13 +5337,21 @@ function statAdminHTML() {
   return `<div class="section"><div class="panel"><h2>管理者用</h2>
     <p class="small muted" style="margin:0">${m ? `最終の集計：${new Date(m.t).toLocaleString('ja-JP')}（${m.p}人／${m.n}試合）` : 'まだ集計していません'}。集計は、開いた時に${STAT_HOURS}時間以上たっていれば自動で行います。</p>
     <div class="row"><button class="btn primary" data-act="stat-run"${statS.run || wait ? ' disabled' : ''}>今すぐ集計</button><span class="small muted">${wait ? '前の集計から5分たつと押せます' : ''}</span></div>${msg}
-    ${stageFixHTML(md)}
-    ${heroFixHTML(md)}
-    ${crefAdminHTML()}
-    ${rkAdminHTML()}
-    <h3>シーズンの日付と名前</h3><p class="small muted" style="margin:0 0 6px">開始日は、決まった日（毎月第2木曜日）が最初から入っています。変える時だけ直してください。名前は、そのシーズンのヒーローを選びます。保存すると、集計し直します。</p>${rows}
-    <div class="row"><button class="btn" data-act="stat-seasons"${statS.run ? ' disabled' : ''}>保存して集計し直す</button></div></div></div>`;
+    ${md.m2 ? `<p class="small muted" style="margin:6px 0 0">名前の付け方が違うだけで重なっていた試合：${md.m2}件（1試合にまとめています）</p>` : ''}
+    ${admSec('stage', 'ステージ名の修正', (md.un || []).length, stageFixHTML(md))}
+    ${admSec('hero', 'ヒーロー名の修正', (md.uh || []).length, heroFixHTML(md))}
+    ${admSec('card', 'カード名の修正', (md.uc || []).length, cardFixHTML(md))}
+    ${admSec('cref', 'カードの見本', statS.crefAll && statS.crefPend ? statS.crefAll.reduce((a, e) => a + e.a.filter(x => crefOdd(x, statS.crefPend, 'c')).length, 0) : 0, crefAdminHTML(), '⚠')}
+    ${admSec('rk', 'ランクの見本', statS.rkAll && statS.crefPend ? statS.rkAll.reduce((a, e) => a + e.a.filter(x => crefOdd(x, statS.crefPend, 'rk')).length, 0) : 0, rkAdminHTML(), '⚠')}
+    ${admSec('season', 'シーズンの日付と名前', 0, `<p class="small muted" style="margin:0 0 6px">開始日は、決まった日（毎月第2木曜日）が最初から入っています。変える時だけ直してください。名前は、そのシーズンのヒーローを選びます。保存すると、集計し直します。</p>${rows}
+    <div class="row"><button class="btn" data-act="stat-seasons"${statS.run ? ' disabled' : ''}>保存して集計し直す</button></div>`)}</div></div>`;
 }
+// 管理者用の項目：タップで開く。開いているものは、描き直しても開いたまま
+function admSec(k, title, n, body, mark) {
+  const open = statS.admOpen && statS.admOpen.has(k);
+  return `<details class="adm" data-adm="${k}"${open ? ' open' : ''}><summary>${esc(title)}${n ? `<span class="admn">${mark || ''}${n}</span>` : ''}</summary><div class="admb">${body}</div></details>`;
+}
+document.addEventListener('toggle', e => { const d = e.target; if (!d || !d.dataset || !d.dataset.adm) return; const s0 = statS.admOpen || (statS.admOpen = new Set()); if (d.open) s0.add(d.dataset.adm); else s0.delete(d.dataset.adm); }, true);
 document.addEventListener('click', e => {
   if (!(e.target.closest && e.target.closest('.hpick'))) document.querySelectorAll('.hpick-l').forEach(x => { x.hidden = true; });
   const t = e.target.closest && e.target.closest('[data-act]'); if (!t) return; const a = t.dataset.act;
@@ -5292,6 +5364,8 @@ document.addEventListener('click', e => {
   else if (a === 'stat-seasons') statSaveSeasons();
   else if (a === 'stat-stagefix') statSaveStageFix();
   else if (a === 'stat-herofix') statSaveHeroFix();
+  else if (a === 'stat-cardfix') statSaveCardFix();
+  else if (a === 'cf-sug') { const i = [...document.querySelectorAll('[data-cfn]')].find(z => z.dataset.cfn === t.dataset.n); if (i) i.value = t.dataset.v; t.parentNode.remove(); }
   else if (a === 'stat-nofix') statSaveStageFix(t.dataset.n);
   else if (a === 'cref-load') crefAdminLoad();
   else if (a === 'cref-tog') { statS.crefOpen = !statS.crefOpen; statRender(); }
