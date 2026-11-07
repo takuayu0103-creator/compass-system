@@ -351,6 +351,7 @@ details.adm>summary::after{content:'▼';margin-left:auto;font-size:12px;color:v
 details.adm[open]>summary::after{transform:rotate(180deg)}
 details.adm .admn{font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--accent);color:var(--ai,#fff)}
 details.adm .admb{padding:0 2px 12px}
+details.admdone{margin:8px 0 0}details.admdone>summary{cursor:pointer;font-size:13px;color:var(--muted);padding:6px 0}
 .cwarn{display:block;color:var(--lose);line-height:1.5;margin-top:2px}.cwarn button{font:inherit;font-size:12px;margin:2px 4px 0 0;padding:1px 8px;border:1px solid var(--line);border-radius:99px;background:var(--surface);color:var(--ink);cursor:pointer}
 .cplist button:hover,.cplist button:focus-visible{border-color:var(--accent)}.cplist .ad{width:10px;height:10px;border-radius:50%;flex:none}.cplist .sh{font-size:.75rem;color:var(--muted);margin:6px 0 2px}.citem{align-items:flex-start}.cauto{color:var(--accent);font-weight:700}.csug{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.csug button{font:inherit;font-size:.72rem;line-height:1.3;padding:2px 6px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--ink);cursor:pointer;text-align:left}.mbar{height:8px;border-radius:4px;background:rgba(128,128,128,.22);overflow:hidden}.mbar i{display:block;height:100%;background:var(--accent,#4da3ff);border-radius:4px}
 .acc{border:1px solid var(--line);border-radius:8px;background:var(--surface)}.acc>summary{cursor:pointer;list-style:none;padding:12px 14px;font-family:var(--f-ui);font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:8px}.acc>summary::-webkit-details-marker{display:none}.acc>summary::after{content:'＋';margin-left:auto;color:var(--muted)}.acc[open]>summary::after{content:'－'}.acc .accb{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;font-size:.9rem;line-height:1.7}.acc .accb h4{margin:6px 0 0;font-size:.9rem;font-family:var(--f-ui)}.acc .accb p,.acc .accb ul,.acc .accb ol{margin:0}.acc .accb ul,.acc .accb ol{padding-left:1.3em;display:flex;flex-direction:column;gap:4px}.acc .note{font-size:.82rem;color:var(--muted)}
@@ -1193,7 +1194,7 @@ async function crefPrep() {
       try { await syncLoad(); const d = FBA && await FBA.statGet('cardref'); const o = d ? JSON.parse(d.d || '{}') || {} : {}, l = []; for (const [n, a] of Object.entries(o)) if (Array.isArray(a)) for (const b of a) { const f = unb64(b); if (f.length === 312) l.push({ n, v: cardVec(f) }); } cref.list = l; }
       catch (e) { cref.list = []; }
     }
-    if (cref.list.length) for (const c of (db.cards || []).filter(c => (!c.name || !CARD_OFF().has(c.name)) && c.img && !thumbF.has(c.id))) { const f = await imgFeat(c.img); thumbF.set(c.id, f ? cardVec(f) : null); ch = true; }
+    if (cref.list.length) for (const c of (db.cards || []).filter(c => (!c.name || !cardOfficial(c.name)) && c.img && !thumbF.has(c.id))) { const f = await imgFeat(c.img); thumbF.set(c.id, f ? cardVec(f) : null); ch = true; }
   } finally { cref.busy = false; }
   if (ch) crefRedraw();
 }
@@ -1233,9 +1234,24 @@ function pubTopHTML() {
     <p class="small muted" style="margin:6px 0 0">送るのは、ヒーロー・カード・メダル・ランク・勝敗・ステージなどだけ（名前やスクショ全体は送りません）。<b>初期設定は「提供しない」</b>なので、提供するには同意が必要です。いつでもやめられます。</p>
     <div class="row"><button class="btn primary" data-act="pubn-go" data-w="s">${syncS.user ? '提供について確認する' : 'ログインして提供する'}</button><button class="btn ghost" data-act="pubn-stat-later">あとで</button></div></div></div>`;
 }
+// 管理者がOKしたカード名（カード一覧にまだないNカードなど）。統計を開いた時の情報を、この端末に覚えておく
+const cokC = { m: undefined, s: new Set() };
+function cardOkSet() {
+  const m = statS.meta; if (m === cokC.m) return cokC.s; cokC.m = m;
+  let v = null; if (m && !m.none) { const cf = statMetaD().cf; if (cf) { v = Object.values(cf); try { localStorage.setItem('senseki-cardok', JSON.stringify(v)); } catch (e) {} } }
+  if (!v) { try { v = JSON.parse(localStorage.getItem('senseki-cardok') || '[]'); } catch (e) { v = []; } }
+  cokC.s = new Set((Array.isArray(v) ? v : []).map(x => String(x).trim()).filter(x => x && x !== '（集計に入れない）')); return cokC.s;
+}
+const cardOfficial = n => CARD_OFF().has(n) || cardOkSet().has(n);
+// データタブで、一覧にない名前のカードがある時だけ、統計の情報（OKした名前）を読みに行く（1回だけ）
+async function cokLoad() {
+  if (cokC.busy || statS.meta) return; cokC.busy = true;
+  try { await syncLoad(); if (!statS.meta && FBA) statS.meta = (await FBA.statGet('meta')) || { none: true }; } catch (e) {}
+  if (statS.meta) renderData();
+}
 // 公式のカード一覧にない名前の時だけ、警告と候補を出す
 function cardWarn(c) {
-  if (!c || !c.name || CARD_OFF().has(c.name)) return '';
+  if (!c || !c.name || cardOfficial(c.name)) return '';
   const sg = cardSuggest(unb64((c.f || [])[0] || ''), thumbF.get(c.id)), top = sg ? sg.top.filter(x => x.n !== c.name).slice(0, 3) : [];
   return `⚠ 公式のカード名ではありません。統計では別のカードとして数えられます。${top.length ? '近いカード：' + top.map(x => `<button type="button" data-cardsug="${c.id}" data-n="${esc(x.n)}">${esc(x.n)}</button>`).join('') : '「▼」の一覧から選ぶと確実です。'}`;
 }
@@ -2883,6 +2899,7 @@ const cpNorm = t => (t || '').normalize('NFKC').toLowerCase().replace(/[\u3041-\
 let cpState = null;
 function cpAllNames() {
   const m = new Map(); for (const [n, a] of CARD_DB) m.set(n, a);
+  for (const n of cardOkSet()) if (!m.has(n)) m.set(n, '');   // 管理者がOKした名前（Nカードなど）
   for (const c of db.cards || []) if (c.name && !m.has(c.name)) m.set(c.name, '');
   return [...m.entries()].sort((a, b) => cardOrd(a[0]) - cardOrd(b[0]) || a[0].localeCompare(b[0], 'ja'));
 }
@@ -3219,8 +3236,9 @@ function cardNameHTML(el) {
   if (!cs.length) return `<div class="section" id="card-names"><div class="panel"><h2>カードの名前</h2><p class="small muted" style="margin:0">まだカードの記録がありません。リプレイのスクショを読み込むと、映っているカードを覚えて、ここに並びます。</p></div></div>`;
   const cnt = new Map(); for (const m of db.matches) if (m.cards) for (const sd of ['blue', 'red']) for (const row of m.cards[sd] || []) if (row) for (const id of new Set(row)) if (id) cnt.set(id, (cnt.get(id) || 0) + 1);
   const only = el.dataset.cardOnly !== '0', lim = +(el.dataset.cardLim || 60);
-  if (cs.some(c => (!c.name || !CARD_OFF().has(c.name)) && c.img && !thumbF.has(c.id)) || !cref.list) setTimeout(crefPrep, 0);
-  const offN = c => !c.name || !CARD_OFF().has(c.name), list = cs.filter(c => !only || offN(c)).sort((a, b) => (!offN(a) - !offN(b)) || (!!a.name - !!b.name) || (a.name ? cardOrd(a.name) - cardOrd(b.name) : 0) || ((cnt.get(b.id) || 0) - (cnt.get(a.id) || 0)));
+  if (cs.some(c => (!c.name || !cardOfficial(c.name)) && c.img && !thumbF.has(c.id)) || !cref.list) setTimeout(crefPrep, 0);
+  if (!statS.meta && cs.some(c => c.name && !CARD_OFF().has(c.name))) setTimeout(cokLoad, 0);
+  const offN = c => !c.name || !cardOfficial(c.name), list = cs.filter(c => !only || offN(c)).sort((a, b) => (!offN(a) - !offN(b)) || (!!a.name - !!b.name) || (a.name ? cardOrd(a.name) - cardOrd(b.name) : 0) || ((cnt.get(b.id) || 0) - (cnt.get(a.id) || 0)));
   const named = cs.filter(c => c.name).length, names = [...new Set(cs.map(c => c.name).filter(Boolean))].sort((a, b) => cardOrd(a) - cardOrd(b) || a.localeCompare(b, 'ja'));
   return `<div class="section" id="card-names"><div class="panel"><h2>カードの名前</h2>
     <p class="small muted" style="margin:0">読み込んだスクショから覚えたカードです（${cs.length}枚・名前あり${named}枚）。名前を付けると、分析タブの「カードの使用率」に名前が出ます。「自動」は、カード一覧の絵と照らし合わせて自動で付けた名前です。名前がないカードには、絵が近い順に候補が出るので、合っていればタップしてください。候補にない時は、名前の右の「▼」から全カードの一覧を開いて、名前で検索して選べます。同じカードが2つに分かれて並んでいたら、同じ名前を付けると1つにまとまります。</p>
@@ -3933,7 +3951,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-07-U', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-07-V', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4806,6 +4824,8 @@ function statAgg(parts, cfg, now, fix, hfix, cfix) {
     if (!o || !Array.isArray(o.r) || !Array.isArray(o.n)) continue;
     for (const r of o.r) if (Array.isArray(r) && r.length >= 14 && Number.isFinite(r[1]) && r[2] >= 0 && r[2] < MODES.length && !(r[3] >= 0 && STAGE_NOSTAT.has(String(o.n[r[3]] || '').trim()))) recs.push({ u: p.uid, nm: o.n, r });
   }
+  // ステージが「不明」など（分からなかった時の仮の名前）は、ステージなしとして扱う（ステージ別の集計や訂正の一覧に出さない）
+  const stCan = n => /^(不明|unknown|[?？]+)?$/i.test(String(n).trim()) ? '' : stageCanon(n, fix);
   // ヒーロー名：管理者が手で決めた訂正だけを使う。直す先は、データの中で実際に使われている書き方（空白など）にそろえる
   const hform = new Map();
   for (const { nm } of recs) for (const n of nm) { const t = String(n).trim(), k = ordNz(t); if (HERO_IX.has(k) && !hform.has(k)) hform.set(k, t); }
@@ -4815,6 +4835,7 @@ function statAgg(parts, cfg, now, fix, hfix, cfix) {
     if (hfix && Object.prototype.hasOwnProperty.call(hfix, t) && hfix[t]) { const g = String(hfix[t]).trim(); v = g === HERO_SKIP ? '' : (hform.get(ordNz(g)) || g); }
     hcache.set(t, v); return v; };
   // カード名：管理者が手で決めた訂正だけを使う（「（集計に入れない）」なら数えない）
+  const cok = new Set(Object.values(cfix || {}).map(v => String(v).trim()).filter(v => v && v !== HERO_SKIP));
   const ccache = new Map();
   const cardCanon = raw => { const t = String(raw).trim(); if (ccache.has(t)) return ccache.get(t); let v = t;
     if (cfix && Object.prototype.hasOwnProperty.call(cfix, t) && cfix[t]) { const g = String(cfix[t]).trim(); v = g === HERO_SKIP ? '' : g; }
@@ -4843,7 +4864,7 @@ function statAgg(parts, cfg, now, fix, hfix, cfix) {
     for (let k = 0; k < 6; k++) { const p = r[8 + k], h = Array.isArray(p) ? heroCanon(name(p[0])) : ''; if (h) known++; hs.push(ordNz(h)); }
     if (known < 5) continue;
     const win = w === 2 ? 'd' : ((w === 1) === (side === 0) ? 'b' : 'r');
-    const key = hs.join('|') + '#' + stageNorm(stageCanon(name(r[3]), fix) || '') + '#' + r[2] + '#' + win;
+    const key = hs.join('|') + '#' + stageNorm(stCan(name(r[3])) || '') + '#' + r[2] + '#' + win;
     const l = k2m.get(key) || []; if (!k2m.has(key)) k2m.set(key, l);
     if (l.some(x => x.u !== u && Math.abs(x.t - r[1]) <= 3 * 1440)) D2.add(rec); else l.push({ u, t: r[1] });
   }
@@ -4857,10 +4878,10 @@ function statAgg(parts, cfg, now, fix, hfix, cfix) {
     // アプリの「シーズン外」と同じ：期間内のバトルアリーナだけがシーズン。それ以外の試合はシーズン外
     const t = r[1] * 60000, se = r[2] !== AR || r[6] === 1 ? { id: 'out' } : (seasonOf(t) || { id: 'out' });
     const name = i => (i >= 0 && i < nm.length ? String(nm[i]) : ''), w = r[4], side = r[5] === 1 ? 1 : 0;
-    const st0 = name(r[3]), stage = stageCanon(st0, fix), own = r[8 + side * 3 + (r[7] | 0)], fp = String(r[0]), sk = fp + '|' + se.id;
+    const st0 = name(r[3]), stage = stCan(st0), own = r[8 + side * 3 + (r[7] | 0)], fp = String(r[0]), sk = fp + '|' + se.id;
     const dup0 = seen.has(sk) && seen.get(sk) !== u, dup = dup0 || D2.has(rec); if (!dup0 && dup) merged++; if (!dup) { seen.set(sk, u); total++; }
     if (!dup) for (let k = 0; k < 6; k++) { const p = r[8 + k]; if (!Array.isArray(p)) continue; const h0 = name(p[0]).trim(); if (!h0) continue; const h = heroCanon(h0); if (h && !HERO_IX.has(ordNz(h))) uh.set(h0, (uh.get(h0) || 0) + 1);
-      if (Array.isArray(p[2])) for (const c0 of new Set(p[2].map(name).map(x => x.trim()).filter(Boolean))) { const c = cardCanon(c0); if (c && !CARD_OFF().has(c)) uc.set(c0, (uc.get(c0) || 0) + 1); } }
+      if (Array.isArray(p[2])) for (const c0 of new Set(p[2].map(name).map(x => x.trim()).filter(Boolean))) { const c = cardCanon(c0); if (c && !CARD_OFF().has(c) && !cok.has(c)) uc.set(c0, (uc.get(c0) || 0) + 1); } }
     if (!dup && stage) { if (!isOff(stage)) unk.set(stage, (unk.get(stage) || 0) + 1); const r0 = STAGE_ALIAS[st0.trim()] || st0.trim(); if (r0 !== stage && isOff(stage) && !(fix && fix[r0])) { const ak = r0 + '\t' + stage; am.set(ak, (am.get(ak) || 0) + 1); } }
     for (const d of [doc(se.id, r[2]), doc(se.id, 'a')]) {
     d.us.add(u);
@@ -5298,34 +5319,41 @@ function statRender() {
   if (keep) { const k = document.getElementById(keep); if (k && k.focus) try { k.focus(); } catch (e) {} }
 }
 const HERO_SKIP = '（集計に入れない）';
+// 直すもの（件数があるもの）と、修正ずみのものを分ける
+function fixSplit(names, cnt, mk) { const a = names.filter(n => cnt(n)), b = names.filter(n => !cnt(n)); return { todo: a.map(mk).join(''), done: b.map(mk).join(''), nd: b.length }; }
+function fixList(R) {
+  const k = 'done-' + (R.nd ? R.done.length : 0);
+  return (R.todo || '<p class="small muted" style="margin:0">いま、直すものはありません（次に集計した時に調べます）。</p>') +
+    (R.done ? `<details class="admdone"><summary>修正ずみ（${R.nd}件）・ここで変えられます</summary>${R.done}</details>` : '');
+}
 function cardFixHTML(md) {
   const cf = md.cf || {}, uc = md.uc || [], names = [...new Set(uc.map(x => x[0]).concat(Object.keys(cf)))];
   const cnt = n => (uc.find(x => x[0] === n) || [0, 0])[1];
   if (names.some(n => !(statS.cfs && statS.cfs.has(n))) && statS.cimg) setTimeout(() => cardFixSug(names), 0);
   const dl = `<datalist id="cf-dl"><option value="${HERO_SKIP}">${CARD_DB.map(c => `<option value="${esc(c[0])}">`).join('')}</datalist>`;
-  const rows = names.map(n => { const u = (statS.cimg && statS.cimg.get(n)) || '', sg = (statS.cfs && statS.cfs.get(n)) || [];
-    return `<div style="display:flex;gap:8px;align-items:flex-start;margin:8px 0">${u ? `<img src="${u}" alt="" width="34" height="40" style="flex:none;border-radius:3px">` : '<span style="flex:none;width:34px;height:40px;border-radius:3px;background:var(--line)"></span>'}<div style="flex:1;min-width:0"><div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center;margin:0"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(n)}${cnt(n) ? `（${cnt(n)}件）` : '（訂正ずみ）'}</span><span class="small muted">→</span><input type="text" data-cfn="${esc(n)}" list="cf-dl" value="${esc(cf[n] || '')}" placeholder="直す先" maxlength="80" style="flex:1.4;min-width:0"></div>${sg.length && !cf[n] ? `<div class="row" style="gap:4px;margin:4px 0 0;flex-wrap:wrap"><span class="small muted">候補：</span>${sg.map(x => `<button type="button" class="btn ghost" data-act="cf-sug" data-n="${esc(n)}" data-v="${esc(x)}" style="padding:1px 8px;font-size:12px;min-height:0">${esc(x)}</button>`).join('')}</div>` : ''}</div></div>`; }).join('');
-  return `<p class="small muted" style="margin:0 0 6px">公式のカード一覧にない名前で入ってきたカードを、直す先の名前に変えて集計します。左は送られてきたカードの絵、「候補」はその絵をカード一覧と照らし合わせたものです。合っていれば候補を押してから保存してください。「${HERO_SKIP}」を選ぶと集計から外します。新しく出たばかりのカードがアプリの一覧にまだ無い時もここに出ますが、その時は空のままで大丈夫です。件数は、そのカードが出てきた枠の数です。</p>${dl}
-    ${rows || '<p class="small muted" style="margin:0">いま、公式にない名前はありません（次に集計した時に調べます）。</p>'}
+  const mk = n => { const u = (statS.cimg && statS.cimg.get(n)) || '', sg = (statS.cfs && statS.cfs.get(n)) || [];
+    return `<div style="display:flex;gap:8px;align-items:flex-start;margin:8px 0">${u ? `<img src="${u}" alt="" width="34" height="40" style="flex:none;border-radius:3px">` : '<span style="flex:none;width:34px;height:40px;border-radius:3px;background:var(--line)"></span>'}<div style="flex:1;min-width:0"><div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center;margin:0"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(n)}${cnt(n) ? `（${cnt(n)}件）` : cf[n] === n ? '（OKずみ）' : '（訂正ずみ）'}</span><span class="small muted">→</span><input type="text" data-cfn="${esc(n)}" list="cf-dl" value="${esc(cf[n] || '')}" placeholder="直す先" maxlength="80" style="flex:1.4;min-width:0"></div>${!cf[n] ? `<div class="row" style="gap:4px;margin:4px 0 0;flex-wrap:wrap"><button type="button" class="btn ghost" data-act="cf-ok" data-n="${esc(n)}" style="padding:1px 8px;font-size:12px;min-height:0;border-color:var(--win);color:var(--win)">OK（この名前で数える）</button>${sg.length ? '<span class="small muted">候補：</span>' : ''}${sg.map(x => `<button type="button" class="btn ghost" data-act="cf-sug" data-n="${esc(n)}" data-v="${esc(x)}" style="padding:1px 8px;font-size:12px;min-height:0">${esc(x)}</button>`).join('')}</div>` : ''}</div></div>`; }, R = fixSplit(names, cnt, mk), rows = R.todo + R.done;
+  return `<p class="small muted" style="margin:0 0 6px">公式のカード一覧にない名前で入ってきたカードを、直す先の名前に変えて集計します。左は送られてきたカードの絵、「候補」はその絵をカード一覧と照らし合わせたものです。合っていれば候補を押してから保存してください。「${HERO_SKIP}」を選ぶと集計から外します。アプリの一覧にまだ無いカード（Nカードや、出たばかりのカード）は、名前が合っていれば「OK」を押してください。そのままの名前で数えて、この一覧からも消えます（使う人の画面の警告も出なくなります）。件数は、そのカードが出てきた枠の数です。</p>${dl}
+    ${fixList(R)}
     ${rows ? '<div class="row"><button class="btn" data-act="stat-cardfix"' + (statS.run ? ' disabled' : '') + '>保存して集計し直す</button></div>' : ''}`;
 }
 function heroFixHTML(md) {
   const hf = md.hf || {}, uh = md.uh || [], names = [...new Set(uh.map(x => x[0]).concat(Object.keys(hf)))];
   const dl = `<datalist id="hf-dl"><option value="${HERO_SKIP}">${HERO_ORDER.map(n => `<option value="${esc(dispName(n))}">`).join('')}</datalist>`;
   const cnt = n => (uh.find(x => x[0] === n) || [0, 0])[1];
-  const rows = names.map(n => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(n)}${cnt(n) ? `（${cnt(n)}件）` : '（訂正ずみ）'}</span><span class="small muted">→</span><input type="text" data-hfn="${esc(n)}" list="hf-dl" value="${esc(hf[n] || '')}" placeholder="直す先" maxlength="40" style="flex:1.2;min-width:0"></div>`).join('');
+  const mk = n => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(n)}${cnt(n) ? `（${cnt(n)}件）` : '（訂正ずみ）'}</span><span class="small muted">→</span><input type="text" data-hfn="${esc(n)}" list="hf-dl" value="${esc(hf[n] || '')}" placeholder="直す先" maxlength="40" style="flex:1.2;min-width:0"></div>`, R = fixSplit(names, cnt, mk), rows = R.todo + R.done;
   return `<p class="small muted" style="margin:0 0 6px">公式にない名前で入ってきたヒーローを、直す先の名前に変えて集計します。直す先は候補から選ぶか、自分で書けます。「${HERO_SKIP}」を選ぶと、そのヒーローの枠を集計から外します。空にすると訂正をやめます。件数は、そのヒーローが出てきた枠の数です。</p>${dl}
-    ${rows || '<p class="small muted" style="margin:0">いま、公式にない名前はありません（次に集計した時に調べます）。</p>'}
+    ${fixList(R)}
     ${rows ? '<div class="row"><button class="btn" data-act="stat-herofix"' + (statS.run ? ' disabled' : '') + '>保存して集計し直す</button></div>' : ''}`;
 }
 function stageFixHTML(md) {
   const sf = md.sf || {}, un = md.un || [], am = md.am || [], names = [...new Set(un.map(x => x[0]).concat(Object.keys(sf)))];
   const dl = `<datalist id="sf-dl">${Object.keys(STAGE_IMG).map(n => `<option value="${esc(n)}">`).join('')}</datalist>`;
   const cnt = n => (un.find(x => x[0] === n) || [0, 0])[1];
-  const rows = names.map(n => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(n)}${cnt(n) ? `（${cnt(n)}件）` : ''}</span><span class="small muted">→</span><input type="text" data-sfn="${esc(n)}" list="sf-dl" value="${esc(sf[n] && sf[n] !== n ? sf[n] : '')}" placeholder="直す先" maxlength="40" style="flex:1.2;min-width:0"></div>`).join('');
+  const mk = n => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(n)}${cnt(n) ? `（${cnt(n)}件）` : ''}</span><span class="small muted">→</span><input type="text" data-sfn="${esc(n)}" list="sf-dl" value="${esc(sf[n] && sf[n] !== n ? sf[n] : '')}" placeholder="直す先" maxlength="40" style="flex:1.2;min-width:0"></div>`, R = fixSplit(names, cnt, mk), rows = R.todo + R.done;
   const auto = am.map(([a, b, c]) => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(a)} → ${esc(b)}（${c}件）</span><button class="btn ghost" data-act="stat-nofix" data-n="${esc(a)}" style="padding:2px 10px">寄せない</button></div>`).join('');
   return `<p class="small muted" style="margin:0 0 6px">公式にない名前で入ってきたものを、直す先の名前に変えて集計します。直す先は、候補から選ぶか、自分で書けます。空にすると訂正をやめます。</p>${dl}
-    ${rows || '<p class="small muted" style="margin:0">いま、公式にない名前はありません。</p>'}
+    ${fixList(R)}
     ${rows ? '<div class="row"><button class="btn" data-act="stat-stagefix"' + (statS.run ? ' disabled' : '') + '>保存して集計し直す</button></div>' : ''}
     ${auto ? '<p class="small muted" style="margin:10px 0 4px">自動で寄せているもの（間違っていたら「寄せない」）</p>' + auto : ''}`;
 }
@@ -5338,9 +5366,9 @@ function statAdminHTML() {
     <p class="small muted" style="margin:0">${m ? `最終の集計：${new Date(m.t).toLocaleString('ja-JP')}（${m.p}人／${m.n}試合）` : 'まだ集計していません'}。集計は、開いた時に${STAT_HOURS}時間以上たっていれば自動で行います。</p>
     <div class="row"><button class="btn primary" data-act="stat-run"${statS.run || wait ? ' disabled' : ''}>今すぐ集計</button><span class="small muted">${wait ? '前の集計から5分たつと押せます' : ''}</span></div>${msg}
     ${md.m2 ? `<p class="small muted" style="margin:6px 0 0">名前の付け方が違うだけで重なっていた試合：${md.m2}件（1試合にまとめています）</p>` : ''}
-    ${admSec('stage', 'ステージ名の修正', (md.un || []).length, stageFixHTML(md))}
-    ${admSec('hero', 'ヒーロー名の修正', (md.uh || []).length, heroFixHTML(md))}
-    ${admSec('card', 'カード名の修正', (md.uc || []).length, cardFixHTML(md))}
+    ${admSec('stage', 'ステージ名の修正', (md.un || []).filter(x => x[1] > 0).length, stageFixHTML(md))}
+    ${admSec('hero', 'ヒーロー名の修正', (md.uh || []).filter(x => x[1] > 0).length, heroFixHTML(md))}
+    ${admSec('card', 'カード名の修正', (md.uc || []).filter(x => x[1] > 0).length, cardFixHTML(md))}
     ${admSec('cref', 'カードの見本', statS.crefAll && statS.crefPend ? statS.crefAll.reduce((a, e) => a + e.a.filter(x => crefOdd(x, statS.crefPend, 'c')).length, 0) : 0, crefAdminHTML(), '⚠')}
     ${admSec('rk', 'ランクの見本', statS.rkAll && statS.crefPend ? statS.rkAll.reduce((a, e) => a + e.a.filter(x => crefOdd(x, statS.crefPend, 'rk')).length, 0) : 0, rkAdminHTML(), '⚠')}
     ${admSec('season', 'シーズンの日付と名前', 0, `<p class="small muted" style="margin:0 0 6px">開始日は、決まった日（毎月第2木曜日）が最初から入っています。変える時だけ直してください。名前は、そのシーズンのヒーローを選びます。保存すると、集計し直します。</p>${rows}
@@ -5365,6 +5393,7 @@ document.addEventListener('click', e => {
   else if (a === 'stat-stagefix') statSaveStageFix();
   else if (a === 'stat-herofix') statSaveHeroFix();
   else if (a === 'stat-cardfix') statSaveCardFix();
+  else if (a === 'cf-ok') { const i = [...document.querySelectorAll('[data-cfn]')].find(z => z.dataset.cfn === t.dataset.n); if (i) i.value = t.dataset.n; t.parentNode.remove(); }
   else if (a === 'cf-sug') { const i = [...document.querySelectorAll('[data-cfn]')].find(z => z.dataset.cfn === t.dataset.n); if (i) i.value = t.dataset.v; t.parentNode.remove(); }
   else if (a === 'stat-nofix') statSaveStageFix(t.dataset.n);
   else if (a === 'cref-load') crefAdminLoad();
