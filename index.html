@@ -3903,7 +3903,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-07-Q', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-07-R', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4768,14 +4768,22 @@ function pubRender() { for (const id of ['pub-box-d', 'pub-box-s']) { const el =
 const pubIdHTML = () => syncS.user ? `<p class="small muted" style="margin:10px 0 0">あなたのID：<code id="my-uid" style="user-select:all">${esc(syncS.user.uid)}</code> <button class="btn ghost" data-act="uid-copy" style="padding:2px 10px">コピー</button><span class="small" id="uid-msg"></span><br>統計の管理者を追加する時だけ使います。ふだんは使いません。</p>` : '';
 
 /* --- 集計する（管理者のみ） --- */
-function statAgg(parts, cfg, now, fix) {
+function statAgg(parts, cfg, now, fix, hfix) {
   const unk = new Map(), am = new Map(), isOff = n => Object.prototype.hasOwnProperty.call(STAGE_IMG, n);
-  const recs = [];
+  const recs = [], uh = new Map();
   for (const p of parts) {
     let o; try { o = JSON.parse(p.text); } catch (e) { continue; }
     if (!o || !Array.isArray(o.r) || !Array.isArray(o.n)) continue;
     for (const r of o.r) if (Array.isArray(r) && r.length >= 14 && Number.isFinite(r[1]) && r[2] >= 0 && r[2] < MODES.length && !(r[3] >= 0 && STAGE_NOSTAT.has(String(o.n[r[3]] || '').trim()))) recs.push({ u: p.uid, nm: o.n, r });
   }
+  // ヒーロー名：管理者が手で決めた訂正だけを使う。直す先は、データの中で実際に使われている書き方（空白など）にそろえる
+  const hform = new Map();
+  for (const { nm } of recs) for (const n of nm) { const t = String(n).trim(), k = ordNz(t); if (HERO_IX.has(k) && !hform.has(k)) hform.set(k, t); }
+  for (const n of HERO_ORDER) { const k = ordNz(n); if (!hform.has(k)) hform.set(k, n); }
+  const hcache = new Map();
+  const heroCanon = raw => { const t = String(raw).trim(); if (hcache.has(t)) return hcache.get(t); let v = t;
+    if (hfix && Object.prototype.hasOwnProperty.call(hfix, t) && hfix[t]) { const g = String(hfix[t]).trim(); v = g === HERO_SKIP ? '' : (hform.get(ordNz(g)) || g); }
+    hcache.set(t, v); return v; };
   const over = new Map((cfg || []).map(c => [c.id, c]));
   let minT = now; for (const x of recs) minT = Math.min(minT, x.r[1] * 60000);
   const d0 = new Date(minT + 9 * 3600000), d1 = new Date(now + 9 * 3600000);
@@ -4802,6 +4810,7 @@ function statAgg(parts, cfg, now, fix) {
     const name = i => (i >= 0 && i < nm.length ? String(nm[i]) : ''), w = r[4], side = r[5] === 1 ? 1 : 0;
     const st0 = name(r[3]), stage = stageCanon(st0, fix), own = r[8 + side * 3 + (r[7] | 0)], fp = String(r[0]), sk = fp + '|' + se.id;
     const dup = seen.has(sk) && seen.get(sk) !== u; if (!dup) { seen.set(sk, u); total++; }
+    if (!dup) for (let k = 0; k < 6; k++) { const p = r[8 + k]; if (!Array.isArray(p)) continue; const h0 = name(p[0]).trim(); if (!h0) continue; const h = heroCanon(h0); if (h && !HERO_IX.has(ordNz(h))) uh.set(h0, (uh.get(h0) || 0) + 1); }
     if (!dup && stage) { if (!isOff(stage)) unk.set(stage, (unk.get(stage) || 0) + 1); const r0 = STAGE_ALIAS[st0.trim()] || st0.trim(); if (r0 !== stage && isOff(stage) && !(fix && fix[r0])) { const ak = r0 + '\t' + stage; am.set(ak, (am.get(ak) || 0) + 1); } }
     for (const d of [doc(se.id, r[2]), doc(se.id, 'a')]) {
     d.us.add(u);
@@ -4809,7 +4818,7 @@ function statAgg(parts, cfg, now, fix) {
     if (dup) continue;
     d.fps.add(fp + u);
     for (let k = 0; k < 6; k++) {
-      const p = r[8 + k]; if (!Array.isArray(p)) continue; const h = name(p[0]); if (!h) continue;
+      const p = r[8 + k]; if (!Array.isArray(p)) continue; const h = heroCanon(name(p[0])); if (!h) continue;
       const band = Number.isFinite(p[1]) ? Math.min(10, Math.max(0, p[1] | 0)) : 10;
       const x = bucket(d.h, band); let e = x.get(h); if (!e) { e = { n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map(), seen: new Set() }; x.set(h, e); }
       const pw = w !== 2 && (k < 3 ? 0 : 1) === side ? w === 1 : (w === 0);
@@ -4848,7 +4857,7 @@ function statAgg(parts, cfg, now, fix) {
       const dk = key + '_' + bk; let d = pd.get(dk); if (!d) { d = { key, bk, fps: new Set(), us: new Set(), h: new Map() }; pd.set(dk, d); }
       d.us.add(u); d.fps.add(String(r[0]) + u);
       for (let k = 0; k < 6; k++) {
-        const p = r[8 + k]; if (!Array.isArray(p)) continue; const h = name(p[0]); if (!h) continue;
+        const p = r[8 + k]; if (!Array.isArray(p)) continue; const h = heroCanon(name(p[0])); if (!h) continue;
         const band = Number.isFinite(p[1]) ? Math.min(10, Math.max(0, p[1] | 0)) : 10;
         let x = d.h.get(band); if (!x) { x = new Map(); d.h.set(band, x); }
         let e = x.get(h); if (!e) { e = { n: 0, cn: 0, cards: new Map(), mn: 0, med: new Map(), seen: new Set() }; x.set(h, e); }
@@ -4867,9 +4876,11 @@ function statAgg(parts, cfg, now, fix) {
     out.set('p_' + dk, { t: now, n: d.fps.size, p: d.us.size, d: JSON.stringify({ c: ct, h }) });
   }
   const persons = new Set(recs.map(x => x.u));
+  // 試合数は、統計タブの「全期間・全対戦モード」に出る数と同じ数え方にする（シーズンごとの全対戦モードの試合数を足す）
+  total = 0; for (const [k, d] of docs) if (k.endsWith('_a')) total += d.fps.size;
   const usedIds = [...out.keys()];
   // 1試合は「その対戦モード」と「全対戦モード」の2か所に入るので、足し合わせずに数える
-  const meta = { t: now, n: total, p: persons.size, d: JSON.stringify({ docs: usedIds, pk: [...pks].sort((a, b) => a - b), ss: ss.map(s => ({ id: s.id, start: s.start, name: s.name, custom: s.custom })), un: [...unk].sort((a, b) => b[1] - a[1]).slice(0, 40), am: [...am].map(([k, n]) => [...k.split('\t'), n]).sort((a, b) => b[2] - a[2]).slice(0, 40), sf: fix || {} }) };
+  const meta = { t: now, n: total, p: persons.size, d: JSON.stringify({ docs: usedIds, pk: [...pks].sort((a, b) => a - b), ss: ss.map(s => ({ id: s.id, start: s.start, name: s.name, custom: s.custom })), un: [...unk].sort((a, b) => b[1] - a[1]).slice(0, 40), am: [...am].map(([k, n]) => [...k.split('\t'), n]).sort((a, b) => b[2] - a[2]).slice(0, 40), sf: fix || {}, uh: [...uh].sort((a, b) => b[1] - a[1]).slice(0, 40), hf: hfix || {} }) };
   return { docs: out, meta };
 }
 async function statRun(manual) {
@@ -4879,8 +4890,10 @@ async function statRun(manual) {
     const [parts, cfgDoc, outs, old, fxDoc, banDoc] = await Promise.all([FBA.pubAll(), FBA.statGet('seasons'), FBA.pubOutList(), FBA.statGet('meta'), FBA.statGet('stagefix'), FBA.statGet('cardban')]);
     const ban = crefBanParse(banDoc);
     let fix = {}; try { fix = JSON.parse((fxDoc && fxDoc.d) || '{}') || {}; } catch (e) {}
+    // ヒーロー名の訂正は、ステージ名の訂正と同じ保存場所の「__hero」に入れている
+    const hfix = (fix.__hero && typeof fix.__hero === 'object') ? fix.__hero : {}; delete fix.__hero;
     let cfg = []; try { cfg = JSON.parse((cfgDoc && cfgDoc.d) || '[]') || []; } catch (e) {}
-    const res = statAgg(parts, cfg, Date.now(), fix);
+    const res = statAgg(parts, cfg, Date.now(), fix, hfix);
     let oldIds = [], oldD = {}; try { oldD = JSON.parse((old && old.d) || '{}') || {}; oldIds = oldD.docs || []; } catch (e) {}
     const del = oldIds.filter(i => !res.docs.has(i));
     // カードの小さな画像：すでにあるものは残し、新しいカード名の分だけ足す
@@ -4899,7 +4912,7 @@ async function statRun(manual) {
     } else { if (oldCi) { md.ci = oldCi; md.cv = oldD.cv || 0; } }
     // みんなの見本：公式のカード名ごとに、別々の人の画像を3枚まで。3枚そろった名前は、もう送ってもらわない（cardidx）
     const cr = await crefBuild(parts, ban);
-    statS.crefAll = cr.all; statS.crefPend = { img: new Set(ban.img), uid: new Set(ban.uid), rk: new Set(ban.rk) };
+    statS.crefAll = cr.all; statS.crefPend = { img: new Set(ban.img), uid: new Set(ban.uid), rk: new Set(ban.rk), ok: new Set(ban.ok) };
     const rb = rkBuild(parts, ban); statS.rkAll = rb.all;
     extra.push(['rankref', { t: res.meta.t, d: JSON.stringify(rb.refs) }]);
     extra.push(['cardidx', { t: res.meta.t, d: JSON.stringify([...imgs.keys()].filter(n => !CARD_OFF().has(n) || cr.full.has(n)).sort()) }]);
@@ -4915,7 +4928,7 @@ async function statRun(manual) {
 }
 let cardOffSet = null;
 const CARD_OFF = () => cardOffSet || (cardOffSet = new Set(CARD_DB.map(x => x[0])));
-function crefBanParse(doc) { let o = {}; try { o = JSON.parse((doc && doc.d) || '{}') || {}; } catch (e) {} return { img: new Set(Array.isArray(o.img) ? o.img : []), uid: new Set(Array.isArray(o.uid) ? o.uid : []), rk: new Set(Array.isArray(o.rk) ? o.rk : []) }; }
+function crefBanParse(doc) { let o = {}; try { o = JSON.parse((doc && doc.d) || '{}') || {}; } catch (e) {} return { img: new Set(Array.isArray(o.img) ? o.img : []), uid: new Set(Array.isArray(o.uid) ? o.uid : []), rk: new Set(Array.isArray(o.rk) ? o.rk : []), ok: new Set(Array.isArray(o.ok) ? o.ok : []) }; }
 // 提供データの中のカード画像を、名前ごとにまとめる。止めた画像・止めた人のものは使わない
 async function crefBuild(parts, ban) {
   const cand = new Map();
@@ -4968,35 +4981,39 @@ function rkBuild(parts, ban) {
   return { refs, all };
 }
 const rkSvg = m => `<svg viewBox="0 0 20 25" width="30" height="38" style="display:block;background:#222;border-radius:3px" shape-rendering="crispEdges">${[...m].map((c, i) => c === '1' ? `<rect x="${i % 20}" y="${Math.floor(i / 20)}" width="1" height="1" fill="#eee"/>` : '').join('')}</svg>`;
+// ⚠のうち、まだ見ていないもの（止めていない・OKにしていない）
+const crefOdd = (x, pd, kind) => x.odd && !(pd.ok && pd.ok.has(x.h)) && !pd.uid.has(x.u) && !(kind === 'rk' ? pd.rk.has(x.h) : pd.img.has(x.h));
+const crefMark = (x, pd, kind) => !x.odd ? '' : crefOdd(x, pd, kind) ? '<span style="position:absolute;top:-6px;right:-6px;font-size:13px">⚠</span>' : (pd.ok && pd.ok.has(x.h) ? '<span style="position:absolute;top:-7px;right:-7px;width:16px;height:16px;border-radius:50%;background:var(--win);color:#fff;font-size:11px;line-height:16px;text-align:center;font-weight:700">✓</span>' : '');
+const crefOkBtn = (x, pd, kind) => x.odd && !pd.uid.has(x.u) && !(kind === 'rk' ? pd.rk.has(x.h) : pd.img.has(x.h)) ? `<button type="button" class="btn ghost" data-act="cref-ok" data-h="${x.h}" style="padding:0 6px;font-size:10px;min-height:0">${pd.ok && pd.ok.has(x.h) ? 'OK取消' : 'OK'}</button>` : '';
 function rkAdminHTML() {
   const all = statS.rkAll, pd = statS.crefPend; if (!all || !pd) return '';
-  const nImg = all.reduce((a, e) => a + e.a.length, 0);
+  const nImg = all.reduce((a, e) => a + e.a.length, 0), nOddR = all.reduce((a, e) => a + e.a.filter(x => crefOdd(x, pd, 'rk')).length, 0);
   if (!nImg) return '<h3>ランク見本（みんなが手で直したもの）</h3><p class="small muted" style="margin:0">まだ集まっていません。</p>';
-  return `<h3>ランク見本（みんなが手で直したもの）</h3><p class="small muted" style="margin:0 0 6px">統計に提供した人が手で直したランクの数字の形です。ランクごとに8つまで（1人は同じランクを2つまで）を、全員の読み取りの見本に使います。緑の枠が使っているものです。形が違うもの・いたずらは押して止めてください。⚠は、公式の見本のどれとも似ていないものです。保存は上の「保存して集計し直す」です。</p>` + all.map(e => `<div style="margin:8px 0"><div class="small"><b>${esc(e.n)}</b>（${e.a.length}）</div><div class="row" style="gap:8px;flex-wrap:wrap;margin-top:4px">${e.a.map(x => { const off = pd.rk.has(x.h) || pd.uid.has(x.u); return `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px"><button type="button" data-act="rk-img" data-h="${x.h}" title="${off ? '止めている（押すと戻す）' : '押すと止める'}" style="position:relative;padding:0;border:2px solid ${x.used && !off ? 'var(--win)' : 'transparent'};border-radius:5px;background:none;opacity:${off ? .3 : 1}">${rkSvg(x.m)}${x.odd ? '<span style="position:absolute;top:-6px;right:-6px;font-size:13px">⚠</span>' : ''}</button><span class="small" style="font-size:10px">${off ? '止め中' : (x.used ? '使用中' : '予備')}</span><button type="button" class="btn ghost" data-act="cref-uid" data-u="${x.u}" style="padding:0 6px;font-size:10px;min-height:0">${pd.uid.has(x.u) ? '人ごと解除' : '人ごと'}</button></span>`; }).join('')}</div></div>`).join('');
+  return `<h3>ランク見本（みんなが手で直したもの）${nOddR ? `<span class="small" style="margin-left:6px">⚠${nOddR}</span>` : ''}</h3><p class="small muted" style="margin:0 0 6px">統計に提供した人が手で直したランクの数字の形です。ランクごとに8つまで（1人は同じランクを2つまで）を、全員の読み取りの見本に使います。緑の枠が使っているものです。形が違うもの・いたずらは押して止めてください。⚠は、公式の見本のどれとも似ていないものです。合っていれば「OK」を押すと⚠が消えます（止めても消えます）。保存は上の「保存して集計し直す」です。</p>` + all.map(e => `<div style="margin:8px 0"><div class="small"><b>${esc(e.n)}</b>（${e.a.length}）</div><div class="row" style="gap:8px;flex-wrap:wrap;margin-top:4px">${e.a.map(x => { const off = pd.rk.has(x.h) || pd.uid.has(x.u); return `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px"><button type="button" data-act="rk-img" data-h="${x.h}" title="${off ? '止めている（押すと戻す）' : '押すと止める'}" style="position:relative;padding:0;border:2px solid ${x.used && !off ? 'var(--win)' : 'transparent'};border-radius:5px;background:none;opacity:${off ? .3 : 1}">${rkSvg(x.m)}${crefMark(x, pd, 'rk')}</button><span class="small" style="font-size:10px">${off ? '止め中' : (x.used ? '使用中' : '予備')}</span>${crefOkBtn(x, pd, 'rk')}<button type="button" class="btn ghost" data-act="cref-uid" data-u="${x.u}" style="padding:0 6px;font-size:10px;min-height:0">${pd.uid.has(x.u) ? '人ごと解除' : '人ごと'}</button></span>`; }).join('')}</div></div>`).join('');
 }
 // 管理者用：集計し直さずに、いまの見本の一覧だけ読む
 async function crefAdminLoad() {
   if (!isAdmin() || !FBA || statS.run) return;
   statS.crefLoading = true; statRender();
-  try { const [parts, banDoc] = await Promise.all([FBA.pubAll(), FBA.statGet('cardban')]); const ban = crefBanParse(banDoc); const cr = await crefBuild(parts, ban); statS.crefAll = cr.all; statS.rkAll = rkBuild(parts, ban).all; statS.crefPend = { img: new Set(ban.img), uid: new Set(ban.uid), rk: new Set(ban.rk) }; statS.crefOpen = true; }
+  try { const [parts, banDoc] = await Promise.all([FBA.pubAll(), FBA.statGet('cardban')]); const ban = crefBanParse(banDoc); const cr = await crefBuild(parts, ban); statS.crefAll = cr.all; statS.rkAll = rkBuild(parts, ban).all; statS.crefPend = { img: new Set(ban.img), uid: new Set(ban.uid), rk: new Set(ban.rk), ok: new Set(ban.ok) }; statS.crefOpen = true; }
   catch (e) { statS.msg = 'カード見本を読めませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; }
   statS.crefLoading = false; statRender();
 }
 async function crefSaveBan() {
   if (!isAdmin() || !FBA || statS.run || !statS.crefPend) return;
   const pd = statS.crefPend;
-  try { await FBA.statPut('cardban', { t: Date.now(), d: JSON.stringify({ img: [...pd.img], uid: [...pd.uid], rk: [...(pd.rk || [])] }) }); } catch (e) { statS.msg = '保存できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; statRender(); return; }
+  try { await FBA.statPut('cardban', { t: Date.now(), d: JSON.stringify({ img: [...pd.img], uid: [...pd.uid], rk: [...(pd.rk || [])], ok: [...(pd.ok || [])] }) }); } catch (e) { statS.msg = '保存できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; statRender(); return; }
   await statRun(true);
 }
 function crefAdminHTML() {
   const all = statS.crefAll, pd = statS.crefPend;
-  const head = `<h3>カード見本（みんなが付けた名前）</h3><p class="small muted" style="margin:0 0 6px">統計に提供した人が名前を付けたカードの画像を、ほかの人のカード名の候補に使います（公式のカード名だけ。1つの名前につき、別々の人の画像を3枚まで）。緑の枠が使っている画像です。間違った名前や荒らしを見つけたら、画像を押して止めてください。「人ごと」は、その人が送った見本をすべて止めます。⚠は、同じ名前のほかの画像と似ていないものです。止めた画像の代わりに、ほかの人の画像が使われます。</p>`;
+  const head = `<h3>カード見本（みんなが付けた名前）</h3><p class="small muted" style="margin:0 0 6px">統計に提供した人が名前を付けたカードの画像を、ほかの人のカード名の候補に使います（公式のカード名だけ。1つの名前につき、別々の人の画像を3枚まで）。緑の枠が使っている画像です。間違った名前や荒らしを見つけたら、画像を押して止めてください。「人ごと」は、その人が送った見本をすべて止めます。⚠は、同じ名前のほかの画像と似ていないものです。合っていれば「OK」を押すと⚠が消えます（止めても消えます）。数は⚠の画像の枚数です。止めた画像の代わりに、ほかの人の画像が使われます。</p>`;
   if (!all) return head + `<div class="row"><button class="btn" data-act="cref-load"${statS.run || statS.crefLoading ? ' disabled' : ''}>${statS.crefLoading ? '読み込んでいます…' : '一覧を読み込む'}</button></div>`;
-  const nImg = all.reduce((a, e) => a + e.a.length, 0), nOdd = all.filter(e => e.a.some(x => x.odd)).length;
+  const nImg = all.reduce((a, e) => a + e.a.length, 0), nOdd = all.reduce((a, e) => a + e.a.filter(x => crefOdd(x, pd, 'c')).length, 0);
   let h = head + `<div class="row"><button class="btn ghost" data-act="cref-tog">${statS.crefOpen ? '一覧を閉じる' : `一覧を開く（${all.length}種類・${nImg}枚${nOdd ? `・⚠${nOdd}` : ''}）`}</button><button class="btn" data-act="cref-save"${statS.run ? ' disabled' : ''}>保存して集計し直す</button></div>`;
   if (!statS.crefOpen) return h;
-  const list = [...all].sort((a, b) => (b.a.some(x => x.odd) - a.a.some(x => x.odd)) || cardOrd(a.n) - cardOrd(b.n) || a.n.localeCompare(b.n, 'ja'));
-  return h + list.map(e => `<div style="margin:8px 0"><div class="small"><b>${esc(e.n)}</b></div><div class="row" style="gap:8px;flex-wrap:wrap;margin-top:4px">${e.a.map(x => { const off = pd.img.has(x.h) || pd.uid.has(x.u); return `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px"><button type="button" data-act="cref-img" data-h="${x.h}" title="${off ? '止めている（押すと戻す）' : '押すと止める'}" style="position:relative;padding:0;border:2px solid ${x.used && !off ? 'var(--win)' : 'transparent'};border-radius:5px;background:none;opacity:${off ? .3 : 1}"><img src="${x.url}" alt="" width="40" height="47" style="display:block;border-radius:3px">${x.odd ? '<span style="position:absolute;top:-6px;right:-6px;font-size:13px">⚠</span>' : ''}</button><span class="small" style="font-size:10px">${off ? '止め中' : (x.used ? '使用中' : '予備')}</span><button type="button" class="btn ghost" data-act="cref-uid" data-u="${x.u}" style="padding:0 6px;font-size:10px;min-height:0">${pd.uid.has(x.u) ? '人ごと解除' : '人ごと'}</button></span>`; }).join('')}</div></div>`).join('');
+  const list = [...all].sort((a, b) => (b.a.some(x => crefOdd(x, pd, 'c')) - a.a.some(x => crefOdd(x, pd, 'c'))) || cardOrd(a.n) - cardOrd(b.n) || a.n.localeCompare(b.n, 'ja'));
+  return h + list.map(e => `<div style="margin:8px 0"><div class="small"><b>${esc(e.n)}</b></div><div class="row" style="gap:8px;flex-wrap:wrap;margin-top:4px">${e.a.map(x => { const off = pd.img.has(x.h) || pd.uid.has(x.u); return `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px"><button type="button" data-act="cref-img" data-h="${x.h}" title="${off ? '止めている（押すと戻す）' : '押すと止める'}" style="position:relative;padding:0;border:2px solid ${x.used && !off ? 'var(--win)' : 'transparent'};border-radius:5px;background:none;opacity:${off ? .3 : 1}"><img src="${x.url}" alt="" width="40" height="47" style="display:block;border-radius:3px">${crefMark(x, pd, 'c')}</button><span class="small" style="font-size:10px">${off ? '止め中' : (x.used ? '使用中' : '予備')}</span>${crefOkBtn(x, pd, 'c')}<button type="button" class="btn ghost" data-act="cref-uid" data-u="${x.u}" style="padding:0 6px;font-size:10px;min-height:0">${pd.uid.has(x.u) ? '人ごと解除' : '人ごと'}</button></span>`; }).join('')}</div></div>`).join('');
 }
 async function statAdminCheck() {
   if (!isAdmin() || !FBA) return;
@@ -5011,7 +5028,14 @@ async function statSaveStageFix(noFix) {
   const fix = Object.assign({}, statMetaD().sf || {});
   if (noFix) fix[noFix] = noFix;
   else document.querySelectorAll('[data-sfn]').forEach(i => { const n = i.dataset.sfn, v = i.value.trim().slice(0, 40); if (v) fix[n] = v; else delete fix[n]; });
-  try { await FBA.statPut('stagefix', { t: Date.now(), d: JSON.stringify(fix) }); } catch (e) { statS.msg = '保存できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; statRender(); return; }
+  try { await FBA.statPut('stagefix', { t: Date.now(), d: JSON.stringify(Object.assign({}, fix, { __hero: statMetaD().hf || {} })) }); } catch (e) { statS.msg = '保存できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; statRender(); return; }
+  await statRun(true);
+}
+async function statSaveHeroFix() {
+  if (!isAdmin() || !FBA || statS.run) return;
+  const hf = Object.assign({}, statMetaD().hf || {});
+  document.querySelectorAll('[data-hfn]').forEach(i => { const n = i.dataset.hfn, v = i.value.trim().slice(0, 40); if (v) hf[n] = v; else delete hf[n]; });
+  try { await FBA.statPut('stagefix', { t: Date.now(), d: JSON.stringify(Object.assign({}, statMetaD().sf || {}, { __hero: hf })) }); } catch (e) { statS.msg = '保存できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; statRender(); return; }
   await statRun(true);
 }
 async function statSaveSeasons() {
@@ -5205,6 +5229,16 @@ function statRender() {
   el.innerHTML = head + `<div class="section"><div class="panel">${filters}${body}</div></div>` + pubBox + admin;
   if (keep) { const k = document.getElementById(keep); if (k && k.focus) try { k.focus(); } catch (e) {} }
 }
+const HERO_SKIP = '（集計に入れない）';
+function heroFixHTML(md) {
+  const hf = md.hf || {}, uh = md.uh || [], names = [...new Set(uh.map(x => x[0]).concat(Object.keys(hf)))];
+  const dl = `<datalist id="hf-dl"><option value="${HERO_SKIP}">${HERO_ORDER.map(n => `<option value="${esc(dispName(n))}">`).join('')}</datalist>`;
+  const cnt = n => (uh.find(x => x[0] === n) || [0, 0])[1];
+  const rows = names.map(n => `<div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><span class="small" style="flex:1;min-width:0;word-break:break-all">${esc(n)}${cnt(n) ? `（${cnt(n)}件）` : '（訂正ずみ）'}</span><span class="small muted">→</span><input type="text" data-hfn="${esc(n)}" list="hf-dl" value="${esc(hf[n] || '')}" placeholder="直す先" maxlength="40" style="flex:1.2;min-width:0"></div>`).join('');
+  return `<h3>ヒーロー名の訂正</h3><p class="small muted" style="margin:0 0 6px">公式にない名前で入ってきたヒーローを、直す先の名前に変えて集計します。直す先は候補から選ぶか、自分で書けます。「${HERO_SKIP}」を選ぶと、そのヒーローの枠を集計から外します。空にすると訂正をやめます。件数は、そのヒーローが出てきた枠の数です。</p>${dl}
+    ${rows || '<p class="small muted" style="margin:0">いま、公式にない名前はありません（次に集計した時に調べます）。</p>'}
+    ${rows ? '<div class="row"><button class="btn" data-act="stat-herofix"' + (statS.run ? ' disabled' : '') + '>保存して集計し直す</button></div>' : ''}`;
+}
 function stageFixHTML(md) {
   const sf = md.sf || {}, un = md.un || [], am = md.am || [], names = [...new Set(un.map(x => x[0]).concat(Object.keys(sf)))];
   const dl = `<datalist id="sf-dl">${Object.keys(STAGE_IMG).map(n => `<option value="${esc(n)}">`).join('')}</datalist>`;
@@ -5225,6 +5259,7 @@ function statAdminHTML() {
     <p class="small muted" style="margin:0">${m ? `最終の集計：${new Date(m.t).toLocaleString('ja-JP')}（${m.p}人／${m.n}試合）` : 'まだ集計していません'}。集計は、開いた時に${STAT_HOURS}時間以上たっていれば自動で行います。</p>
     <div class="row"><button class="btn primary" data-act="stat-run"${statS.run || wait ? ' disabled' : ''}>今すぐ集計</button><span class="small muted">${wait ? '前の集計から5分たつと押せます' : ''}</span></div>${msg}
     ${stageFixHTML(md)}
+    ${heroFixHTML(md)}
     ${crefAdminHTML()}
     ${rkAdminHTML()}
     <h3>シーズンの日付と名前</h3><p class="small muted" style="margin:0 0 6px">開始日は、決まった日（毎月第2木曜日）が最初から入っています。変える時だけ直してください。名前は、そのシーズンのヒーローを選びます。保存すると、集計し直します。</p>${rows}
@@ -5241,12 +5276,14 @@ document.addEventListener('click', e => {
   else if (a === 'uid-copy') { const v = syncS.user ? syncS.user.uid : '', m = document.getElementById('uid-msg'); if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(() => { if (m) m.textContent = 'コピーしました'; }, () => { if (m) m.textContent = '長押しで選んでコピーしてください'; }); }
   else if (a === 'stat-seasons') statSaveSeasons();
   else if (a === 'stat-stagefix') statSaveStageFix();
+  else if (a === 'stat-herofix') statSaveHeroFix();
   else if (a === 'stat-nofix') statSaveStageFix(t.dataset.n);
   else if (a === 'cref-load') crefAdminLoad();
   else if (a === 'cref-tog') { statS.crefOpen = !statS.crefOpen; statRender(); }
   else if (a === 'cref-save') crefSaveBan();
   else if (a === 'rk-img' && statS.crefPend) { const s0 = statS.crefPend.rk, h = t.dataset.h; if (s0.has(h)) s0.delete(h); else s0.add(h); statRender(); }
   else if (a === 'cref-img' && statS.crefPend) { const s0 = statS.crefPend.img, h = t.dataset.h; if (s0.has(h)) s0.delete(h); else s0.add(h); statRender(); }
+  else if (a === 'cref-ok' && statS.crefPend) { const s0 = statS.crefPend.ok, h = t.dataset.h; if (s0.has(h)) s0.delete(h); else s0.add(h); statRender(); }
   else if (a === 'cref-uid' && statS.crefPend) { const s0 = statS.crefPend.uid, u = t.dataset.u; if (s0.has(u)) s0.delete(u); else s0.add(u); statRender(); }
   else if (a === 'st-band') {
     const el = document.getElementById('view-stat'), cur = (el.dataset.band || 'all'), b = t.dataset.b;
