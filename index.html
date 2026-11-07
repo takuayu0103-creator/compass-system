@@ -4191,7 +4191,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-08-AP', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-08-AQ', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -5064,6 +5064,10 @@ function statAgg(parts, cfg, now, fix, hfix, cfix) {
     if (!o || !Array.isArray(o.r) || !Array.isArray(o.n)) continue;
     for (const r of o.r) if (Array.isArray(r) && r.length >= 14 && Number.isFinite(r[1]) && r[2] >= 0 && r[2] < MODES.length && !(r[3] >= 0 && STAGE_NOSTAT.has(String(o.n[r[3]] || '').trim()))) recs.push({ u: p.uid, nm: o.n, r });
   }
+  // 同じ試合を複数の人が提供している時は、1つだけ数える。カード名が多く入っている記録を先に処理して、それを残す（先着順だと、カード名が読めていない記録が残ってデッキが数えられないため）
+  { const sc = x => { let n = 0; for (let k = 0; k < 6; k++) { const q = x.r[8 + k]; if (Array.isArray(q) && Array.isArray(q[2])) n += q[2].length; } return n; };
+    const ix = new Map(recs.map((x, i) => [x, i])), cs = new Map(recs.map(x => [x, sc(x)]));
+    recs.sort((a, b) => cs.get(b) - cs.get(a) || ix.get(a) - ix.get(b)); }
   // ステージが「不明」など（分からなかった時の仮の名前）は、ステージなしとして扱う（ステージ別の集計や訂正の一覧に出さない）
   const stCan = n => /^(不明|unknown|[?？]+)?$/i.test(String(n).trim()) ? '' : stageCanon(n, fix);
   // ヒーロー名：管理者が手で決めた訂正だけを使う。直す先は、データの中で実際に使われている書き方（空白など）にそろえる
