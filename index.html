@@ -2444,22 +2444,23 @@ function streakHTML(hm) {
   if (seq.length < 10) return `<div class="small muted">10試合以上になると出ます（いま${seq.length}試合）。</div>`;
   const R = seq.map(m => matchResult(m) === 'w' ? 1 : 0);
   let cur = 1, maxW = 0, maxL = 0, run = 0;
-  const after = { w1: [0, 0], w2: [0, 0], w3: [0, 0], l1: [0, 0], l2: [0, 0], l3: [0, 0] };
+  const after = {}; for (let k = 1; k <= 10; k++) { after['w' + k] = [0, 0]; after['l' + k] = [0, 0]; }
   for (let i = 0; i < R.length; i++) {
     if (i > 0 && R[i] === R[i - 1]) run++; else run = 1;
     if (R[i]) maxW = Math.max(maxW, run); else maxL = Math.max(maxL, run);
-    if (i > 0) { let k = 0; for (let j = i - 1; j >= 0 && R[j] === R[i - 1]; j--) k++; const key = (R[i - 1] ? 'w' : 'l') + Math.min(k, 3); after[key][1]++; if (R[i]) after[key][0]++; }
+    if (i > 0) { let k = 0; for (let j = i - 1; j >= 0 && R[j] === R[i - 1]; j--) k++; const key = (R[i - 1] ? 'w' : 'l') + Math.min(k, 10); after[key][1]++; if (R[i]) after[key][0]++; }
   }
   const last = R[R.length - 1]; cur = 0; for (let j = R.length - 1; j >= 0 && R[j] === last; j--) cur++;
   const base = R.reduce((a, b) => a + b, 0) / R.length * 100;
   const row = (lb, a) => { const [w, n] = a; if (!n) return `<tr><td>${lb}</td><td class="muted" colspan="3">該当なし</td></tr>`; const r = w / n * 100, d = r - base, thin = n < 10;
     return `<tr${thin ? ' style="opacity:.55"' : ''}><td>${lb}</td><td>${n}回</td><td><b>${r.toFixed(1)}%</b></td><td class="${d > 0 ? 'plus' : d < 0 ? 'minus' : ''}">${(d > 0 ? '+' : d < 0 ? '−' : '±') + Math.abs(d).toFixed(1)}${thin ? '（少なめ）' : ''}</td></tr>`; };
+  const tbl = (nm, c) => { const rows = []; for (let k = 1; k <= 10; k++) if (after[c + k][1]) rows.push(row(`${k}${nm}${k === 10 ? '以上' : ''}のあと`, after[c + k]));
+    return `<h3 style="margin:14px 0 2px">${nm}のあとの、次の試合の勝率</h3>${rows.length ? `<table class="strk"><thead><tr><th>${nm}の数</th><th>回数</th><th>勝率</th><th>全体比</th></tr></thead><tbody>${rows.join('')}</tbody></table>` : `<p class="small muted" style="margin:4px 0">まだ${nm}の記録がありません。</p>`}`; };
   return `<div class="kpis" style="grid-template-columns:repeat(3,1fr)">
     <div class="kpi"><div class="label">今の流れ</div><div class="v">${cur}<small>${last ? '連勝中' : '連敗中'}</small></div></div>
     <div class="kpi"><div class="label">最長の連勝</div><div class="v">${maxW}<small>連勝</small></div></div>
     <div class="kpi"><div class="label">最長の連敗</div><div class="v">${maxL}<small>連敗</small></div></div></div>
-    <table class="strk"><thead><tr><th>次の試合の勝率</th><th>回数</th><th>勝率</th><th>全体比</th></tr></thead><tbody>
-    ${row('1連敗のあと', after.l1)}${row('2連敗のあと', after.l2)}${row('3連敗以上のあと', after.l3)}${row('1連勝のあと', after.w1)}${row('2連勝のあと', after.w2)}${row('3連勝以上のあと', after.w3)}</tbody></table>
+    ${tbl('連敗', 'l')}${tbl('連勝', 'w')}
     <p class="small muted" style="margin:0">全体の勝率は${base.toFixed(1)}%（${seq.length}試合）。「全体比」がマイナスなら、そのあとは普段より勝ちにくい傾向です。10回未満は薄く表示します。</p>`;
 }
 function renderStats() { renderStats0(); try { statsPost(); } catch (e) {} }
@@ -3493,7 +3494,7 @@ function renderGuide() {
   ${acc('2. 各タブでできること', `
     <ul>
       <li><b>登録：</b>スクショから試合を登録します。</li>
-      <li><b>分析：</b>画面の上の「絞り込み」は、最初は閉じています。押すと開き、「使ったヒーロー」「ステージ」「対戦モード」「メダル/カード」で絞り込んで、勝率・使用率・直近の勝率などを見ます。対戦モードを「バトルアリーナ」にすると、右に「シーズン」の欄が出ます。「全期間」（最初の状態）・「全シーズン」（シーズン中の試合すべて）・「エンジョイ期間」（シーズンの外の試合）・各シーズンから選ぶと、その期間の試合だけで分析します。シーズンは、「シーズンpt」タブで登録した日付で分けます。「この条件の履歴を見る」で、その条件の試合の一覧に移れます（シーズンの絞り込みは引き継ぎません）。「全体勝率推移（試合数）」は、10・20・50・100試合ごとに切り替えられます。区切りが20個より多い時は横にスライドして見られ、「全試合表示」を押すと全部を1画面で見られます。タブの下の「目次」を押すと、その欄に飛べます（欄の名前の横の「▲」で、その欄を閉じたり開いたりもできます）。欄の説明は、名前の横の「？」で開きます。「連勝・連敗の流れ」では、今の連勝・連敗、最長の記録、連勝・連敗のあとに次の試合で勝った割合を見られます。ヒーローを選ぶと出る「みんなと比べる」を押すと、あなたの勝率と、みんなの統計（同じランクの人。少ない時は全ランク）の勝率を並べて見られます。最初は閉じていて、押した時だけ出ます。あなたのランクは、いちばん新しくランクを読み取った試合のランクです。</li>
+      <li><b>分析：</b>画面の上の「絞り込み」は、最初は閉じています。押すと開き、「使ったヒーロー」「ステージ」「対戦モード」「メダル/カード」で絞り込んで、勝率・使用率・直近の勝率などを見ます。対戦モードを「バトルアリーナ」にすると、右に「シーズン」の欄が出ます。「全期間」（最初の状態）・「全シーズン」（シーズン中の試合すべて）・「エンジョイ期間」（シーズンの外の試合）・各シーズンから選ぶと、その期間の試合だけで分析します。シーズンは、「シーズンpt」タブで登録した日付で分けます。「この条件の履歴を見る」で、その条件の試合の一覧に移れます（シーズンの絞り込みは引き継ぎません）。「全体勝率推移（試合数）」は、10・20・50・100試合ごとに切り替えられます。区切りが20個より多い時は横にスライドして見られ、「全試合表示」を押すと全部を1画面で見られます。タブの下の「目次」を押すと、その欄に飛べます（欄の名前の横の「▲」で、その欄を閉じたり開いたりもできます）。欄の説明は、名前の横の「？」で開きます。「連勝・連敗の流れ」では、今の連勝・連敗、最長の記録、連勝・連敗のあとに次の試合で勝った割合を、連敗・連勝に分けて、1連〜9連と10連以上まで見られます（記録がない連の数は出ません）。ヒーローを選ぶと出る「みんなと比べる」を押すと、あなたの勝率と、みんなの統計（同じランクの人。少ない時は全ランク）の勝率を並べて見られます。最初は閉じていて、押した時だけ出ます。あなたのランクは、いちばん新しくランクを読み取った試合のランクです。</li>
       <li><b>シーズンpt：</b>バトルアリーナの増減ptを入れると、シーズンptの推移をグラフにします。最初に、シーズン名・開始時のpt・開始日を入れてください。開催中のシーズンを開くと「シーズンの目標」が出ます。目標のランク（最初は次のランク）を選ぶと、あと何ptか、そこまでの1試合あたりの平均の増え方、今のペースであと何試合か、残りの日数での1日あたりの試合数が出ます（ptを入れた試合が5試合になってから）。</li>
       <li><b>シーズン外：</b>フリーバトルやカスタムバトル、シーズン期間外のバトルアリーナなど、シーズンptに入らない試合です。試合ごとにメモを書けます。</li>
       <li><b>統計：</b>提供に同意した人の試合をまとめた、みんなの統計です。「絞り込み」は最初は閉じていて、押すと開きます（条件を変えている時は「変更中」と出ます）。シーズン（「全期間」「シーズン外」「各シーズン」から選べます）・ランク（複数選べます）・対戦モードごとに、ヒーローの使用率と勝率、ヒーローごとのカードとメダルの使用率、ステージの勝率を見られます。ヒーローの欄は「使用率」と「勝率」を切り替えられ、使用率ではn回/全体の回数も出ます。上の「最終更新」と、カード・メダルの「何人中何人」で、集計の新しさと元の人数を確かめられます。同じ試合は1回だけ数え、自分とフレンド連携した固定の仲間のデッキが同じ時も1回にまとめます。「デッキの勝率」では、ヒーローを選ぶと、カード4枚の組み合わせごとの勝率・試合数・計人数が、勝率の高い順（1位から）に出ます。カード名は1枚ずつ縦に並びます（4枚とも名前が分かっていて、2試合以上あるデッキだけ。引き分けは数えません。「期間ごと」の指定中は出ません）。タブの下の「目次」で欄に飛べ、欄の名前の横の「▲」で閉じたり開いたりできます。カードの絵は、提供者から送られた小さな切り抜きも使います。カードとメダルの使用率には「期間ごと」のボタンがあり、ONにすると、毎月25日〜翌月24日を1期間として、1ヶ月・3ヶ月・6ヶ月・1年（または1ヶ月刻みで好きな長さ）でまとめて見られます。◀▶で前後の期間に動けます。この表では、シーズンの内外と対戦モードを、ボタンの下の欄で別に選べます。提供するかどうかは、統計タブかデータタブで選べます（最初は「提供しない」）。</li>
@@ -4144,7 +4145,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-07-AH', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-07-AI', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
