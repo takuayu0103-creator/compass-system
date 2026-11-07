@@ -242,6 +242,7 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .segs{gap:4px}.trseg{flex-wrap:nowrap}.trseg .seg{flex:1 1 0;min-width:0;padding:4px 1px;font-size:.7rem;white-space:nowrap}.seg.trall{display:block;width:100%;margin-top:6px;padding:11px 10px;font-size:1rem;text-align:center}
 .seg{font:inherit;font-family:var(--f-ui);font-weight:700;font-size:.8rem;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
 .seg.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.goalbig{font-size:clamp(1.9rem,9vw,2.6rem);font-weight:900;line-height:1.2;margin:6px 0 2px}.goalbig .ptv{font-size:inherit}.goalbig small{font-size:.5em;margin-left:2px}.goalsub{font-size:clamp(1.15rem,5vw,1.5rem);font-weight:800}
 .gainbox{display:flex;flex-direction:column;gap:4px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--soft)}
 .rng{width:4.2em;font:inherit;font-family:var(--f-num);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:4px 6px}
 .gainv{font-family:var(--f-display);font-weight:900;font-size:1.6rem;line-height:1.1}
@@ -2957,8 +2958,8 @@ async function seasonShareCanvas(se) {
   txt(`${d.se.pt}pt → ${d.cur}pt`, 64, 360, `700 24px ${JP}`, C.muted);
   x.font = `700 24px ${JP}`; const gw = x.measureText(`${d.se.pt}pt → ${d.cur}pt`).width; txt(`（${fmtPt(d.gain)}）`, 72 + gw, 360, `800 24px ${NUM}`, gainCol);
   // 左：小さい数字3つ
-  const box = (i, label, v, sub, col) => { const bx = 40 + i * 176, by = 396; x.fillStyle = C.panel; rr(bx, by, 168, 118, 12); x.fill(); x.strokeStyle = GOLD ? gg(bx, by, bx + 168, by + 118) : C.line; x.stroke();
-    txt(label, bx + 16, by + 32, `700 19px ${JP}`, C.muted); txt(v, bx + 16, by + 78, fit(v, 140, 38, 800, NUM), col || C.ink); if (sub) txt(sub, bx + 16, by + 104, `700 17px ${JP}`, C.muted); };
+  const box = (i, label, v, sub, col) => { const bx = 40 + i * 176, by = 396; x.fillStyle = C.panel; rr(bx, by, 168, 100, 12); x.fill(); x.strokeStyle = GOLD ? gg(bx, by, bx + 168, by + 100) : C.line; x.stroke();
+    txt(label, bx + 16, by + 28, `700 18px ${JP}`, C.muted); txt(v, bx + 16, by + 65, fit(v, 140, 36, 800, NUM), col || C.ink); if (sub) txt(sub, bx + 16, by + 89, `700 16px ${JP}`, C.muted); };
   const rate = d.w + d.l ? pct2(d.w, d.w + d.l) : null;
   box(0, '勝率', rate == null ? '−' : f2(rate) + '%', `${d.w}勝${d.l}敗`, C.ink);
   box(1, '試合数', String(d.n), 'バトルアリーナ');
@@ -3008,9 +3009,13 @@ async function seasonShareCanvas(se) {
   });
   if (!d.heroes.length) txt('まだありません', gx, 510, `700 20px ${JP}`, C.muted);
   // 左下：勝てたステージ
-  x.fillStyle = C.panel; rr(40, 530, 520, 52, 12); x.fill(); x.strokeStyle = GOLD ? gg(40, 530, 560, 582) : C.line; x.stroke();
-  if (d.stage) { const sr = f2(pct2(d.stage.w, d.stage.w + d.stage.l)); txt('得意ステージ', 58, 563, `700 18px ${JP}`, C.muted); const sn0 = stageName(d.stage.k), rt = `${sr}%（${d.stage.w}勝${d.stage.l}敗）`; x.font = `800 18px ${NUM}`; const rw = x.measureText(rt).width; txt(sn0, 180, 564, fit(sn0, 544 - rw - 196, 22, 700, JP), C.ink); txt(rt, 544, 564, `800 18px ${NUM}`, C.ink, 'right'); }
-  else txt('得意ステージ：3試合以上のステージがまだありません', 58, 563, `700 18px ${JP}`, C.muted);
+  x.fillStyle = C.panel; rr(40, 508, 520, 42, 12); x.fill(); x.strokeStyle = GOLD ? gg(40, 508, 560, 550) : C.line; x.stroke();
+  if (d.stage) { const sr = f2(pct2(d.stage.w, d.stage.w + d.stage.l)); txt('得意ステージ', 58, 535, `700 17px ${JP}`, C.muted); const sn0 = stageName(d.stage.k), rt = `${sr}%（${d.stage.w}勝${d.stage.l}敗）`; x.font = `800 17px ${NUM}`; const rw = x.measureText(rt).width; txt(sn0, 180, 536, fit(sn0, 544 - rw - 196, 20, 700, JP), C.ink); txt(rt, 544, 536, `800 17px ${NUM}`, C.ink, 'right'); }
+  else txt('得意ステージ：3試合以上のステージがまだありません', 58, 535, `700 18px ${JP}`, C.muted);
+  // 達成した目標
+  { const gi = goalInfo(d.se, d.sm); if (gi && gi.ach) { const gy0 = 558;
+    x.fillStyle = GOLD ? gg(40, gy0, 560, gy0 + 46) : C.acc; rr(40, gy0, 520, 46, 12); x.fill();
+    const gt = `🎯 ${gi.label} 達成🎉`; txt(gt, 300, gy0 + 33, fit(gt, 490, 28, 900, JP), GOLD ? '#3a2600' : C.ai, 'center'); } }
   // 下の帯
   x.fillStyle = C.bd; x.fillRect(0, H - 62, W, 62); if (GOLD) { x.fillStyle = gg(0, 0, W, 0); x.fillRect(0, H - 63, W, 2); x.strokeStyle = gg(0, 0, W, H); x.lineWidth = 3; x.strokeRect(5, 5, W - 10, H - 10); x.lineWidth = 1; x.strokeRect(11, 11, W - 22, H - 22); x.lineWidth = 2; }
   txt(SITE_URL, 48, H - 24, `700 20px ${NUM}`, C.muted);
@@ -3166,6 +3171,12 @@ document.getElementById('sbadge').addEventListener('click', () => {
 });
 setInterval(seasonBadge, 60000);
 // シーズンの目標：目標のランクまであと何pt、今のペースであと何試合か
+function goalInfo(se, sm) {
+  const thr = k => 2000 + 500 * (k - 1), gp = Number.isFinite(se.goalPt) && se.goalPt > 0 ? Math.round(se.goalPt) : 0, t = gp || (se.goal >= 1 && se.goal <= 9 ? thr(se.goal) : 0);
+  if (!t) return null;
+  const label = t >= 2000 ? (k => 'S' + k + ' ' + (t - thr(k)))(Math.min(9, Math.floor((t - 2000) / 500) + 1)) : t + 'pt';
+  return { tgt: t, label, ach: sm.max >= t };
+}
 function goalHTML(se, sm, cur, state) {
   if (state === '開催終了' || state === '開始前') return '';
   const thr = k => 2000 + 500 * (k - 1), curK = cur >= 2000 ? Math.min(9, Math.floor((cur - 2000) / 500) + 1) : 0;
@@ -3175,15 +3186,20 @@ function goalHTML(se, sm, cur, state) {
   const tpt = byPt ? gp : (g <= 9 ? thr(g) : 0), need = tpt - cur;
   const rp = a => a >= 2000 ? (k => 'S' + k + ' ' + (a - thr(k)))(Math.min(9, Math.floor((a - 2000) / 500) + 1)) : a + 'pt';
   const pk = byPt ? Math.min(9, Math.max(1, Math.floor((gp - 2000) / 500) + 1)) : Math.max(1, g), pr = byPt ? gp - thr(pk) : '';
+  const gi = goalInfo(se, sm);
   const inp = `<div class="row" style="gap:6px;align-items:center;margin-top:8px"><span class="small muted">ptで指定</span><select data-sgk="${se.id}" style="width:auto">${[1,2,3,4,5,6,7,8,9].map(k => `<option value="${k}"${k === pk ? ' selected' : ''}>S${k}</option>`).join('')}</select><input type="number" inputmode="numeric" min="0" step="1" data-sgr="${se.id}" value="${pr}" placeholder="例 200" style="width:6em"><span class="small muted">pt</span>${byPt ? `<button class="btn ghost" data-sgoalptx="${se.id}" style="padding:2px 10px;min-height:0;font-size:.8rem">ptの指定をやめる</button>` : ''}</div>`;
-  const head = `<div class="row" style="gap:6px;align-items:center"><b>🎯 シーズンの目標</b>${opts.slice(0, 5).map(k => `<button class="seg${!byPt && k === g ? ' on' : ''}" data-sgoal="${se.id}" data-v="${k}">S${k}</button>`).join('')}</div>`;
+  const head = `<div class="row" style="gap:6px;align-items:center"><b>🎯 シーズンの目標</b><button class="btn ghost" data-sgfold="${se.id}" style="padding:2px 10px;min-height:0;font-size:.8rem;margin-left:auto">${se.goalFold ? '開く ▼' : '短くする ▲'}</button>${se.goalFold ? '' : opts.slice(0, 5).map(k => `<button class="seg${!byPt && !(gi && gi.ach) && k === g ? ' on' : ''}" data-sgoal="${se.id}" data-v="${k}">S${k}</button>`).join('')}</div>`;
+  const fold = (top, main, sub) => `<div class="gainbox goalbox"><div class="row" style="gap:6px;align-items:center"><b>🎯 ${top}</b><button class="btn ghost" data-sgfold="${se.id}" style="padding:2px 10px;min-height:0;font-size:.8rem;margin-left:auto">開く ▼</button></div><div class="goalbig">${main}</div>${sub ? `<div class="goalsub">${sub}</div>` : ''}</div>`;
+  if (gi && gi.ach) { if (se.goalFold) return fold('目標', `<span class="ptv plus">${gi.label} 達成🎉</span>`, ''); return `<div class="gainbox goalbox">${head}<div class="goalbig"><span class="ptv plus">${gi.label} 達成🎉</span></div><div class="small muted">次の目標を決めましょう。</div>${inp}</div>`; }
+  if (se.goalFold && !byPt && curK >= 9) return fold('目標', 'S9に届いています', '');
+  if (se.goalFold && need <= 0) return fold('目標', rp(tpt) + ' に届いています 🎉', '');
   if (!byPt && curK >= 9) return `<div class="gainbox goalbox">${head}<div class="small muted">S9に届いています。ptで目標を決めることもできます。</div>${inp}</div>`;
   if (need <= 0) return `<div class="gainbox goalbox">${head}<div class="gainv"><span class="small">${rp(tpt)}</span> に届いています 🎉</div>${inp}</div>`;
   const n = sm.done.length, gain = cur - se.pt, avg = n ? gain / n : 0;
   const left = Math.max(0, seasonEnd(se) - Date.now()), days = Math.max(1, Math.ceil(left / 86400000));
   const rs = sm.done.map(matchResult), W = rs.filter(r => r === 'w').length, L = rs.filter(r => r === 'l').length, wr = W + L ? W / (W + L) : 0;
   const BW = [64, 40, 36, 32, 32, 32, 30, 28, 26], BL = [14, 20, 24, 28, 30, 32, 32, 32, 32];
-  let est;
+  let est, mm = 0;
   if (n < 5 || W + L < 5) est = `<div class="small muted">見積もりは、結果を入れた試合が5試合になってから出します（いま${W + L}試合）。</div>`;
   else {
     // 基準値だけで見た期待値：1試合ごとに「勝率×勝ち基準値 − 負け率×負け基準値」を足していく（相手との差による補正は入れない）
@@ -3191,8 +3207,9 @@ function goalHTML(se, sm, cur, state) {
     while (pt < tpt && m < CAP) { const k = Math.max(0, Math.min(8, pt >= 2000 ? Math.floor((pt - 2000) / 500) : 0)); const d = wr * BW[k] - (1 - wr) * BL[k]; if (d <= 0) { ok = false; break; } pt += d; m++; }
     const pct = Math.round(wr * 100);
     if (!ok || m >= CAP) est = `<div class="small muted">勝率${pct}%（${W}勝${L}敗）で基準値だけで計算すると、今の勝率では届きません。</div>`;
-    else { const per = Math.ceil(m / days); est = `<div class="small muted">勝率 <b>${pct}%</b>（${W}勝${L}敗）で基準値だけで計算すると、あと約 <b>${m}試合</b></div><div class="small muted">残り${days}日なので、1日あたり約${per}試合${per > 25 ? '（かなり多めです）' : ''}</div>${avg > 0 ? `<div class="small muted">参考：このシーズンの実績は1試合あたり平均 +${avg.toFixed(1)}pt で、そのペースならあと約${Math.ceil(need / avg)}試合です。</div>` : ''}<div class="small muted">※相手チームとのBP差による補正や引き分け、同じチームのBPによる補正は入っていないので、目安です。</div>`; }
+    else { mm = m; const per = Math.ceil(m / days); est = `<div class="small muted">勝率 <b>${pct}%</b>（${W}勝${L}敗）で基準値だけで計算すると、あと約 <b>${m}試合</b></div><div class="small muted">残り${days}日なので、1日あたり約${per}試合${per > 25 ? '（かなり多めです）' : ''}</div>${avg > 0 ? `<div class="small muted">参考：このシーズンの実績は1試合あたり平均 +${avg.toFixed(1)}pt で、そのペースならあと約${Math.ceil(need / avg)}試合です。</div>` : ''}<div class="small muted">※相手チームとのBP差による補正や引き分け、同じチームのBPによる補正は入っていないので、目安です。</div>`; }
   }
+  if (se.goalFold) return fold(`${byPt ? rp(tpt) : 'S' + g}まで`, `あと <span class="ptv plus">${need}</span><small>pt</small>`, mm ? `約 <b>${mm}</b> 試合` : '');
   return `<div class="gainbox goalbox">${head}
     <div class="gainv"><span class="small">${byPt ? rp(tpt) : 'S' + g}まで</span> あと <span class="ptv plus">${need}</span><small>pt</small></div>${est}${inp}</div>`;
 }
@@ -3515,7 +3532,7 @@ function renderGuide() {
     <ul>
       <li><b>登録：</b>スクショから試合を登録します。</li>
       <li><b>分析：</b>画面の上の「絞り込み」は、最初は閉じています。押すと開き、「使ったヒーロー」「ステージ」「対戦モード」「メダル/カード」で絞り込んで、勝率・使用率・直近の勝率などを見ます。対戦モードを「バトルアリーナ」にすると、右に「シーズン」の欄が出ます。「全期間」（最初の状態）・「全シーズン」（シーズン中の試合すべて）・「エンジョイ期間」（シーズンの外の試合）・各シーズンから選ぶと、その期間の試合だけで分析します。シーズンは、「シーズンpt」タブで登録した日付で分けます。「この条件の履歴を見る」で、その条件の試合の一覧に移れます（シーズンの絞り込みは引き継ぎません）。「全体勝率推移（試合数）」は、10・20・50・100試合ごとに切り替えられます。区切りが20個より多い時は横にスライドして見られ、「全試合表示」を押すと全部を1画面で見られます。タブの下の「目次」を押すと、その欄に飛べます（欄の名前の横の「▲」で、その欄を閉じたり開いたりもできます）。欄の説明は、名前の横の「？」で開きます。「連勝・連敗の流れ」では、今の連勝・連敗、最長の記録、連勝・連敗のあとに次の試合で勝った割合を、連敗・連勝に分けて、1連〜9連と10連以上まで見られます（記録がない連の数は出ません）。ヒーローを選ぶと出る「みんなと比べる」を押すと、あなたの勝率と、みんなの統計（同じランクの人。少ない時は全ランク）の勝率を並べて見られます。最初は閉じていて、押した時だけ出ます。あなたのランクは、いちばん新しくランクを読み取った試合のランクです。</li>
-      <li><b>シーズンpt：</b>バトルアリーナの増減ptを入れると、シーズンptの推移をグラフにします。最初に、シーズン名・開始時のpt・開始日を入れてください。開催中のシーズンを開くと「シーズンの目標」が出ます。目標のランク（最初は次のランク）を選ぶか、「ptで指定」に目標のptを入れると、あと何ptか、そこまでの1試合あたりの平均の増え方、今のペースであと何試合か、残りの日数での1日あたりの試合数が出ます（ptを入れた試合が5試合になってから）。</li>
+      <li><b>シーズンpt：</b>バトルアリーナの増減ptを入れると、シーズンptの推移をグラフにします。最初に、シーズン名・開始時のpt・開始日を入れてください。開催中のシーズンを開くと「シーズンの目標」が出ます。目標のランク（最初は次のランク）を選ぶか、「ptで指定」に目標のptを入れると、あと何ptか、そこまでの1試合あたりの平均の増え方、今のペースであと何試合か、残りの日数での1日あたりの試合数が出ます（ptを入れた試合が5試合になってから）。。右上の「短くする」を押すと、目標があとptと試合数が大きい文字で出ます。目標に届くと「S5 300 達成🎉」と出て、総括画像にも載ります</li>
       <li><b>シーズン外：</b>フリーバトルやカスタムバトル、シーズン期間外のバトルアリーナなど、シーズンptに入らない試合です。試合ごとにメモを書けます。</li>
       <li><b>統計：</b>提供に同意した人の試合をまとめた、みんなの統計です。「絞り込み」は最初は閉じていて、押すと開きます（条件を変えている時は「変更中」と出ます）。シーズン（「全期間」「シーズン外」「各シーズン」から選べます）・ランク（複数選べます）・対戦モードごとに、ヒーローの使用率と勝率、ヒーローごとのカードとメダルの使用率、ステージの勝率を見られます。ヒーローの欄は「使用率」と「勝率」を切り替えられ、使用率ではn回/全体の回数も出ます。上の「最終更新」と、カード・メダルの「何人中何人」で、集計の新しさと元の人数を確かめられます。同じ試合は1回だけ数え、自分とフレンド連携した固定の仲間のデッキが同じ時も1回にまとめます。「デッキの勝率」では、ヒーローを選ぶと、カード4枚の組み合わせごとの勝率・試合数・計人数が、勝率の高い順（1位から）に出ます。カード名は1枚ずつ縦に並びます（4枚とも名前が分かっていて、2試合以上あるデッキだけ。引き分けは数えません。「期間ごと」の指定中は出ません）。タブの下の「目次」で欄に飛べ、欄の名前の横の「▲」で閉じたり開いたりできます。カードの絵は、提供者から送られた小さな切り抜きも使います。カードとメダルの使用率には「期間ごと」のボタンがあり、ONにすると、毎月25日〜翌月24日を1期間として、1ヶ月・3ヶ月・6ヶ月・1年（または1ヶ月刻みで好きな長さ）でまとめて見られます。◀▶で前後の期間に動けます。この表では、シーズンの内外と対戦モードを、ボタンの下の欄で別に選べます。提供するかどうかは、統計タブかデータタブで選べます（最初は「提供しない」）。</li>
       <li><b>履歴：</b>登録した全試合を、新しい順に見られます。ヒーロー・ステージ・対戦モード・敵ヒーロー・自分のランクで絞り込めます。試合の削除もここでできます（削除は元に戻せません）。</li>
@@ -3852,7 +3869,7 @@ document.addEventListener('click', e => {
   tip.style.left = x + 'px'; tip.style.top = cy + 'px'; tip.style.setProperty('--ax', (half + cx - x) + 'px');
 }, true);
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-act],[data-own],[data-ask],[data-del],[data-pick],[data-ptsign],[data-mptsign],[data-copy],[data-dup],[data-fillno],[data-unseason],[data-reseason],[data-outmode],[data-drill],[data-pickopen],[data-pickstage],[data-pickhero],[data-season-toggle],[data-swin],[data-schunk],[data-sgoal],[data-sgoalptx],[data-srange-reset],[data-trendn],[data-trendall]');
+  const t = e.target.closest('[data-act],[data-own],[data-ask],[data-del],[data-pick],[data-ptsign],[data-mptsign],[data-copy],[data-dup],[data-fillno],[data-unseason],[data-reseason],[data-outmode],[data-drill],[data-pickopen],[data-pickstage],[data-pickhero],[data-season-toggle],[data-swin],[data-schunk],[data-sgoal],[data-sgoalptx],[data-sgfold],[data-srange-reset],[data-trendn],[data-trendall]');
   if (!t) return;
   if (t.dataset.pickopen) { const v = $('#view-stats'); v.dataset.pick = v.dataset.pick === t.dataset.pickopen ? '' : t.dataset.pickopen; renderStats(); return; }
   if (t.dataset.pickhero !== undefined) { const v = $('#view-stats'); v.dataset.hero = t.dataset.pickhero; v.dataset.recent = 20; v.dataset.mapAll = v.dataset.enemyAll = v.dataset.heroAll = ''; v.dataset.pick = ''; renderStats(); return; }
@@ -3912,6 +3929,7 @@ document.addEventListener('click', e => {
   if (act === 'enemy-all') { sv.dataset.enemyAll = sv.dataset.enemyAll === '1' ? '' : '1'; renderStats(); return; }
   if (t.dataset.seasonToggle) { const id = t.dataset.seasonToggle; if (openSeasons.has(id)) openSeasons.delete(id); else openSeasons.add(id); renderSeason(); return; }
   if (t.dataset.sgoal) { const se = seasonList().find(x => x.id === t.dataset.sgoal); if (se) { se.goal = +t.dataset.v; delete se.goalPt; persist(); renderSeason(); } return; }
+  if (t.dataset.sgfold) { const se = seasonList().find(x => x.id === t.dataset.sgfold); if (se) { se.goalFold = !se.goalFold; persist(); renderSeason(); } return; }
   if (t.dataset.sgoalptx) { const se = seasonList().find(x => x.id === t.dataset.sgoalptx); if (se) { delete se.goalPt; persist(); renderSeason(); } return; }
   if (t.dataset.schunk) { seasonChunk[t.dataset.schunk] = +t.dataset.v; renderSeason(); return; }
   if (t.dataset.swin) { seasonWin[t.dataset.swin] = +t.dataset.v; renderSeason(); return; }
@@ -4166,7 +4184,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-08-AL', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-08-AN', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
