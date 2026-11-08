@@ -3018,13 +3018,15 @@ async function seasonShareCanvas(se) {
   });
   if (!d.heroes.length) txt('まだありません', gx, 510, `700 20px ${JP}`, C.muted);
   // 左下：勝てたステージ
-  x.fillStyle = C.panel; rr(40, 508, 520, 42, 12); x.fill(); x.strokeStyle = GOLD ? gg(40, 508, 560, 550) : C.line; x.stroke();
-  if (d.stage) { const sr = f2(pct2(d.stage.w, d.stage.w + d.stage.l)); txt('得意ステージ', 58, 535, `700 17px ${JP}`, C.muted); const sn0 = stageName(d.stage.k), rt = `${sr}%（${d.stage.w}勝${d.stage.l}敗）`; x.font = `800 17px ${NUM}`; const rw = x.measureText(rt).width; txt(sn0, 180, 536, fit(sn0, 544 - rw - 196, 20, 700, JP), C.ink); txt(rt, 544, 536, `800 17px ${NUM}`, C.ink, 'right'); }
+  x.fillStyle = C.panel; rr(40, 506, 520, 58, 12); x.fill(); x.strokeStyle = GOLD ? gg(40, 506, 560, 564) : C.line; x.stroke();
+  if (d.stage) { const sr = f2(pct2(d.stage.w, d.stage.w + d.stage.l)); txt('得意ステージ', 58, 540, `700 17px ${JP}`, C.muted); const sn0 = stageName(d.stage.k), rt = `${sr}%（${d.stage.w}勝${d.stage.l}敗）`;
+    { const mw = 544 - 182; let fs0 = 21, nf = `700 ${fs0}px ${JP}`; x.font = nf; while (fs0 > 14 && x.measureText(sn0).width > mw) { fs0 -= 1; nf = `700 ${fs0}px ${JP}`; x.font = nf; } let nm = sn0; if (x.measureText(nm).width > mw) { while (nm.length > 1 && x.measureText(nm + '…').width > mw) nm = nm.slice(0, -1); nm += '…'; } txt(nm, 182, 531, nf, C.ink); }
+    txt(rt, 182, 555, `800 18px ${NUM}`, C.ink); }
   else txt('得意ステージ：3試合以上のステージがまだありません', 58, 535, `700 18px ${JP}`, C.muted);
   // 達成した目標
-  { const gi = goalInfo(d.se, d.sm); if (gi && gi.ach) { const gy0 = 558;
-    x.fillStyle = GOLD ? gg(40, gy0, 560, gy0 + 46) : C.acc; rr(40, gy0, 520, 46, 12); x.fill();
-    const gt = `🎯 ${gi.label} 達成🎉`; txt(gt, 300, gy0 + 33, fit(gt, 490, 28, 900, JP), GOLD ? '#3a2600' : C.ai, 'center'); } }
+  { const gi = goalInfo(d.se, d.sm); if (gi && gi.ach) { const gy0 = 572;
+    x.fillStyle = GOLD ? gg(40, gy0, 560, gy0 + 36) : C.acc; rr(40, gy0, 520, 36, 12); x.fill();
+    const gt = `🎯 ${gi.label} 達成🎉`; txt(gt, 300, gy0 + 27, fit(gt, 490, 24, 900, JP), GOLD ? '#3a2600' : C.ai, 'center'); } }
   // 下の帯
   x.fillStyle = C.bd; x.fillRect(0, H - 62, W, 62); if (GOLD) { x.fillStyle = gg(0, 0, W, 0); x.fillRect(0, H - 63, W, 2); x.strokeStyle = gg(0, 0, W, H); x.lineWidth = 3; x.strokeRect(5, 5, W - 10, H - 10); x.lineWidth = 1; x.strokeRect(11, 11, W - 22, H - 22); x.lineWidth = 2; }
   txt(SITE_URL, 48, H - 24, `700 20px ${NUM}`, C.muted);
@@ -4194,7 +4196,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-08-AR', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-08-AT', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
