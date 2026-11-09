@@ -4199,7 +4199,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-10-AV', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-10-AW', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -5165,7 +5165,7 @@ function statAgg(parts, cfg, now, fix, hfix, cfix) {
       for (let k = t * 3; k < t * 3 + 3; k++) { const p = r[8 + k], h = Array.isArray(p) ? heroCanon(name(p[0])) : ''; if (!h) break; hs.push(h); if (Number.isFinite(p[1]) && p[1] < 10) { bs += p[1] | 0; bn++; } }
       if (hs.length < 3 || new Set(hs).size < 3) continue;
       const band = bn ? Math.min(9, Math.max(0, Math.floor(bs / bn))) : 10, key = hs.slice().sort().join('\t'), win = t === side ? w === 1 : w === 0;
-      let x = d.tc.get(band); if (!x) { x = new Map(); d.tc.set(band, x); } const a = x.get(key) || [0, 0]; a[0]++; if (win) a[1]++; x.set(key, a);
+      for (const bb of [band, 'x']) { let x = d.tc.get(bb); if (!x) { x = new Map(); d.tc.set(bb, x); } const a = x.get(key) || [0, 0]; a[0]++; if (win) a[1]++; x.set(key, a); }
     }
     }
   }
@@ -5178,7 +5178,7 @@ function statAgg(parts, cfg, now, fix, hfix, cfix) {
     const gt = [], gi = new Map(), gidx = n => { let i = gi.get(n); if (i == null) { i = gt.length; gt.push(n); gi.set(n, i); } return i; }, gh = {};
     for (const [b, hm] of d.gh) { gh[b] = {}; for (const [h, sm] of hm) gh[b][h] = [...sm].flatMap(([n, a]) => [gidx(n), a[0], a[1]]); }
     const tt = [], ti = new Map(), tix = n => { let i = ti.get(n); if (i == null) { i = tt.length; tt.push(n); ti.set(n, i); } return i; }, tc = {};
-    for (const [b, m] of d.tc) { const arr = [...m].filter(([, a]) => a[0] >= 2).sort((x, y) => y[1][0] - x[1][0]).slice(0, 300); if (arr.length) tc[b] = arr.flatMap(([key, a]) => [...key.split('\t').map(tix), a[0], a[1]]); }
+    for (const [b, m] of d.tc) { const arr = [...m].filter(([, a]) => a[0] >= 2).sort((x, y) => y[1][0] - x[1][0]).slice(0, b === 'x' ? 800 : 300); if (arr.length) tc[b] = arr.flatMap(([key, a]) => [...key.split('\t').map(tix), a[0], a[1]]); }
     out.set(k, { t: now, n: d.fps.size, p: d.us.size, d: JSON.stringify({ c: ct, h, g, gt, gh, tt, tc }) });
   }
   // 期間ごと（毎月25日〜翌月24日）：カードとメダルだけ。シーズン外・全対戦モードをまとめる。1期間1つ（p_<期間>）
@@ -5457,10 +5457,10 @@ async function statDocLoad() {
 }
 function statData(doc, band) {
   let o = {}; try { o = JSON.parse(doc.d) || {}; } catch (e) {}
-  const bands = band === 'all' ? Object.keys(o.h || {}).concat(Object.keys(o.g || {}), Object.keys(o.tc || {})) : String(band).split(',');
+  const bands = band === 'all' ? Object.keys(o.h || {}).concat(Object.keys(o.g || {})) : String(band).split(',');
   const H = new Map(), G = new Map(), GH = new Map(), TC = new Map(), ct = o.c || [], tt = o.tt || [];
+  for (const b of (band === 'all' ? ['x'] : new Set(String(band).split(',')))) { const a = (o.tc || {})[b] || []; for (let i = 0; i + 4 < a.length; i += 5) { const hs = [tt[a[i]], tt[a[i + 1]], tt[a[i + 2]]]; if (hs.some(x => !x)) continue; const k = hs.join('\t'), e = TC.get(k) || { h: hs, n: 0, w: 0 }; e.n += a[i + 3]; e.w += a[i + 4]; TC.set(k, e); } }
   for (const b of new Set(bands)) {
-    { const a = (o.tc || {})[b] || []; for (let i = 0; i + 4 < a.length; i += 5) { const hs = [tt[a[i]], tt[a[i + 1]], tt[a[i + 2]]]; if (hs.some(x => !x)) continue; const k = hs.join('\t'), e = TC.get(k) || { h: hs, n: 0, w: 0 }; e.n += a[i + 3]; e.w += a[i + 4]; TC.set(k, e); } }
     for (const [n, a] of Object.entries((o.h || {})[b] || {})) {
       let e = H.get(n); if (!e) { e = { k: n, n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map() }; H.set(n, e); }
       e.n += a[0]; e.w += a[1]; e.cn += a[2]; e.mn += a[4];
@@ -5594,7 +5594,7 @@ function statRender0() {
     const tcAll = D.TC || [], tcF = tcAll.filter(e => hit(e, reqS)), tcOk = tcF.filter(e => e.n >= COMP_MIN);
     const tcTop = byWr(tcOk).slice(0, 10);
     const cHero = (h, bold) => `<span style="display:inline-flex;align-items:center;gap:2px;min-width:0">${cIco(h)}<span style="${bold ? 'font-weight:800;color:var(--accent)' : ''}">${esc(dispName(h))}</span></span>`;
-    const tcRows = tcTop.map((e, i) => nmRow(e.h.join('|'), e.n, e.w, `<span style="flex:0 0 1.6em;text-align:right;font-weight:700;color:var(--muted)">${i + 1}</span><span style="display:flex;flex-wrap:wrap;gap:2px 10px;min-width:0">${[...e.h].sort((a, b) => heroOrd(a) - heroOrd(b)).map(h => cHero(h, reqS.has(ordNz(h)))).join('')}</span>`, e.n < STAT_THIN, `${e.n}試合`)).join('');
+    const tcRows = tcTop.map((e, i) => nmRow(e.h.join('|'), e.n, e.w, `<span style="flex:0 0 1.6em;text-align:right;font-weight:700;color:var(--muted)">${i + 1}</span><span style="display:flex;flex-direction:column;gap:0;min-width:0">${[...e.h].sort((a, b) => heroOrd(a) - heroOrd(b)).map(h => cHero(h, reqS.has(ordNz(h)))).join('')}</span>`, e.n < STAT_THIN, `${e.n}試合`)).join('');
     const cnRows = COMP_NAMED.map((c, i) => { const rs = nzs(c), cnt = tcAll.reduce((a, e) => a + (hit(e, rs) ? e.n : 0), 0);
       return `<button type="button" class="cnrow${i === cnI ? ' on' : ''}" data-act="cn-pick" data-i="${i}" aria-pressed="${i === cnI}"><span class="cnic">${c.map(h => cIco(h)).join('')}</span><span class="cnb"><b>${c.map(h => esc(dispName(h))).join(' ＋ ')}</b></span><span class="small muted">${cnt}</span></button>`; }).join('');
     const cPickOpts = byIx(D.H).filter(e => !csL.some(x => ordNz(x) === ordNz(e.k))).map(e => `<button type="button" class="hpick-i" data-act="cp-add" data-v="${esc(e.k)}"><span style="display:inline-flex;align-items:center;gap:8px;min-width:0">${cIco(e.k, 'margin-right:-4px')}<span>${esc(dispName(e.k))}</span></span></button>`).join('');
