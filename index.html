@@ -353,7 +353,7 @@ footer{margin-top:40px;font-size:.78rem;color:var(--muted);border-top:1px solid 
 .nb{display:inline-block;max-width:100%}
 .fdet>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 2px;font-weight:700}.fdet>summary::-webkit-details-marker{display:none}.fdet>summary::after{content:'▼';margin-left:auto;font-size:12px;color:var(--muted);transition:transform .15s}.fdet[open]>summary::after{transform:rotate(180deg)}
 .fdet.fdbox{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:2px 14px 8px;margin-bottom:12px}.fdet.fdbox[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
-.cnlist{display:flex;flex-direction:column;gap:6px;margin:4px 0 6px}.cnrow{display:flex;align-items:center;gap:8px;text-align:left;width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--ink);font:inherit;cursor:pointer}.cnrow.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface))}.cnrow .cnb{display:flex;flex-direction:column;min-width:0;flex:1}.cnrow .cnic{display:inline-flex;width:50px;flex:none}.cnrow .cnic>span+span{margin-left:-10px}#st-cadd{max-width:100%}
+.cnlist{display:flex;flex-direction:column;gap:6px;margin:4px 0 6px}.cnrow{display:flex;align-items:center;gap:8px;text-align:left;width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--ink);font:inherit;cursor:pointer}.cnrow.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface))}.cnrow .cnb{display:flex;flex-direction:column;min-width:0;flex:1}.cnrow .cnic{display:inline-flex;width:50px;flex:none}.cnrow .cnic>span+span{margin-left:-10px}
 .fdet .fdclr{margin-left:4px;padding:2px 10px;min-height:0;font-size:.8rem}
 .fdet .admn{font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--accent);color:var(--ai,#fff)}
 .foldb{float:right;margin-left:8px;width:26px;height:26px;padding:0;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font:inherit;font-size:11px;line-height:24px;cursor:pointer}.fold-hide{display:none!important}
@@ -1459,6 +1459,8 @@ const hasIco = n => !!HERO_ICON[n] || !!(db.heroes.find(h => h.name === n) || {}
 const heroNorm = t => String(t || '').normalize('NFKC').toLowerCase().replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 96)).replace(/[ー\s・=＝]/g, '');
 const statIco = (k, ex) => hasIco(k) ? `<span style="display:inline-flex;width:30px;height:30px;flex:0 0 30px;transform:scale(.83);transform-origin:left center;${ex || ''}">${heroIco(k)}</span>` : '';
 const dispName = n => DISPLAY_NAME[n] || n;
+// 編成の欄用：リプレイから取った顔があればそれを優先（なければ、シルエット→頭文字）
+const cIco = (k, ex) => { const f = (db.heroes.find(h => h.name === k) || {}).face; return f ? `<span style="display:inline-flex;width:30px;height:30px;flex:0 0 30px;transform:scale(.83);transform-origin:left center;${ex || ''}"><span class="hico face" aria-hidden="true"><img src="${f}" alt=""></span></span>` : statIco(k, ex); };
 // 実装順（古い順）。ヒーローは実装順、ステージは拓の指定、カードは恒常（F→Sランク）→コラボの古い順
 const HERO_ORDER = ["十文字 アタリ","ジャスティス ハンコック","リリカ","双挽 乃保","桜華 忠臣","ジャンヌ ダルク","マルコス’55","ルチアーノ","Voidoll","深川 まとい","ソル＝バッドガイ","ディズィー","グスタフ ハイドリヒ","ニコラ テスラ","初音 ミク","ヴィオレッタ ノワール","コクリコット ブランシュ","リュウ","春麗","マリア=S=レオンブルク","アダム=ユーリエフ","13 †サーティーン†","かけだし勇者","エミリア","レム","カイ＝キスク","メグメグ","鏡音 リン","鏡音 レン","イスタカ","ザック & レイチェル","輝龍院 きらら","モノクマ","ヴィーナス ポロロッチョ","アクア","めぐみん","ソーン=ユーリエフ","リヴァイ","デビルミント鬼龍 デルミン","トマス","猫宮 ひなた","岡部 倫太郎","零夜","セイバーオルタ","ギルガメッシュ","ルルカ","ピエール 77世","佐藤四郎兵衛忠信","アイズ・ヴァレンシュタイン","狐ヶ咲 甘色","ノクティス","HM-WA100 ニーズヘッグ","中島 敦","芥川 龍之介","ゲームバズーカガール","ライザリン・シュタウト","青春 アリス","ジョーカー","イグニス=ウィル=ウィスプ","アインズ・ウール・ゴウン","糸廻 輪廻","キリト","アスナ","Bugdoll","ステリア・ララ・シルワ","ラム","2B","ラヴィ・シュシュマルシュ","リムル=テンペスト","アル・ダハブ=アルカティア","御坂 美琴","アクセラレータ","天空王 ぶれいずどらごん","ベル・クラネル","ロキシー・ミグルディア","某 <なにがし>","ロックマン.EXE ＆ 光熱斗","クー・シー","デンジ","パワー","アミスター=バランディン","シノン","ターニャ・デグレチャフ","鬼ヶ式 うら","コラプス","ボンドルド","みりぽゆ","ゴン=フリークス","キルア=ゾルディック","チーちゃん","上条当麻","ーペルリニエ","シャドウ","ポプ子＆ピピ美","メルーニャ・ランチェルナ","セイバー","アーチャー","ランサー","†ファースト†","レゼ","シャルル・リヒター","一姫","エドワード・エルリック","オクトバリ・ニャル・タココ"];
 // カスタムバトル専用のステージ。みんなの統計には入れない（アプリ内の記録・分析には出る）
@@ -4197,7 +4199,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-10-AU', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-10-AV', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -4949,8 +4951,8 @@ const skinHTML = () => !canSkin() ? '' : `<h2>色・背景${isAdmin() ? '（開�
   <p class="small muted" style="margin:10px 0 0">動く背景の種類（「◆ 動く背景」がONの時に出ます）</p>
   <div class="row segs" style="margin-top:6px;flex-wrap:wrap">${Object.keys(FXV).map(k => `<button class="seg${fxvGet() === k ? ' on' : ''}" data-act="fxv" data-v="${k}">${FXV[k]}</button>`).join('')}</div>`;
 const ADMIN_UIDS = ['OHVoIZI3n7cioMO8ZvsU89Kr7qv1'];
-// アビリティ固定の編成（名前は固定。ヒーロー名は集計データと同じ公式の書き方）
-const COMP_NAMED = [['リリカマルコス', 'リリカ', 'マルコス’55'], ['リンレン', '鏡音 リン', '鏡音 レン'], ['アダムソーン', 'アダム=ユーリエフ', 'ソーン=ユーリエフ'], ['リリカルルカ', 'リリカ', 'ルルカ'], ['芥川敦', '芥川 龍之介', '中島 敦'], ['キリトアスナ', 'キリト', 'アスナ'], ['レムラム', 'レム', 'ラム'], ['ベルアイズ', 'ベル・クラネル', 'アイズ・ヴァレンシュタイン'], ['アミスターマリア', 'アミスター=バランディン', 'マリア=S=レオンブルク']], COMP_MIN = 10;
+// アビリティ固定の編成（ヒーロー名は集計データと同じ公式の書き方）
+const COMP_NAMED = [['リリカ', 'マルコス’55'], ['鏡音 リン', '鏡音 レン'], ['アダム=ユーリエフ', 'ソーン=ユーリエフ'], ['リリカ', 'ルルカ'], ['芥川 龍之介', '中島 敦'], ['キリト', 'アスナ'], ['レム', 'ラム'], ['ベル・クラネル', 'アイズ・ヴァレンシュタイン'], ['アミスター=バランディン', 'マリア=S=レオンブルク']], COMP_MIN = 10;
 const STAT_THIN = 30, STAT_HOURS = 12, STAT_WAIT = 5 * 60000, PUB_PART = 800;
 const STAT_BANDS = ['A以下', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9'];
 const pubS = { on: false, loaded: false, busy: false, ask: false, msg: '', err: false };
@@ -5587,19 +5589,19 @@ function statRender0() {
     // 編成（3人の組み合わせ）の勝率
     const cnI = +(s.el.dataset.cn === undefined || s.el.dataset.cn === '' ? -1 : s.el.dataset.cn), cnSel = COMP_NAMED[cnI] || null;
     const csL = (s.el.dataset.cs || '').split('\t').filter(Boolean).slice(0, 3);
-    const nzs = x => new Set(x.map(ordNz)), reqS = nzs([...(cnSel ? cnSel.slice(1) : []), ...csL]);
+    const nzs = x => new Set(x.map(ordNz)), reqS = nzs([...(cnSel || []), ...csL]);
     const hit = (e, rs) => { const m = nzs(e.h); for (const x of rs) if (!m.has(x)) return false; return true; };
     const tcAll = D.TC || [], tcF = tcAll.filter(e => hit(e, reqS)), tcOk = tcF.filter(e => e.n >= COMP_MIN);
     const tcTop = byWr(tcOk).slice(0, 10);
-    const cHero = (h, bold) => `<span style="display:inline-flex;align-items:center;gap:2px;min-width:0">${statIco(h)}<span style="${bold ? 'font-weight:800;color:var(--accent)' : ''}">${esc(dispName(h))}</span></span>`;
+    const cHero = (h, bold) => `<span style="display:inline-flex;align-items:center;gap:2px;min-width:0">${cIco(h)}<span style="${bold ? 'font-weight:800;color:var(--accent)' : ''}">${esc(dispName(h))}</span></span>`;
     const tcRows = tcTop.map((e, i) => nmRow(e.h.join('|'), e.n, e.w, `<span style="flex:0 0 1.6em;text-align:right;font-weight:700;color:var(--muted)">${i + 1}</span><span style="display:flex;flex-wrap:wrap;gap:2px 10px;min-width:0">${[...e.h].sort((a, b) => heroOrd(a) - heroOrd(b)).map(h => cHero(h, reqS.has(ordNz(h)))).join('')}</span>`, e.n < STAT_THIN, `${e.n}試合`)).join('');
-    const cnRows = COMP_NAMED.map((c, i) => { const rs = nzs(c.slice(1)), cnt = tcAll.reduce((a, e) => a + (hit(e, rs) ? e.n : 0), 0);
-      return `<button type="button" class="cnrow${i === cnI ? ' on' : ''}" data-act="cn-pick" data-i="${i}" aria-pressed="${i === cnI}"><span class="cnic">${c.slice(1).map(h => statIco(h)).join('')}</span><span class="cnb"><b>${esc(c[0])}</b><span class="small muted">${c.slice(1).map(h => esc(dispName(h))).join(' ＋ ')}</span></span><span class="small muted">${cnt}</span></button>`; }).join('');
-    const cPickOpts = byIx(D.H).filter(e => !csL.some(x => ordNz(x) === ordNz(e.k))).map(e => `<option value="${esc(e.k)}">${esc(dispName(e.k))}</option>`).join('');
+    const cnRows = COMP_NAMED.map((c, i) => { const rs = nzs(c), cnt = tcAll.reduce((a, e) => a + (hit(e, rs) ? e.n : 0), 0);
+      return `<button type="button" class="cnrow${i === cnI ? ' on' : ''}" data-act="cn-pick" data-i="${i}" aria-pressed="${i === cnI}"><span class="cnic">${c.map(h => cIco(h)).join('')}</span><span class="cnb"><b>${c.map(h => esc(dispName(h))).join(' ＋ ')}</b></span><span class="small muted">${cnt}</span></button>`; }).join('');
+    const cPickOpts = byIx(D.H).filter(e => !csL.some(x => ordNz(x) === ordNz(e.k))).map(e => `<button type="button" class="hpick-i" data-act="cp-add" data-v="${esc(e.k)}"><span style="display:inline-flex;align-items:center;gap:8px;min-width:0">${cIco(e.k, 'margin-right:-4px')}<span>${esc(dispName(e.k))}</span></span></button>`).join('');
     const compPanel = `<div class="section"><div class="panel"><h2>編成の勝率</h2><p class="small muted" style="margin:0 0 6px">味方・敵を含む全チームの、3人の組み合わせごとの勝率です（並び順は区別しません・引き分けは数えません）。${COMP_MIN}試合以上の編成だけを、勝率が高い順に10件出します（${STAT_THIN}試合未満は薄く表示して、あとにまとめます）。「アビリティ固定」を選ぶと、その2人を含む編成だけを比べます。ヒーローは3体まで選べて、選んだ全員を含む編成だけを比べます。何も選ばなければ全編成です。ランクは、チーム内でランクが分かっている人の平均で分けています。</p>
-      <details class="fdet" data-fd="cn"${statsUI.fopen.has('cn') ? ' open' : ''}><summary>アビリティ固定${cnSel ? `<span class="admn">${esc(cnSel[0])}</span>` : ''}</summary><div class="cnlist">${cnRows}</div></details>
-      <div class="fl" style="margin-top:8px"><span class="label">ヒーローで絞る（3体まで）</span><div class="chips">${csL.map(h => `<button type="button" class="chip on" data-act="cp-del" data-v="${esc(h)}" aria-label="${esc(dispName(h))}を外す">${esc(dispName(h))} ✕</button>`).join('')}${csL.length < 3 ? `<select id="st-cadd" aria-label="ヒーローを追加"><option value="">＋ヒーローを追加</option>${cPickOpts}</select>` : ''}${cnSel || csL.length ? '<button type="button" class="btn ghost" data-act="cp-clr" style="padding:2px 10px;min-height:0">選択を解除</button>' : ''}</div></div>
-      <p class="small" style="margin:10px 0 4px"><b>${cnSel || csL.length ? `${[...(cnSel ? [cnSel[0]] : []), ...csL.map(dispName)].map(esc).join('・')}を含む編成` : '全編成'}の勝率が高い順（上位${tcTop.length}件）</b>　<span class="muted">（${tcOk.length}編成が${COMP_MIN}試合以上）</span></p>
+      <details class="fdet" data-fd="cn"${statsUI.fopen.has('cn') ? ' open' : ''}><summary>アビリティ固定${cnSel ? `<span class="admn">${cnSel.map(h => esc(dispName(h))).join('＋')}</span>` : ''}</summary><div class="cnlist">${cnRows}</div></details>
+      <div class="fl" style="margin-top:8px"><span class="label">ヒーローで絞る（3体まで）</span><div class="chips">${csL.map(h => `<button type="button" class="chip on" data-act="cp-del" data-v="${esc(h)}" aria-label="${esc(dispName(h))}を外す">${esc(dispName(h))} ✕</button>`).join('')}${csL.length < 3 ? `<div class="hpick" style="flex:1 1 12em"><button type="button" class="hpick-b" data-act="hp-toggle"><span>＋ヒーローを追加</span><span aria-hidden="true">▾</span></button><div class="hpick-l" hidden>${cPickOpts}</div></div>` : ''}${cnSel || csL.length ? '<button type="button" class="btn ghost" data-act="cp-clr" style="padding:2px 10px;min-height:0">選択を解除</button>' : ''}</div></div>
+      <p class="small" style="margin:10px 0 4px"><b>${cnSel || csL.length ? `${[...(cnSel ? [cnSel.map(dispName).join('＋')] : []), ...csL.filter(h => !(cnSel || []).some(x => ordNz(x) === ordNz(h))).map(dispName)].map(esc).join('・')}を含む編成` : '全編成'}の勝率が高い順（上位${tcTop.length}件）</b>　<span class="muted">（${tcOk.length}編成が${COMP_MIN}試合以上）</span></p>
       ${tcRows || `<p class="small muted">この条件で${COMP_MIN}試合以上ある編成はまだありません。</p>`}</div></div>`;
     body = `<p class="small" style="margin:10px 0 0"><b>集計：${doc.p}人／${doc.n}試合</b>（同じ試合は1回だけ数えます）　<span class="muted">最終更新 ${statMsTime(doc.t)}</span></p>
     </div></div>
@@ -5708,6 +5710,7 @@ document.addEventListener('click', e => {
   else if (a === 'hp-pick') { const m = { 'st-hc': 'hc', 'st-hm': 'hm', 'st-hg': 'hg', 'st-hd': 'hd' }, el = document.getElementById('view-stat'); el.dataset[m[t.dataset.id]] = t.dataset.v; statS.more = {}; statRender(); }
   else if (a === 'hq-pick' || a === 'hq-clr') { const el = document.getElementById('view-stat'), inp = document.getElementById('st-hq'); const v = a === 'hq-pick' ? t.dataset.v : ''; el.dataset.hq = v; if (inp) inp.value = v; hqUpdate(a === 'hq-pick'); }
   else if (a === 'cn-pick') { const el = document.getElementById('view-stat'); el.dataset.cn = el.dataset.cn === t.dataset.i ? '' : t.dataset.i; statRender(); }
+  else if (a === 'cp-add') { const el = document.getElementById('view-stat'), l = (el.dataset.cs || '').split('\t').filter(Boolean); if (!l.includes(t.dataset.v) && l.length < 3) l.push(t.dataset.v); el.dataset.cs = l.join('\t'); statRender(); }
   else if (a === 'cp-del') { const el = document.getElementById('view-stat'); el.dataset.cs = (el.dataset.cs || '').split('\t').filter(x => x && x !== t.dataset.v).join('\t'); statRender(); }
   else if (a === 'cp-clr') { const el = document.getElementById('view-stat'); delete el.dataset.cn; delete el.dataset.cs; statRender(); }
   else if (a === 'stat-less') { delete statS.more[t.dataset.k]; statRender(); }
@@ -5726,7 +5729,6 @@ function hqUpdate(closeSug) {
 document.addEventListener('input', e => { const t = e.target; if (t && t.id === 'st-hq') { const el = document.getElementById('view-stat'); el.dataset.hq = t.value; hqUpdate(false); } });
 document.addEventListener('change', e => {
   const t = e.target; if (!t || !t.id) return; const el = document.getElementById('view-stat');
-  if (t.id === 'st-cadd') { if (!el || !t.value) return; const l = (el.dataset.cs || '').split('\t').filter(Boolean); if (!l.includes(t.value) && l.length < 3) l.push(t.value); el.dataset.cs = l.join('\t'); statRender(); return; }
   const map = { 'st-pss': 'pss', 'st-pss2': 'pss', 'st-pmd': 'pmd', 'st-pmd2': 'pmd', 'st-season': 'season', 'st-band': 'band', 'st-mode': 'mode', 'st-hc': 'hc', 'st-hm': 'hm', 'st-hg': 'hg', 'st-hd': 'hd', 'st-hv': 'hv' };
   if (!map[t.id] || !el) return;
   el.dataset[map[t.id]] = t.value; if (t.id === 'st-season') delete el.dataset.mode; statS.more = {};
