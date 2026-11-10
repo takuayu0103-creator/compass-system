@@ -1787,6 +1787,71 @@ function heroCard(g) {
     </div></div>`;
 }
 
+// ---- 登録前の「順番あってますか？」チェック ----
+// 連勝・連敗の長さが、その人の勝率・連勝のしやすさ・固定／野良の勝率から見てありえないほど長い時だけ警告する
+let strkCache = { sig: '', res: [] };
+function streakOrderCheck(newShots) {
+  const mkNew = s => ({ id: 'new:' + s.id, at: s.at, mode: s.modeName || '不明', b: s.score.b, r: s.score.r, side: s.own.side, res: s.res || undefined, fxs: s.panels.some(p => p.side === s.own.side && p.idx !== s.own.idx && !p.empty && (p.fxm != null ? p.fxm : isFixedName(p.name))) ? [1] : undefined, _n: 1 });
+  const nm = newShots.map(mkNew), modes = [...new Set(nm.map(m => m.mode))], out = [];
+  const sig = nm.map(m => m.mode + ':' + m.at + ':' + matchResult(m) + (m.fxs ? 'f' : '')).join('|') + '#' + db.matches.length + '#' + (db.streakOk || []).length;
+  if (strkCache.sig === sig) return strkCache.res;
+  const okSet = new Set((db.streakOk || []).map(x => x.d + x.at));
+  for (const mode of modes) {
+    const hist = db.matches.filter(m => m.mode === mode && m.at && (matchResult(m) === 'w' || matchResult(m) === 'l'));
+    if (hist.length < 30) continue;   // 過去の試合が少ない人には出さない
+    const ctx = m => (m.fxs && m.fxs.length ? 1 : 0), W = m => matchResult(m) === 'w' ? 1 : 0;
+    const hs = [...hist].sort((a, b) => a.at - b.at);
+    // 過去の試合だけで、全体・固定／野良・「直前の流れ」ごとの勝率を作る（順番が違う新しい試合で数字が汚れないように）
+    const wins = hs.reduce((a, m) => a + W(m), 0), pAll = Math.min(.95, Math.max(.05, wins / hs.length));
+    const cw = [0, 0], cn = [0, 0]; for (const m of hs) { cn[ctx(m)]++; cw[ctx(m)] += W(m); }
+    const pCtx = c => { const x = (cw[c] + 10 * pAll) / (cn[c] + 10); return Math.min(.95, Math.max(.05, x)); };
+    const aw = {}, an = {}; let run = 0, prev = -1;
+    for (const m of hs) { const w = W(m); if (prev >= 0) { const key = (prev ? 'w' : 'l') + Math.min(run, 10); an[key] = (an[key] || 0) + 1; aw[key] = (aw[key] || 0) + w; } run = w === prev ? run + 1 : 1; prev = w; }
+    const odds = q => q / (1 - q), adj = c => odds(pCtx(c)) / odds(pAll);
+    const pWin = (prevW, k, c) => { if (prevW < 0) return pCtx(c); const key = (prevW ? 'w' : 'l') + Math.min(k, 10), n = an[key] || 0, w = aw[key] || 0, q = (w + 8 * pAll) / (n + 8), o = odds(q) * adj(c), v = o / (1 + o); return Math.min(.97, Math.max(.03, v)); };
+    // 並べて、新しい試合を含む連勝・連敗を探す
+    const seq = [...hist, ...nm.filter(m => m.mode === mode)].sort((a, b) => a.at - b.at).slice(-400);
+    const runs = []; for (let i = 0; i < seq.length;) { let j = i; const w = W(seq[i]); while (j + 1 < seq.length && W(seq[j + 1]) === w) j++; if (j - i + 1 >= 8 && seq.slice(i, j + 1).some(m => m._n)) runs.push({ w, i, j }); i = j + 1; }
+    if (!runs.length) continue;
+    const cs = seq.map(ctx);
+    let sd = 12345 + seq.length; const rnd = () => { sd = (sd + 0x6D2B79F5) | 0; let t = Math.imul(sd ^ (sd >>> 15), 1 | sd); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const SIM = 1500, mxW = [], mxL = [];
+    for (let z = 0; z < SIM; z++) { let r = 0, pv = -1, bw = 0, bl = 0; for (let i = 0; i < seq.length; i++) { const w = rnd() < pWin(pv, r, cs[i]) ? 1 : 0; r = w === pv ? r + 1 : 1; pv = w; if (w) bw = Math.max(bw, r); else bl = Math.max(bl, r); } mxW.push(bw); mxL.push(bl); }
+    for (const r of runs) {
+      const L = r.j - r.i + 1, arr = r.w ? mxW : mxL, prob = arr.filter(x => x >= L).length / SIM, first = seq[r.i];
+      if (prob >= 0.01 || okSet.has((r.w ? 'w' : 'l') + first.at)) continue;
+      out.push({ mode, w: r.w, len: L, prob, at: first.at, t0: first.at, t1: seq[r.j].at });
+    }
+  }
+  strkCache = { sig, res: out }; return out;
+}
+function streakOrderHTML(ok) {
+  let list = []; try { list = streakOrderCheck(ok.filter(s => s.own && s.score && s.score.b != null && s.score.r != null && (!s.dup || s.dupAns === 'yes'))); } catch (e) { list = []; }
+  if (!list.length) return '';
+  const fm = t => new Date(t).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return list.map(x => `<div class="notice" style="border-color:var(--lose)"><b>⚠ 順番、あってますか？</b><div class="small">${esc(x.mode)}で${x.len}${x.w ? '連勝' : '連敗'}になります（${fm(x.t0)}〜${fm(x.t1)}）。あなたの勝率・連勝のしやすさ・固定／野良の勝率から見ると、${x.prob < 0.001 ? '0.1%未満' : '約' + (x.prob * 100).toFixed(1) + '%'}しか起きない長さです。試合の並びが違っていたら、各試合の「↑↓」で直してください。</div><div class="row" style="margin-top:6px"><button type="button" class="btn" data-act="stok" data-at="${x.at}" data-d="${x.w ? 'w' : 'l'}">順番は合ってる（この連勝は警告しない）</button></div></div>`).join('');
+}
+function shotMove(id, dir) {
+  const ids = batch.shots.filter(s => s.ok).map(s => s.id), i = ids.indexOf(id), j = i + dir; if (i < 0 || j < 0 || j >= ids.length) return;
+  const a = batch.shots.find(s => s.id === ids[i]), b = batch.shots.find(s => s.id === ids[j]);
+  for (const x of [a, b]) if (x.at0 == null) x.at0 = x.at;
+  const ia = batch.shots.indexOf(a), ib = batch.shots.indexOf(b); [batch.shots[ia], batch.shots[ib]] = [b, a];
+  let t = a.at; a.at = b.at; b.at = t; if (a.at === b.at) { if (dir < 0) a.at -= 1000; else a.at += 1000; }
+  renderReview();
+}
+function shotReverse() {
+  const oks = batch.shots.filter(s => s.ok); if (oks.length < 2) return;
+  for (const x of oks) if (x.at0 == null) x.at0 = x.at;
+  const ts = oks.map(s => s.at).reverse(); oks.forEach((s, i) => { s.at = ts[i]; });
+  const idx = batch.shots.map((s, i) => s.ok ? i : -1).filter(i => i >= 0), rv = [...oks].reverse(); idx.forEach((k, n) => { batch.shots[k] = rv[n]; });
+  renderReview();
+}
+function shotResetOrder() {
+  for (const s of batch.shots) if (s.at0 != null) { s.at = s.at0; delete s.at0; }
+  const ok = batch.shots.filter(s => s.ok).sort((a, b) => a.at - b.at), idx = batch.shots.map((s, i) => s.ok ? i : -1).filter(i => i >= 0);
+  idx.forEach((k, n) => { batch.shots[k] = ok[n]; });
+  renderReview();
+}
 function renderReview() {
   const el = $('#review');
   if (!batch) { el.innerHTML = ''; return; }
@@ -1838,6 +1903,8 @@ function renderReview() {
   h += `<div class="section"><div class="panel"><div class="row" style="justify-content:space-between"><h2>読み取った試合（${ok.length}）</h2>${needOwn && !(mg && !mg.answered) ? `<span class="small" style="color:var(--lose)">自分が未選択：${needOwn}試合</span>` : ''}</div>
     ${fillN ? `<div class="notice">${fillN}枚は保存済みの試合と同じで、その試合のランク・メダル・カードを、書き足し・読み直しできます（前の版で読み間違えたランクも直ります）。保存すると、新しい試合は増やさずにランク・メダル・カードを更新します。</div>` : ''}
     ${dupAsk ? `<div class="notice">似てる試合が${dupAsk}件あります。それぞれ「YES（登録する）」か「NO（登録しない）」を選んでください。</div>` : ''}
+    ${streakOrderHTML(ok)}
+    ${ok.length > 1 ? '<div class="row" style="margin:4px 0"><span class="small muted">並び（登録する時刻の順番）：</span><button type="button" class="btn ghost" data-act="sh-rev" style="padding:2px 10px;min-height:0">上下を逆にする</button><button type="button" class="btn ghost" data-act="sh-reset" style="padding:2px 10px;min-height:0">撮影日時の順に戻す</button></div>' : ''}
     <div>${ok.map(renderShot).join('')}</div>
     <div class="row"><button class="btn primary" data-act="save" ${needOwn || dupAsk || (mg && !mg.answered) || !willSave ? 'disabled' : ''}>この内容で保存</button><button class="btn ghost" data-act="discard">やめる</button></div>
   </div></div>`;
@@ -1893,7 +1960,7 @@ function renderShot(s) {
     ${s.dup ? `<div class="row"><span class="badge">似てる試合あり・登録する</span><button class="btn ghost small" data-dup="${s.id}" data-ans="">選び直す</button></div>` : ''}
     <div class="mhead"><span class="res ${res}">${RES_LABEL[res]}</span>
       <span class="score"><span class="b">${sel(s.score.b, 'blue')}</span><span class="vs">vs</span><span class="r">${sel(s.score.r, 'red')}</span></span>
-      ${unsure ? '<span class="badge">スコア要確認</span>' : ''}</div>
+      ${unsure ? '<span class="badge">スコア要確認</span>' : ''}<span style="margin-left:auto;display:inline-flex;gap:4px"><button type="button" class="btn ghost" data-shmv="${s.id}" data-dir="-1" aria-label="上へ" style="padding:0 10px;min-height:30px">↑</button><button type="button" class="btn ghost" data-shmv="${s.id}" data-dir="1" aria-label="下へ" style="padding:0 10px;min-height:30px">↓</button></span></div>
     <div class="meta">${s.stageURL ? `<img src="${s.stageURL}" alt="">` : ''}<span>ステージ：${esc(stageLabel)}</span>
       <select id="md-${s.id}" data-mode="${s.id}" aria-label="対戦モード">${s.modeName ? '' : '<option value="" selected>対戦モードを選んでください</option>'}${MODES.map(m => `<option${m === s.modeName ? ' selected' : ''}>${m}</option>`).join('')}</select>${s.modeName ? '' : '<span class="badge warn">対戦モード要確認</span>'}
       ${s.own ? (() => { const rk = shotRank(s); return `<label class="small">自分のランク <select data-rank="${s.id}" id="rk-${s.id}" aria-label="自分のランク"><option value=""${rk ? '' : ' selected'}>不明</option>${RANK_ORDER.map(r => `<option${r === rk ? ' selected' : ''}>${r}</option>`).join('')}</select></label>${rk ? '' : '<span class="badge">ランク読めず</span>'}`; })() : ''}
@@ -3887,7 +3954,7 @@ document.addEventListener('click', e => {
   tip.style.left = x + 'px'; tip.style.top = cy + 'px'; tip.style.setProperty('--ax', (half + cx - x) + 'px');
 }, true);
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-act],[data-own],[data-ask],[data-del],[data-pick],[data-ptsign],[data-mptsign],[data-copy],[data-dup],[data-fillno],[data-unseason],[data-reseason],[data-outmode],[data-drill],[data-pickopen],[data-pickstage],[data-pickhero],[data-season-toggle],[data-swin],[data-schunk],[data-sgoal],[data-sgoalptx],[data-sgfold],[data-srange-reset],[data-trendn],[data-trendall]');
+  const t = e.target.closest('[data-act],[data-own],[data-shmv],[data-ask],[data-del],[data-pick],[data-ptsign],[data-mptsign],[data-copy],[data-dup],[data-fillno],[data-unseason],[data-reseason],[data-outmode],[data-drill],[data-pickopen],[data-pickstage],[data-pickhero],[data-season-toggle],[data-swin],[data-schunk],[data-sgoal],[data-sgoalptx],[data-sgfold],[data-srange-reset],[data-trendn],[data-trendall]');
   if (!t) return;
   if (t.dataset.pickopen) { const v = $('#view-stats'); v.dataset.pick = v.dataset.pick === t.dataset.pickopen ? '' : t.dataset.pickopen; renderStats(); return; }
   if (t.dataset.pickhero !== undefined) { const v = $('#view-stats'); v.dataset.hero = t.dataset.pickhero; v.dataset.recent = 20; v.dataset.mapAll = v.dataset.enemyAll = v.dataset.heroAll = ''; v.dataset.pick = ''; renderStats(); return; }
@@ -3980,9 +4047,13 @@ document.addEventListener('click', e => {
     }
     renderReview();
   } else if (act === 'me-no') { batch.meGuess.answered = true; renderReview(); }
+  else if (t.dataset.shmv) { shotMove(t.dataset.shmv, +t.dataset.dir); }
   else if (t.dataset.own) {
     const s = batch.shots.find(s => s.id === t.dataset.own); s.own = { side: t.dataset.side, idx: +t.dataset.idx }; s.ownManual = true; renderReview();
   } else if (act === 'save') saveBatch();
+  else if (act === 'sh-rev') shotReverse();
+  else if (act === 'sh-reset') shotResetOrder();
+  else if (act === 'stok') { (db.streakOk = db.streakOk || []).push({ at: +t.dataset.at, d: t.dataset.d }); if (db.streakOk.length > 60) db.streakOk.splice(0, db.streakOk.length - 60); persist(); renderReview(); }
   else if (act === 'discard') { batch = null; rebuildCache(); renderReview(); $('#prog-wrap').hidden = true; }
   else if (t.dataset.ask !== undefined && !t.dataset.del) { $('#view-hist').dataset.ask = t.dataset.ask; renderHist(); }
   else if (t.dataset.del) { db.matches = db.matches.filter(m => m.id !== t.dataset.del); $('#view-hist').dataset.ask = ''; persist(); renderAll(); }
@@ -4202,7 +4273,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-10-AX', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-10-AY', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
