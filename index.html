@@ -242,6 +242,11 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .segs{gap:4px}.trseg{flex-wrap:nowrap}.trseg .seg{flex:1 1 0;min-width:0;padding:4px 1px;font-size:.7rem;white-space:nowrap}.seg.trall{display:block;width:100%;margin-top:6px;padding:11px 10px;font-size:1rem;text-align:center}
 .seg{font:inherit;font-family:var(--f-ui);font-weight:700;font-size:.8rem;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
 .seg.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.how{border:1px dashed var(--accent);border-radius:10px;padding:8px 12px;background:var(--soft);font-size:.86rem;display:flex;flex-direction:column;gap:2px}
+.how>b:first-child{color:var(--accent)}
+.rkprev{font-weight:700;margin-left:6px}
+.prow.hl{animation:rowhl 1.8s ease-out}
+@keyframes rowhl{0%,45%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
 .goalbig{font-size:clamp(1.9rem,9vw,2.6rem);font-weight:900;line-height:1.2;margin:6px 0 2px}.goalbig .ptv{font-size:inherit}.goalbig small{font-size:.5em;margin-left:2px}.goalsub{font-size:clamp(1.15rem,5vw,1.5rem);font-weight:800}
 .gainbox{display:flex;flex-direction:column;gap:4px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--soft)}
 .rng{width:4.2em;font:inherit;font-family:var(--f-num);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:4px 6px}
@@ -2090,7 +2095,7 @@ function ptBox(kind, id, sign, val, calc) {
   return `<span class="ptbox">${kind === 'pt' ? '<span class="small muted">シーズンpt</span>' : ''}<button type="button" class="sgn ${sign === '-' ? 'minus' : 'plus'}" data-${kind}sign="${id}" aria-label="増減の切り替え（今は${sign === '-' ? '減った' : '増えた'}）">${sign === '-' ? '−' : '＋'}</button><input type="text" inputmode="numeric"${calc ? ' class="calc"' : ''} id="${kind}-${id}" data-${kind}="${id}" value="${esc(String(val))}" placeholder="例 12" aria-label="増減したpt">pt</span>`;
 }
 function afterBox(kind, id, val, calc) {
-  return `<label class="ptbox"><span class="small muted">試合後</span><input type="text" inputmode="numeric" class="after${calc ? ' calc' : ''}" id="${kind}-${id}" data-${kind}="${id}" value="${val === '' || val == null ? '' : val}" placeholder="今のpt" aria-label="試合後のpt">pt</label>`;
+  return `<label class="ptbox"><span class="small muted">試合後</span><input type="text" inputmode="numeric" class="after${calc ? ' calc' : ''}" id="${kind}-${id}" data-${kind}="${id}" value="${val === '' || val == null ? '' : val}" placeholder="今のpt／S2の250" aria-label="試合後のpt（S2の250のようなランク表記でも入れられます）">pt<span class="rkprev small" aria-live="polite"></span></label>`;
 }
 // シーズンごとに、試合後ptと増減ptをつないで計算する。{id: {d: 増減, after: 試合後pt, src: 'after'|'delta', gap: 前に未入力あり}}
 function ptCalc() {
@@ -2107,6 +2112,25 @@ function ptCalc() {
   return out;
 }
 // 入力から数字だけ取り出す（先頭に+や-を打ったら符号もそれに合わせる）
+// 「S2の250」「s3 100」「S2/250」のようなランク表記（S1=2000、S2=2500 … S9=6000）を、ptにする。ふつうの数字は対象外
+function ptRank(raw) {
+  const t = String(raw).trim().replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 65248)).replace(/[Ｓｓ]/g, 'S').replace(/s/g, 'S');
+  if (!/^S/.test(t)) return null;
+  const m = t.match(/^S\s*(\d)\s*(?:の|[\/:：\-－ー,、\s])?\s*(\d*)$/);
+  if (!m) return { err: '「2750」か「S2の250」の形で入れてください' };
+  const rk = +m[1], rest = m[2] === '' ? 0 : +m[2];
+  if (rk < 1) return { err: 'ランクは S1〜S9 です' };
+  if (rk < 9 && rest > 499) return { err: `S${rk}の中のptは 0〜499 です` };
+  return { pt: 2000 + (rk - 1) * 500 + rest };
+}
+// 「試合後のpt」「開始時のpt」用：ランク表記でも、ふつうの数字でも読む
+function parsePtR(v) { const r = ptRank(v); if (r) return r.pt != null ? { sign: null, abs: r.pt } : null; return parsePt(v); }
+// ランク表記（S2の250）を入れている間、何ptになるかを横に出す
+document.addEventListener('input', e => {
+  const t = e.target; if (!t || !t.matches || !t.matches('[data-after],[data-mafter],#season-pt,[data-season-pt]')) return;
+  const pv = t.parentNode && t.parentNode.querySelector('.rkprev'); if (!pv) return;
+  const r = ptRank(t.value); pv.style.color = r && r.err ? 'var(--lose)' : 'var(--accent)'; pv.textContent = !r ? '' : r.err ? r.err : `＝ ${r.pt}pt`;
+});
 function parsePt(v) { const t = String(v).trim().replace(/[＋]/g, '+').replace(/[−ー－]/g, '-').replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 65248)); const m = t.match(/^([+-]?)\s*(\d+)/); return m ? { sign: m[1] || null, abs: +m[2] } : null; }
 // 500ptごとの目盛り。2000ptがS1、以降500ptごとにS2、S3…、上限はS9（6000pt）
 const rankLabel = v => v >= 2000 ? `${v} (S${Math.min(9, Math.floor((v - 2000) / 500) + 1)})` : String(v);
@@ -2880,10 +2904,11 @@ function pMove(y) {
 function pEnd() {
   const d = pdrag; pdrag = null;
   d.row.classList.remove('dragging'); d.row.style.transform = '';
-  const ids = [...d.list.querySelectorAll('.prow')].map(r => r.dataset.mid).reverse(); // 古い順
   const se = db.seasons.find(x => x.id === d.list.dataset.season);
+  const full = seasonMatches(se).map(m => m.id), hid = +d.list.dataset.hid || 0;   // 出していない古い試合は、そのまま前につなぐ
+  const ids = full.slice(0, hid).concat([...d.list.querySelectorAll('.prow')].map(r => r.dataset.mid).reverse()); // 古い順
   const ms = ids.map(id => db.matches.find(m => m.id === id));
-  const oldOrder = seasonMatches(se).map(m => m.id).join();
+  const oldOrder = full.join();
   if (ids.join() === oldOrder) return;
   const i = ids.indexOf(d.id), m = ms[i], pv = ms[i - 1], nx = ms[i + 1];
   if (pv && nx) m.at = Math.round((pv.at + nx.at) / 2);
@@ -2894,7 +2919,7 @@ function pEnd() {
 }
 document.addEventListener('pointerdown', e => {
   if (view.on) return; // フレンドのデータを見ている間は並べ替えない
-  const row = e.target.closest && e.target.closest('.plist[data-season] .prow');
+  const row = e.target.closest && e.target.closest('.plist[data-season]:not([data-nodrag]) .prow');
   if (!row || pdrag || (e.pointerType === 'mouse' && e.button !== 0)) return;
   const onGrip = e.target.closest('.grip');
   if (!onGrip && e.target.closest('input,button,select,summary,label,textarea,.pteams,.memo-box')) return;
@@ -2950,6 +2975,8 @@ const heroImg = n => heroImgs(n)[0] || null;
 window.heroImgNext = img => { let l = []; try { l = JSON.parse(img.dataset.alt || '[]'); } catch (e) {} if (!l.length) { img.remove(); return; } img.dataset.alt = JSON.stringify(l.slice(1)); img.src = l[0]; };
 const openSeasons = new Set();
 const seasonWin = {}, seasonRange = {}, seasonChunk = {};
+const seasonFilter = {}, seasonShown = {};   // シーズンごとの、一覧の絞り込み（'todo'＝pt未入力だけ）と、出している件数
+const SEASON_PAGE = 20;
 // k試合ごとの平均ptのグラフ（薄い線が1試合ごとのpt、太い線が区切りごとの平均）
 function avgChart(pts, chunks, cw) {
   const H = 230, L = 46, R = 16, T = 20, B = 36, W = Math.max(280, cw), n = pts.length - 1;
@@ -3344,7 +3371,7 @@ function renderSeason() {
   const formHTML = `<div class="formgrid">
       <label class="fl"><span class="label">オリジナルヒーロー</span>${heroSelect('id="season-hero" data-newhero="1"', '')}</label>
       <label class="fl"><span class="label">シーズン名</span><input type="text" id="season-name" placeholder="例 ルチアーノシーズン"></label>
-      <label class="fl"><span class="label">シーズン開始時のpt</span><input type="text" inputmode="numeric" id="season-pt" placeholder="例 0"></label>
+      <label class="fl"><span class="label">シーズン開始時のpt（2750 や S2の250 でOK）</span><input type="text" id="season-pt" placeholder="例 2750 / S2の250" autocomplete="off"><span class="rkprev small" aria-live="polite"></span></label>
       <label class="fl" style="grid-column:1/-1"><span class="label">開始日時（${SEASON_DAYS}日後の日いっぱいで自動終了。あとから直せます）</span><span class="row" style="gap:6px;flex-wrap:nowrap"><input type="date" id="season-date" value="${defDate}" style="flex:1;min-width:0"><input type="time" id="season-time" value="${defTime}" style="flex:0 0 7em"></span></label></div>
     ${off != null && defAt === off ? '<p class="small muted" style="margin:0">開始日時は、今のシーズンの公式の開始日時を入れています。</p>' : ''}
     <div class="row"><button class="btn primary" data-act="season-start">このシーズンを始める</button>${ss.length ? '<button class="btn ghost" data-act="season-cancel">やめる</button>' : ''}<span class="small" id="season-msg"></span></div>`;
@@ -3387,7 +3414,7 @@ function renderSeason() {
         <div class="formgrid">
           <label class="fl"><span class="label">オリジナルヒーロー</span>${heroSelect(`data-season-hero="${se.id}" id="sh-${se.id}"`, se.hero || '')}</label>
           <label class="fl"><span class="label">シーズン名</span><input type="text" data-season-name="${se.id}" id="sn-${se.id}" value="${esc(se.name || '')}"></label>
-          <label class="fl"><span class="label">開始時のpt</span><input type="text" inputmode="numeric" data-season-pt="${se.id}" id="sp-${se.id}" value="${se.pt}"></label>
+          <label class="fl"><span class="label">開始時のpt（S2の250 でもOK）</span><input type="text" data-season-pt="${se.id}" id="sp-${se.id}" value="${se.pt}" autocomplete="off"><span class="rkprev small" aria-live="polite"></span></label>
           <label class="fl" style="grid-column:1/-1"><span class="label">開始日時（直すと、入る試合が日時で入れ替わります）</span><span class="row" style="gap:6px;flex-wrap:nowrap"><input type="date" data-ssdate="${se.id}" id="ssd-${se.id}" value="${ymd(se.start)}" style="flex:1;min-width:0"><input type="time" data-ssdate="${se.id}" id="sst-${se.id}" value="${hmOf(se.start)}" style="flex:0 0 7em"></span><span class="small" id="sdmsg-${se.id}" role="status"></span></label></div>
         <div class="kpis" style="grid-template-columns:repeat(2,1fr)">
           <div class="kpi"><div class="label">${state === '開催終了' ? '最終pt' : '現在のpt'}</div><div class="v">${cur}<small>pt</small></div>${rankOf(cur) ? `<div class="small muted">${rankOf(cur)} ${rankRest(cur)}</div>` : ''}</div>
@@ -3435,8 +3462,20 @@ function renderSeason() {
             <div class="row"><button class="btn danger" data-act="season-del-yes">消す</button><button class="btn" data-act="season-del-no">やめる</button></div></div>`
           : '<div class="row"><button class="btn ghost small" data-act="season-del">このシーズンを消す</button></div>') : ''}
         <h3>バトルアリーナ（${list.length}試合）</h3>
-        <p class="small muted" style="margin:0">増減ptか、試合後の今のptのどちらかを入れてください（点線の欄は自動計算）。＋/−で勝利・敗北も切り替わります。行を長押し（または⋮⋮をつまんで）上下にスライドすると並び替えられます。上が新しい試合です。</p>
-        <div class="plist" data-season="${se.id}">${list.length ? [...list].reverse().map(m => seasonRow(m, pc)).join('') : '<div class="small muted">このシーズンのバトルアリーナの試合はまだありません。</div>'}</div>
+        <div class="how"><b>ptの入れ方は、どれか1つでOKです</b>
+          <div><b>増減</b>：＋／−を選んで数字（例：＋25、−18）</div>
+          <div><b>試合後</b>：今のpt（例：2750）か、ランク表記（例：S2の250）</div>
+          <div class="small muted">点線の欄は、もう片方から自動で計算した値です。「S2の250」は S2（2500pt）＋250 ＝ 2750pt。ランクの目安：S1=2000、S2=2500、…、S9=6000。＋/−で勝利・敗北も切り替わります。行を長押し（または⋮⋮をつまんで）上下にスライドすると並び替えられます。上が新しい試合です。</div></div>
+        ${(() => {
+          const todoN = list.filter(m => !pc[m.id]).length, flt = seasonFilter[se.id] === 'todo' && todoN ? 'todo' : 'all';
+          const base = flt === 'todo' ? [...list].reverse().filter(m => !pc[m.id]) : [...list].reverse();
+          const shown = Math.max(SEASON_PAGE, seasonShown[se.id] || SEASON_PAGE), vis = base.slice(0, shown);
+          const bar = list.length ? `<div class="row segs" role="group" aria-label="一覧の絞り込み"><button class="seg${flt === 'all' ? ' on' : ''}" data-act="sf-set" data-sid="${se.id}" data-v="all">すべて ${list.length}</button><button class="seg${flt === 'todo' ? ' on' : ''}" data-act="sf-set" data-sid="${se.id}" data-v="todo"${todoN ? '' : ' disabled'}>pt未入力 ${todoN}</button><button class="btn ghost small" data-act="sf-jump" data-sid="${se.id}"${todoN ? '' : ' disabled'}>最初の未入力へ ↓</button><span class="small muted">${vis.length} / ${base.length}件を表示</span></div>` : '';
+          const more = vis.length < base.length ? `<button class="btn ghost" data-act="sf-more" data-sid="${se.id}" style="width:100%">もっと見る（あと${Math.min(SEASON_PAGE, base.length - vis.length)}件）</button>` : '';
+          const hid = flt === 'all' ? list.length - vis.length : 0;
+          return `${bar}${flt === 'todo' ? '<p class="small muted" style="margin:0">pt未入力の試合だけを出しています。入れ終わった試合は、「すべて」に戻すと並びの中に戻ります（この表示の間は、並べ替えはできません）。</p>' : ''}
+        <div class="plist" data-season="${se.id}" data-hid="${hid}"${flt === 'todo' ? ' data-nodrag="1"' : ''}>${list.length ? vis.map(m => seasonRow(m, pc)).join('') : '<div class="small muted">このシーズンのバトルアリーナの試合はまだありません。</div>'}</div>${more}`;
+        })()}
       </div>`;
     }
     h += `</div>`;
@@ -4056,6 +4095,17 @@ document.addEventListener('click', e => {
   if (t.dataset.schunk) { seasonChunk[t.dataset.schunk] = +t.dataset.v; renderSeason(); return; }
   if (t.dataset.swin) { seasonWin[t.dataset.swin] = +t.dataset.v; renderSeason(); return; }
   if (t.dataset.srangeReset) { delete seasonRange[t.dataset.srangeReset]; renderSeason(); return; }
+  if (act === 'sf-set') { seasonFilter[t.dataset.sid] = t.dataset.v; seasonShown[t.dataset.sid] = SEASON_PAGE; renderSeason(); return; }
+  if (act === 'sf-more') { seasonShown[t.dataset.sid] = (seasonShown[t.dataset.sid] || SEASON_PAGE) + SEASON_PAGE; renderSeason(); return; }
+  if (act === 'sf-jump') {
+    const se0 = seasonList().find(x => x.id === t.dataset.sid); if (!se0) return;
+    const pcx = ptCalc(), lst = seasonMatches(se0), first = lst.find(m => !pcx[m.id]); if (!first) return;
+    seasonFilter[se0.id] = 'all';
+    const idx = lst.length - 1 - lst.indexOf(first); seasonShown[se0.id] = Math.max(SEASON_PAGE, Math.ceil((idx + 1) / SEASON_PAGE) * SEASON_PAGE);
+    renderSeason();
+    const r = document.querySelector(`#view-season .prow[data-mid="${first.id}"]`); if (r) { r.scrollIntoView({ block: 'center' }); r.classList.add('hl'); }
+    return;
+  }
   if (act === 'season-all-open') { seasonList().forEach(x => openSeasons.add(x.id)); renderSeason(); return; }
   if (act === 'season-all-close') { openSeasons.clear(); renderSeason(); return; }
   if (act === 'season-new') { se.dataset.form = '1'; renderSeason(); return; }
@@ -4064,7 +4114,7 @@ document.addEventListener('click', e => {
   if (act === 'season-del-no') { se.dataset.delask = ''; renderSeason(); return; }
   if (act === 'season-del-yes') { const ss = seasonList(); db.seasons = db.seasons.filter(x => x.id !== ss[ss.length - 1].id); se.dataset.delask = ''; se.dataset.sel = ''; persist(); renderSeason(); return; }
   if (act === 'season-start') {
-    const v = parsePt($('#season-pt').value), d = $('#season-date').value, tm = ($('#season-time') || {}).value || '';
+    const v = parsePtR($('#season-pt').value), d = $('#season-date').value, tm = ($('#season-time') || {}).value || '';
     if (!v || !d) { $('#season-msg').textContent = '開始ptと開始日を入れてください。'; return; }
     const start = seasonStartAt(d, tm);
     if ((db.seasons || []).some(x => x.start === start)) { $('#season-msg').textContent = 'その日時に始まるシーズンはもうあります。'; return; }
@@ -4185,7 +4235,7 @@ document.addEventListener('input', e => {
   } else if (t.dataset.memo) { fitMemo(t);
   } else if (t.id === 'season-name') { t.dataset.auto = '0';
   } else if (t.dataset.after) {
-    const s = batch.shots.find(s => s.id === t.dataset.after), v = parsePt(t.value);
+    const s = batch.shots.find(s => s.id === t.dataset.after), v = parsePtR(t.value);
     s.ptAfter = v ? (v.sign === '-' ? -v.abs : v.abs) : undefined;
   } else if (t.dataset.pt) {
     const s = batch.shots.find(s => s.id === t.dataset.pt), v = parsePt(t.value);
@@ -4236,7 +4286,7 @@ document.addEventListener('change', e => {
     if (v && v.sign && alignShot(s, v.sign === '-' ? 'l' : 'w')) setTimeout(() => { if (batch) renderReview(); }, 0);
   }
   else if (t.dataset.mafter) {
-    const m = db.matches.find(m => m.id === t.dataset.mafter), v = parsePt(t.value);
+    const m = db.matches.find(m => m.id === t.dataset.mafter), v = parsePtR(t.value);
     if (!v) { if (t.value.trim() === '') { delete m.pt; delete m.ptAfter; persist(); renderSeason(); renderHist(); } return; }
     m.ptAfter = v.sign === '-' ? -v.abs : v.abs; delete m.pt; persist(); renderSeason(); renderHist();
   }
@@ -4265,7 +4315,7 @@ document.addEventListener('change', e => {
   else if (t.dataset.newhero) { const n = $('#season-name'); if (n && (!n.value.trim() || n.dataset.auto === '1')) { n.value = t.value ? `${dispName(t.value)}シーズン` : ''; n.dataset.auto = '1'; } }
   else if (t.dataset.seasonName) { const x = db.seasons.find(x => x.id === t.dataset.seasonName); x.name = t.value.trim(); persist(); renderSeason(); }
   else if (t.dataset.seasonSel) { $('#view-season').dataset.sel = t.value; $('#view-season').dataset.form = ''; renderSeason(); }
-  else if (t.dataset.seasonPt) { const x = db.seasons.find(x => x.id === t.dataset.seasonPt), v = parsePt(t.value); if (v) { x.pt = v.sign === '-' ? -v.abs : v.abs; persist(); } renderSeason(); }
+  else if (t.dataset.seasonPt) { const x = db.seasons.find(x => x.id === t.dataset.seasonPt), v = parsePtR(t.value); if (v) { x.pt = v.sign === '-' ? -v.abs : v.abs; persist(); } renderSeason(); }
   else if (t.dataset.cardonly) { const d = $('#view-data'); d.dataset.cardOnly = t.checked ? '1' : '0'; renderData(); }
   else if (t.dataset.cardname) {
     const c = cardById(t.dataset.cardname); if (!c) return;
@@ -4312,7 +4362,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-12-BD', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-12-BE', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
