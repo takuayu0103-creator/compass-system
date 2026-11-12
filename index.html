@@ -1858,12 +1858,13 @@ function shotResetOrder() {
 function renderReview() {
   const el = $('#review');
   if (!batch) { el.innerHTML = ''; return; }
-  const ok = batch.shots.filter(s => s.ok), bad = batch.shots.filter(s => !s.ok);
+  const ok = batch.shots.filter(s => s.ok), bad = batch.shots.filter(s => !s.ok && !s.dropped), nDrop = batch.shots.filter(s => s.dropped).length;
   let h = '';
   if (bad.length) {
     h += `<div class="section"><div class="notice err"><b>${bad.length}枚は読み取れませんでした。</b><br>` +
       bad.map(s => `${esc(s.fileName)}：${esc(s.err)}`).join('<br>') + `</div></div>`;
   }
+  if (nDrop) h += `<div class="section"><div class="notice">外した試合：${nDrop}枚（保存しません）。<button type="button" class="btn ghost small" data-act="sh-undrop">外した試合を戻す</button></div></div>`;
   if (!ok.length) { el.innerHTML = h; return; }
 
   // 1. 自分
@@ -1972,6 +1973,7 @@ function renderShot(s) {
     ${ownPick}
     <div class="teams"><div class="team"><div class="label"><i class="dot" style="background:var(--blue)"></i>青チーム</div>${team('blue')}</div>
       <div class="team"><div class="label"><i class="dot" style="background:var(--red)"></i>赤チーム</div>${team('red')}</div></div>
+    <div class="row" style="margin-top:6px"><button type="button" class="btn ghost small" data-shdrop="${s.id}">この試合を登録から外す</button><span class="small muted">1枚に2試合写っている時など、いらない方だけ外せます</span></div>
   </div>`;
 }
 
@@ -2061,10 +2063,21 @@ function saveBatch() {
   }
   // シーズンを作っているのに、どのシーズンの期間にも入らなかったバトルアリーナ（「シーズン外」タブに入る）
   const outNew = (db.seasons || []).length ? db.matches.slice(db.matches.length - added).filter(m => m.mode === ARENA && !m.noSeason && !seasonOfAt(m.at)).length : 0;
+  // 保存した試合が、いまの絞り込みのせいで一覧に出ない時は、そう伝える（保存できていないと勘違いされないように）
+  let hid = '';
+  try {
+    const nw = db.matches.slice(db.matches.length - added);
+    if (nw.length) {
+      const hf = hfGet(), pool = new Set(poolMatches());
+      const byFr = tg.lid ? nw.filter(m => !pool.has(m)).length : 0, byHf = nw.filter(m => !hfMatch(m, hf)).length;
+      if (byFr) hid += `【注意】「連携したフレンドとの試合だけ表示」を使っている間は、フレンドも記録している試合しか出ません。今回の${byFr}試合は、保存はできていますが、表示には出ていません（履歴・統計の「解除」を押すと出ます）。`;
+      if (byHf) hid += `【注意】履歴の絞り込みが残っているため、今回の${byHf}試合は履歴に出ません。保存はできています（履歴の絞り込みを「すべて」に戻すと出ます）。`;
+    }
+  } catch (e) {}
   persist();
   batch = null; renderReview();
   $('#prog-wrap').hidden = false; $('#prog').style.width = '100%';
-  $('#prog-text').textContent = `${added}試合を保存しました。` + (filled ? `${filled}試合にランク・メダル・カードを書き足しました。` : '') + (dup + skipped ? `${dup + skipped}枚は登録しませんでした。` : '') + (outNew ? `バトルアリーナのうち${outNew}試合は、シーズンの期間（開始日時〜${SEASON_DAYS}日後）の外なので「シーズン外」タブに入りました。シーズンに入れたい時は、シーズンptタブでシーズンの開始日時を直してください。` : '') + (saveOK ? '' : '（このブラウザでは保存できませんでした。データタブからバックアップを取ってください）');
+  $('#prog-text').textContent = `${added}試合を保存しました。` + (filled ? `${filled}試合にランク・メダル・カードを書き足しました。` : '') + (dup + skipped ? `${dup + skipped}枚は登録しませんでした。` : '') + (outNew ? `バトルアリーナのうち${outNew}試合は、シーズンの期間（開始日時〜${SEASON_DAYS}日後）の外なので「シーズン外」タブに入りました。シーズンに入れたい時は、シーズンptタブでシーズンの開始日時を直してください。` : '') + (saveOK ? '' : '（このブラウザでは保存できませんでした。データタブからバックアップを取ってください）') + hid;
   cardNudgeShow();
   if (added) pubNudgeShow();
   renderAll();
@@ -3978,7 +3991,7 @@ document.addEventListener('click', e => {
   tip.style.left = x + 'px'; tip.style.top = cy + 'px'; tip.style.setProperty('--ax', (half + cx - x) + 'px');
 }, true);
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-act],[data-own],[data-shmv],[data-ask],[data-del],[data-pick],[data-ptsign],[data-mptsign],[data-copy],[data-dup],[data-fillno],[data-unseason],[data-reseason],[data-outmode],[data-drill],[data-pickopen],[data-pickstage],[data-pickhero],[data-season-toggle],[data-swin],[data-schunk],[data-sgoal],[data-sgoalptx],[data-sgfold],[data-srange-reset],[data-trendn],[data-trendall]');
+  const t = e.target.closest('[data-act],[data-own],[data-shmv],[data-shdrop],[data-ask],[data-del],[data-pick],[data-ptsign],[data-mptsign],[data-copy],[data-dup],[data-fillno],[data-unseason],[data-reseason],[data-outmode],[data-drill],[data-pickopen],[data-pickstage],[data-pickhero],[data-season-toggle],[data-swin],[data-schunk],[data-sgoal],[data-sgoalptx],[data-sgfold],[data-srange-reset],[data-trendn],[data-trendall]');
   if (!t) return;
   if (t.dataset.pickopen) { const v = $('#view-stats'); v.dataset.pick = v.dataset.pick === t.dataset.pickopen ? '' : t.dataset.pickopen; renderStats(); return; }
   if (t.dataset.pickhero !== undefined) { const v = $('#view-stats'); v.dataset.hero = t.dataset.pickhero; v.dataset.recent = 20; v.dataset.mapAll = v.dataset.enemyAll = v.dataset.heroAll = ''; v.dataset.pick = ''; renderStats(); return; }
@@ -4072,6 +4085,8 @@ document.addEventListener('click', e => {
     renderReview();
   } else if (act === 'me-no') { batch.meGuess.answered = true; renderReview(); }
   else if (t.dataset.shmv) { shotMove(t.dataset.shmv, +t.dataset.dir); }
+  else if (t.dataset.shdrop) { const x = batch && batch.shots.find(s => s.id === t.dataset.shdrop); if (x) { x.dropped = true; x.ok = false; x.err = '手で外しました'; prepareBatch(batch.shots, batch); renderReview(); } }
+  else if (act === 'sh-undrop') { if (batch) { for (const x of batch.shots) if (x.dropped) { x.dropped = false; x.ok = true; x.err = ''; } prepareBatch(batch.shots, batch); renderReview(); } }
   else if (t.dataset.own) {
     const s = batch.shots.find(s => s.id === t.dataset.own); s.own = { side: t.dataset.side, idx: +t.dataset.idx }; s.ownManual = true; renderReview();
   } else if (act === 'save') saveBatch();
@@ -4297,7 +4312,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-12-BB', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-12-BD', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
