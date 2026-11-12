@@ -2059,10 +2059,12 @@ function saveBatch() {
     { const cd = shotCards(s); if (cd) m.cards = cd; }
     have.add(k); db.matches.push(m); added++;
   }
+  // シーズンを作っているのに、どのシーズンの期間にも入らなかったバトルアリーナ（「シーズン外」タブに入る）
+  const outNew = (db.seasons || []).length ? db.matches.slice(db.matches.length - added).filter(m => m.mode === ARENA && !m.noSeason && !seasonOfAt(m.at)).length : 0;
   persist();
   batch = null; renderReview();
   $('#prog-wrap').hidden = false; $('#prog').style.width = '100%';
-  $('#prog-text').textContent = `${added}試合を保存しました。` + (filled ? `${filled}試合にランク・メダル・カードを書き足しました。` : '') + (dup + skipped ? `${dup + skipped}枚は登録しませんでした。` : '') + (saveOK ? '' : '（このブラウザでは保存できませんでした。データタブからバックアップを取ってください）');
+  $('#prog-text').textContent = `${added}試合を保存しました。` + (filled ? `${filled}試合にランク・メダル・カードを書き足しました。` : '') + (dup + skipped ? `${dup + skipped}枚は登録しませんでした。` : '') + (outNew ? `バトルアリーナのうち${outNew}試合は、シーズンの期間（開始日時〜${SEASON_DAYS}日後）の外なので「シーズン外」タブに入りました。シーズンに入れたい時は、シーズンptタブでシーズンの開始日時を直してください。` : '') + (saveOK ? '' : '（このブラウザでは保存できませんでした。データタブからバックアップを取ってください）');
   cardNudgeShow();
   if (added) pubNudgeShow();
   renderAll();
@@ -2299,9 +2301,10 @@ function medalRecs(list) {
 }
 /* ---------- 円グラフ（カード・メダルの使用率）：分析と統計で共通 ---------- */
 const PIE_COL = ['#f5c542', '#ff8a3d', '#e2536b', '#b765e6', '#5a8cf0', '#38b6c8', '#5bc27a', '#d6728f', '#8fb63a', '#4fa3a5', '#c58a3d', '#7a7fe0'];
-const pieOn = el => !!el && el.dataset.pv === '1';
-function pieToggle(el, who) {
-  const on = pieOn(el), b = (v, t, a) => `<button class="seg${a ? ' on' : ''}" data-act="pie-mode" data-w="${who}" data-v="${v}" aria-pressed="${a}">${t}</button>`;
+// カードとメダルで別々に覚える（片方を切り替えても、もう片方の高さが変わって画面がずれないように）
+const pieOn = (el, kind) => !!el && el.dataset['pv' + kind] === '1';
+function pieToggle(el, who, kind) {
+  const on = pieOn(el, kind), b = (v, t, a) => `<button class="seg${a ? ' on' : ''}" data-act="pie-mode" data-w="${who}" data-kind="${kind}" data-v="${v}" aria-pressed="${a}">${t}</button>`;
   return `<div class="row segs" role="group" aria-label="表示のしかた" style="margin:6px 0">${b('', 'リスト', !on)}${b('1', '円グラフ', on)}</div>`;
 }
 // items: [{k, n, v, ic?, th?}]（v は回数）。kind: 'c'=カード / 'm'=メダル
@@ -2335,7 +2338,7 @@ function pieHTML(el, who, kind, items, unit) {
 function pieAct(a, t) {
   if (!a || a.slice(0, 4) !== 'pie-') return false;
   const st = t.dataset.w === 'stat', el = document.getElementById(st ? 'view-stat' : 'view-stats'); if (!el) return true;
-  if (a === 'pie-mode') el.dataset.pv = t.dataset.v;
+  if (a === 'pie-mode') el.dataset['pv' + t.dataset.kind] = t.dataset.v;
   else if (a === 'pie-sel') el.dataset['ps' + t.dataset.kind] = t.dataset.k;
   if (st) statRender(); else renderStats();
   return true;
@@ -2396,11 +2399,11 @@ function medalHeroHTML(list) {
   const o = byHero.get(cur), N = o.rs.length, cnt = {};
   for (const r of o.rs) for (const k of r.ks) cnt[k] = (cnt[k] || 0) + 1;
   const rows = keys.filter(k => cnt[k]).sort((a, b) => cnt[b] - cnt[a]);
-  return `<div class="section"><div class="panel"><h2>メダル</h2>${P.ui}${pieToggle(el, 'stats')}
+  return `<div class="section"><div class="panel"><h2>メダル</h2>${P.ui}${pieToggle(el, 'stats', 'm')}
     <p class="small muted" style="margin:8px 0 8px">自分・連携フレンド・固定メンバーを除く、味方と敵の全員が対象です。同じ絵柄は、何個付けていても1つと数えます。</p>
     <label class="fl"><span class="label">ヒーロー</span><select id="mdl-pick" data-kind="mh">${heroes.map(x => `<option value="${esc(String(x.h))}"${String(x.h) === cur ? ' selected' : ''}>${esc(hn(x.h))}（${x.rs.length}人）</option>`).join('')}</select></label>
     <p class="small muted" style="margin:8px 0 4px">「${esc(hn(o.h))}」を使っていた${N}人のうち、そのメダルを付けていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
-    ${pieOn(el) ? pieHTML(el, 'stats', 'm', rows.map(k => ({ k, n: MEDAL_NAME[k] || k, v: cnt[k], ic: MEDAL_IMG[k] || '' })), '個') : ''}<div class="mlist"${pieOn(el) ? ' style="display:none"' : ''}>${rows.map(k => { const p = pct2(cnt[k], N), thin = N < THIN; return `<div class="mrow${thin ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, thin)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${cnt[k]}/${N}人</span></span></div>`; }).join('')}</div>
+    ${pieOn(el, 'm') ? pieHTML(el, 'stats', 'm', rows.map(k => ({ k, n: MEDAL_NAME[k] || k, v: cnt[k], ic: MEDAL_IMG[k] || '' })), '個') : ''}<div class="mlist"${pieOn(el, 'm') ? ' style="display:none"' : ''}>${rows.map(k => { const p = pct2(cnt[k], N), thin = N < THIN; return `<div class="mrow${thin ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, thin)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${cnt[k]}/${N}人</span></span></div>`; }).join('')}</div>
     <p class="small muted" style="margin:6px 0 0">1人が複数の絵柄を付けるので、合計は100%になりません。${THIN}人未満のヒーローは全体が薄く表示されます。</p></div></div>`;
 }
 // カード：ヒーローを選ぶと、そのヒーローを使っていた人のカード使用率（同じカードは1人1回）。種類が多いので上位10枚から広げる
@@ -2427,12 +2430,12 @@ function cardPanelHTML(list, el) {
   const rows = [...cnt.entries()].sort((a, b) => b[1] - a[1]), all = el.dataset.cardAll === '1', shown = all ? rows : rows.slice(0, 10);
   const unnamed = rows.filter(([k]) => !k.startsWith('n:')).length;
   const bar = p => `<div class="mbar${N < THIN ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
-  return `<div class="section"><div class="panel"><h2>カード</h2>${cardUnnamedN() ? `<div class="nudge"><b>名前のないカードが ${cardUnnamedN()}枚 あります</b><p>名前が付いていないカードは、下の表で「名前なし」になってしまい、どのカードか分かりません。名前を付けると、ここに名前が出ます。</p><div class="row"><button class="btn primary" data-act="go-cardnames">名前を付けに行く</button></div></div>` : ''}${P.ui}${pieToggle(el, 'stats')}
+  return `<div class="section"><div class="panel"><h2>カード</h2>${cardUnnamedN() ? `<div class="nudge"><b>名前のないカードが ${cardUnnamedN()}枚 あります</b><p>名前が付いていないカードは、下の表で「名前なし」になってしまい、どのカードか分かりません。名前を付けると、ここに名前が出ます。</p><div class="row"><button class="btn primary" data-act="go-cardnames">名前を付けに行く</button></div></div>` : ''}${P.ui}${pieToggle(el, 'stats', 'c')}
     <p class="small muted" style="margin:8px 0 8px">自分・連携フレンド・固定メンバーを除く、味方と敵の全員が対象です。同じカードは1人1回と数えます。</p>
     <label class="fl"><span class="label">ヒーロー</span><select id="mdl-pick" data-kind="ch">${heroes.map(x => `<option value="${esc(String(x.h))}"${String(x.h) === cur ? ' selected' : ''}>${esc(heroName(x.h))}（${x.rs.length}人）</option>`).join('')}</select></label>
     <p class="small muted" style="margin:8px 0 4px">「${esc(heroName(o.h))}」を使っていた${N}人のうち、そのカードを入れていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
-    ${pieOn(el) ? pieHTML(el, 'stats', 'c', rows.map(([k, n]) => ({ k, n: cardLabel(k), v: n, th: cardThumb(k) || '' })), '枚') : ''}<div class="mlist"${pieOn(el) ? ' style="display:none"' : ''}>${shown.map(([k, n]) => { const p = pct2(n, N), u = cardThumb(k); return `<div class="mrow${N < THIN ? ' thin' : ''}"><span class="mh">${u ? `<img class="cthumb" src="${u}" alt="">` : '<span class="cthumb"></span>'}<span class="pn${k.startsWith('n:') ? '' : ' muted'}">${esc(cardLabel(k))}</span></span>${bar(p)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${n}/${N}人</span></span></div>`; }).join('')}</div>
-    ${rows.length > 10 && !pieOn(el) ? `<div class="row"><button class="btn ghost" data-act="card-all">${all ? '上位10枚だけにする' : `全${rows.length}枚を表示`}</button></div>` : ''}
+    ${pieOn(el, 'c') ? pieHTML(el, 'stats', 'c', rows.map(([k, n]) => ({ k, n: cardLabel(k), v: n, th: cardThumb(k) || '' })), '枚') : ''}<div class="mlist"${pieOn(el, 'c') ? ' style="display:none"' : ''}>${shown.map(([k, n]) => { const p = pct2(n, N), u = cardThumb(k); return `<div class="mrow${N < THIN ? ' thin' : ''}"><span class="mh">${u ? `<img class="cthumb" src="${u}" alt="">` : '<span class="cthumb"></span>'}<span class="pn${k.startsWith('n:') ? '' : ' muted'}">${esc(cardLabel(k))}</span></span>${bar(p)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${n}/${N}人</span></span></div>`; }).join('')}</div>
+    ${rows.length > 10 && !pieOn(el, 'c') ? `<div class="row"><button class="btn ghost" data-act="card-all">${all ? '上位10枚だけにする' : `全${rows.length}枚を表示`}</button></div>` : ''}
     <p class="small muted" style="margin:6px 0 0">1人4枚なので、合計は100%になりません。${N < THIN ? `${THIN}人未満のヒーローは全体が薄く表示されます。` : ''}${unnamed && !view.on ? `名前のないカードが${unnamed}枚あります。名前は「データ」タブの「カードの名前」で付けられます。` : ''}</p></div></div>`;
 }
 function medalHTML(list) {
@@ -2455,9 +2458,10 @@ let sampleShow = false; // 記録が無い時の「例を見る」（この画�
 const TOC_NAME = [[/の戦績$/, '戦績'], [/の分析$/, '概要'], [/^直近/, '直近'], [/^ヒーローの/, 'ヒーロー'], [/^デッキ/, 'デッキ'], [/^編成/, '編成'], [/^みんなの統計に提供/, '提供'], [/^みんなの統計$/, 'みんなの統計'], [/^連勝/, '連勝連敗'], [/推移（期間）/, '推移(期間)'], [/推移（試合数）/, '推移(試合数)'], [/勝率ランキング$/, 'ランキング'], [/^敵ヒーロー/, '敵ヒーロー'], [/^ランク別/, 'ランク別'], [/^敵ランク別/, '敵ランク'], [/^使ったヒーロー別/, 'ヒーロー別'], [/^ステージ勝率|ステージ の勝率/, 'ステージ'], [/^メダル/, 'メダル'], [/^カード/, 'カード']];
 // シーズンの開始日を直す（試合は消えず、期間に入る試合が日付で入れ替わる）
 document.addEventListener('change', e => { const t = e.target; if (!t || !t.dataset || !t.dataset.ssdate) return; const se = seasonList().find(x => x.id === t.dataset.ssdate); if (!se) return;
-  const msg = document.getElementById('sdmsg-' + se.id), v = t.value; if (!v) { t.value = ymd(se.start); return; }
-  const st = seasonStartAt(v); if (st === se.start) return;
-  if ((db.seasons || []).some(x => x.id !== se.id && x.start === st)) { t.value = ymd(se.start); if (msg) msg.textContent = 'その日に始まる別のシーズンがあります。'; return; }
+  const msg = document.getElementById('sdmsg-' + se.id), di = document.getElementById('ssd-' + se.id), ti = document.getElementById('sst-' + se.id);
+  const v = di ? di.value : t.value; if (!v) { if (di) di.value = ymd(se.start); return; }
+  const st = seasonStartAt(v, ti ? ti.value : ''); if (st === se.start) return;
+  if ((db.seasons || []).some(x => x.id !== se.id && x.start === st)) { if (di) di.value = ymd(se.start); if (ti) ti.value = hmOf(se.start); if (msg) msg.textContent = 'その日時に始まる別のシーズンがあります。'; return; }
   se.start = st; persist(); renderAll(); });
 // シーズンの目標：ptで指定
 document.addEventListener('change', e => { const t = e.target; if (!t || !t.dataset) return; const id = t.dataset.sgk || t.dataset.sgr; if (!id) return; const se = seasonList().find(x => x.id === id); if (!se) return;
@@ -2906,7 +2910,17 @@ function seasonMatches(se) {
   return db.matches.filter(m => m.mode === ARENA && !m.noSeason && m.at >= se.start && m.at < end).sort((a, b) => a.at - b.at);
 }
 const dayStart = str => { const [y, m, d] = str.split('-').map(Number); return new Date(y, m - 1, d).getTime(); };
-const seasonStartAt = str => { const [y, m, d] = str.split('-').map(Number); return new Date(y, m - 1, d, SEASON_HOUR).getTime(); };
+const seasonStartAt = (str, tm) => { const [y, m, d] = str.split('-').map(Number), [hh, mi] = /^\d{1,2}:\d{2}/.test(tm || '') ? tm.split(':').map(Number) : [SEASON_HOUR, 0]; return new Date(y, m - 1, d, hh, mi).getTime(); };
+const hmOf = t => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+// 公式のシーズン開始（みんなの統計で管理者が決めた開始日）のうち、今いちばん新しいもの。まだ開催中（開始から${SEASON_DAYS}日後の日いっぱいまで）の時だけ返す
+let offMetaTried = false;
+function officialSeasonStart(now) {
+  if (!statS.meta && FBA && !offMetaTried) { offMetaTried = true;
+    (async () => { try { await syncLoad(); if (!statS.meta) statS.meta = (await FBA.statGet('meta')) || { none: true }; } catch (e) {}
+      const v = $('#view-season'); if (statS.meta && v && !v.hidden && !(document.activeElement && v.contains(document.activeElement))) renderSeason(); })(); }
+  const ss = (statMetaD().ss || []).filter(x => Number.isFinite(x.start) && x.start <= now).sort((a, b) => b.start - a.start);
+  return ss.length && now < seasonEnd({ start: ss[0].start }) ? ss[0].start : null;
+}
 const ymd = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const md = t => new Date(t).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
 // オリジナルヒーロー（公式サイトのヒーロー一覧に載っている50体）
@@ -3306,14 +3320,20 @@ function renderSeason() {
   const ss = seasonList();
   const arena = db.matches.filter(m => m.mode === ARENA).sort((a, b) => a.at - b.at);
   const firstFree = arena.find(m => !ss.length || m.at < ss[0].start);
-  const defDate = ss.length ? ymd(Date.now()) : ymd(firstFree ? firstFree.at : Date.now());
+  // 新しいシーズンの開始日時の初期値：公式のシーズンが開催中ならその開始日時。なければ今日（初めてなら最初の試合の日）の${SEASON_HOUR}:00
+  const off = (!ss.length || el.dataset.form === '1') ? officialSeasonStart(Date.now()) : null;
+  const defAt = off != null && !ss.some(x => x.start === off) ? off : seasonStartAt(ss.length ? ymd(Date.now()) : ymd(firstFree ? firstFree.at : Date.now()));
+  const defDate = ymd(defAt), defTime = hmOf(defAt);
+  // 直近3日のバトルアリーナで、どのシーズンにも入っていない試合（開始日時より前・終了後）。保存したのにシーズンに出ない、を防ぐための案内
+  const recentOut = ss.length ? arena.filter(m => !m.noSeason && m.at > Date.now() - 3 * 86400000 && !seasonOfAt(m.at)).length : 0;
   const pc = ptCalc();
   let h = '';
   const formHTML = `<div class="formgrid">
       <label class="fl"><span class="label">オリジナルヒーロー</span>${heroSelect('id="season-hero" data-newhero="1"', '')}</label>
       <label class="fl"><span class="label">シーズン名</span><input type="text" id="season-name" placeholder="例 ルチアーノシーズン"></label>
       <label class="fl"><span class="label">シーズン開始時のpt</span><input type="text" inputmode="numeric" id="season-pt" placeholder="例 0"></label>
-      <label class="fl"><span class="label">開始日（${SEASON_HOUR}:00に始まり、${SEASON_DAYS}日後の日いっぱいで自動終了）</span><input type="date" id="season-date" value="${defDate}"></label></div>
+      <label class="fl" style="grid-column:1/-1"><span class="label">開始日時（${SEASON_DAYS}日後の日いっぱいで自動終了。あとから直せます）</span><span class="row" style="gap:6px;flex-wrap:nowrap"><input type="date" id="season-date" value="${defDate}" style="flex:1;min-width:0"><input type="time" id="season-time" value="${defTime}" style="flex:0 0 7em"></span></label></div>
+    ${off != null && defAt === off ? '<p class="small muted" style="margin:0">開始日時は、今のシーズンの公式の開始日時を入れています。</p>' : ''}
     <div class="row"><button class="btn primary" data-act="season-start">このシーズンを始める</button>${ss.length ? '<button class="btn ghost" data-act="season-cancel">やめる</button>' : ''}<span class="small" id="season-msg"></span></div>`;
   if (!ss.length) {
     el.innerHTML = `<div class="section"><div class="panel"><h2>シーズンpt推移</h2>
@@ -3323,7 +3343,8 @@ function renderSeason() {
   }
   h += `<div class="section"><div class="row" style="justify-content:space-between"><h2>シーズン（${ss.length}）</h2>
       <div class="row"><button class="btn ghost small" data-act="season-all-open">すべて開く</button><button class="btn ghost small" data-act="season-all-close">すべて閉じる</button></div></div>
-    ${el.dataset.form === '1' ? `<div class="panel"><h3>新しいシーズン</h3>${formHTML}</div>` : '<div class="row"><button class="btn" data-act="season-new">＋ 新しいシーズンを始める</button></div>'}</div>`;
+    ${el.dataset.form === '1' ? `<div class="panel"><h3>新しいシーズン</h3>${formHTML}</div>` : '<div class="row"><button class="btn" data-act="season-new">＋ 新しいシーズンを始める</button></div>'}
+    ${recentOut ? `<div class="warnbox" role="status"><b>直近3日のバトルアリーナのうち${recentOut}試合が、どのシーズンにも入っていません</b><span>シーズンの開始日時より前か、終了（開始日から${SEASON_DAYS}日後の日いっぱい）より後の試合です。今は「シーズン外」タブに入っています。シーズンを開いて「開始日時」を直すか、新しいシーズンを始めると、こちらに入ります。</span></div>` : ''}</div>`;
   [...ss].reverse().forEach((se, ri) => {
     const idx = ss.length - 1 - ri, open = openSeasons.has(se.id);
     const sm = seasonSummary(se, pc);
@@ -3353,7 +3374,8 @@ function renderSeason() {
         <div class="formgrid">
           <label class="fl"><span class="label">オリジナルヒーロー</span>${heroSelect(`data-season-hero="${se.id}" id="sh-${se.id}"`, se.hero || '')}</label>
           <label class="fl"><span class="label">シーズン名</span><input type="text" data-season-name="${se.id}" id="sn-${se.id}" value="${esc(se.name || '')}"></label>
-          <label class="fl"><span class="label">開始時のpt</span><input type="text" inputmode="numeric" data-season-pt="${se.id}" id="sp-${se.id}" value="${se.pt}"></label></div>
+          <label class="fl"><span class="label">開始時のpt</span><input type="text" inputmode="numeric" data-season-pt="${se.id}" id="sp-${se.id}" value="${se.pt}"></label>
+          <label class="fl" style="grid-column:1/-1"><span class="label">開始日時（直すと、入る試合が日時で入れ替わります）</span><span class="row" style="gap:6px;flex-wrap:nowrap"><input type="date" data-ssdate="${se.id}" id="ssd-${se.id}" value="${ymd(se.start)}" style="flex:1;min-width:0"><input type="time" data-ssdate="${se.id}" id="sst-${se.id}" value="${hmOf(se.start)}" style="flex:0 0 7em"></span><span class="small" id="sdmsg-${se.id}" role="status"></span></label></div>
         <div class="kpis" style="grid-template-columns:repeat(2,1fr)">
           <div class="kpi"><div class="label">${state === '開催終了' ? '最終pt' : '現在のpt'}</div><div class="v">${cur}<small>pt</small></div>${rankOf(cur) ? `<div class="small muted">${rankOf(cur)} ${rankRest(cur)}</div>` : ''}</div>
           <div class="kpi"><div class="label">シーズン最高pt</div><div class="v">${sm.max}<small>pt</small></div>${rankOf(sm.max) ? `<div class="small muted">${rankOf(sm.max)} ${rankRest(sm.max)}</div>` : ''}</div>
@@ -3393,8 +3415,7 @@ function renderSeason() {
             })()}`;
         })() : '<div class="small muted">増減ptを入れた試合がまだありません。下の一覧から入れてください。</div>'}
         ${list.length > sm.done.length ? `<p class="small muted" style="margin:0">未入力の試合が${list.length - sm.done.length}試合あります。グラフは入力済みの試合だけでつないでいます。</p>` : ''}
-        <p class="small muted" style="margin:0">期間：${new Date(se.start).toLocaleDateString('ja-JP')} 〜 ${new Date(seasonLast(se)).toLocaleDateString('ja-JP')}（開始日から${SEASON_DAYS}日後の日いっぱいまで）</p>
-        <div class="row" style="gap:8px;align-items:center"><span class="small muted">開始日を直す</span><input type="date" data-ssdate="${se.id}" value="${ymd(se.start)}" style="width:auto"><span class="small" id="sdmsg-${se.id}" role="status"></span></div>
+        <p class="small muted" style="margin:0">期間：${new Date(se.start).toLocaleDateString('ja-JP')} ${hmOf(se.start)} 〜 ${new Date(seasonLast(se)).toLocaleDateString('ja-JP')}（開始日から${SEASON_DAYS}日後の日いっぱいまで）</p>
         ${last ? (el.dataset.delask === '1' ? `<div class="warnbox" role="alert"><b>⚠ 「${esc(se.name || 'このシーズン')}」を消しますか？</b>
             <span>シーズン名・オリジナルヒーロー・開始ptの設定が消えます。<b>元に戻せません。</b></span>
             <span>試合と入力したptは消えません。${idx > 0 ? `前のシーズン（${esc(ss[idx - 1].name || '名前なし')}）の試合として表示されるようになります。` : 'どのシーズンにも入らない状態になります。'}</span>
@@ -4030,10 +4051,10 @@ document.addEventListener('click', e => {
   if (act === 'season-del-no') { se.dataset.delask = ''; renderSeason(); return; }
   if (act === 'season-del-yes') { const ss = seasonList(); db.seasons = db.seasons.filter(x => x.id !== ss[ss.length - 1].id); se.dataset.delask = ''; se.dataset.sel = ''; persist(); renderSeason(); return; }
   if (act === 'season-start') {
-    const v = parsePt($('#season-pt').value), d = $('#season-date').value;
+    const v = parsePt($('#season-pt').value), d = $('#season-date').value, tm = ($('#season-time') || {}).value || '';
     if (!v || !d) { $('#season-msg').textContent = '開始ptと開始日を入れてください。'; return; }
-    const start = seasonStartAt(d);
-    if ((db.seasons || []).some(x => x.start === start)) { $('#season-msg').textContent = 'その日に始まるシーズンはもうあります。'; return; }
+    const start = seasonStartAt(d, tm);
+    if ((db.seasons || []).some(x => x.start === start)) { $('#season-msg').textContent = 'その日時に始まるシーズンはもうあります。'; return; }
     const hero = $('#season-hero').value, nm = $('#season-name').value.trim() || (hero ? `${dispName(hero)}シーズン` : '');
     db.seasons = db.seasons || []; const x = { id: uid(), start, pt: v.sign === '-' ? -v.abs : v.abs, hero: hero || '', name: nm }; db.seasons.push(x);
     se.dataset.form = ''; openSeasons.add(x.id); persist(); renderSeason(); return;
@@ -4276,7 +4297,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-11-BA', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-12-BB', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -5685,8 +5706,8 @@ function statRender0() {
     <div class="section"><div class="panel"><div class="hhead"><h2>ヒーローの<select id="st-hv" class="hvsel" aria-label="表示する内容"><option value="use"${hv === 'use' ? ' selected' : ''}>使用率</option><option value="wr"${hv === 'wr' ? ' selected' : ''}>勝率</option></select></h2><div class="hsearch"><input id="st-hq" type="search" inputmode="search" autocomplete="off" placeholder="ヒーロー名で探す" aria-label="ヒーロー名で探す" value="${esc(hq0)}"><button type="button" class="hs-x" data-act="hq-clr" aria-label="検索をクリア"${hq0 ? '' : ' hidden'}>×</button><div class="hs-l" id="st-hsug"${HL.sug ? '' : ' hidden'}>${HL.sug}</div></div></div><p class="small muted" style="margin:0 0 6px">${hv === 'use' ? '使われた回数の多い順です。棒は1位を100%とした長さで、右の数字は「そのヒーローを使った回数／ヒーロー全体の回数」です。' : '勝率の高い順です。使用率は、ヒーロー全体のうち使われた割合です。棒の薄い帯と下の数字は、勝率の95%信頼区間（ウィルソン）です。'}${HL.nq ? '検索中は、全体の順位を左に出しています。' : ''}</p><div id="st-hlist">${hr || '<p class="small muted">この条件のデータはありません。</p>'}</div><div id="st-hmore">${HL.nq ? '' : more('h', D.H.length, lim('h'))}</div></div></div>
     ${compPanel}
     ${dkPanel}
-    <div class="section"><div class="panel"><h2>カードの使用率</h2>${perUI}${PM ? perSelHTML(s.el, '') : ''}${perNote}${hc ? pieToggle(s.el, 'stat') : ''}${hc ? `${hsel('st-hc', withC, hc.k, 'cn')}<p class="small muted" style="margin:8px 0 4px">「${esc(dispName(hc.k))}」を使っていた${hc.cn}人のうち、そのカードを入れていた人の割合です。${hc.cn < STAT_THIN ? `<b>まだ${hc.cn}人なので参考程度です。</b>` : ''}</p>${pieOn(s.el) ? pieHTML(s.el, 'stat', 'c', cardRows.map(([c, v]) => ({ k: c, n: c, v, th: cardThumb('n:' + c) || (statS.cimg && statS.cimg.get(c)) || '' })), '枚') : ''}<div class="mlist"${pieOn(s.el) ? ' style="display:none"' : ''}>${cr}</div>${pieOn(s.el) ? '' : more('c', cardRows.length, lim('c'))}` : '<p class="small muted" style="margin:0">この条件では、カードの記録がありません。</p>'}</div></div>
-    <div class="section"><div class="panel"><h2>メダルの使用率</h2>${perUI}${PM ? perSelHTML(s.el, '2') : ''}${perNote}${hm ? pieToggle(s.el, 'stat') : ''}${hm ? `${hsel('st-hm', withM, hm.k, 'mn')}<p class="small muted" style="margin:8px 0 4px">同じ絵柄は、何個付けていても1つと数えます。${hm.mn < STAT_THIN ? `<b>まだ${hm.mn}人なので参考程度です。</b>` : ''}</p>${pieOn(s.el) ? pieHTML(s.el, 'stat', 'm', medRows.map(([i, v]) => { const k = Core.MEDAL_KEYS[i]; return { k, n: MEDAL_NAME[k] || k, v, ic: MEDAL_IMG[k] || '' }; }), '個') : ''}<div class="mlist"${pieOn(s.el) ? ' style="display:none"' : ''}>${mr}</div>` : '<p class="small muted" style="margin:0">この条件では、メダルの記録がありません。</p>'}</div></div>
+    <div class="section"><div class="panel"><h2>カードの使用率</h2>${perUI}${PM ? perSelHTML(s.el, '') : ''}${perNote}${hc ? pieToggle(s.el, 'stat', 'c') : ''}${hc ? `${hsel('st-hc', withC, hc.k, 'cn')}<p class="small muted" style="margin:8px 0 4px">「${esc(dispName(hc.k))}」を使っていた${hc.cn}人のうち、そのカードを入れていた人の割合です。${hc.cn < STAT_THIN ? `<b>まだ${hc.cn}人なので参考程度です。</b>` : ''}</p>${pieOn(s.el, 'c') ? pieHTML(s.el, 'stat', 'c', cardRows.map(([c, v]) => ({ k: c, n: c, v, th: cardThumb('n:' + c) || (statS.cimg && statS.cimg.get(c)) || '' })), '枚') : ''}<div class="mlist"${pieOn(s.el, 'c') ? ' style="display:none"' : ''}>${cr}</div>${pieOn(s.el, 'c') ? '' : more('c', cardRows.length, lim('c'))}` : '<p class="small muted" style="margin:0">この条件では、カードの記録がありません。</p>'}</div></div>
+    <div class="section"><div class="panel"><h2>メダルの使用率</h2>${perUI}${PM ? perSelHTML(s.el, '2') : ''}${perNote}${hm ? pieToggle(s.el, 'stat', 'm') : ''}${hm ? `${hsel('st-hm', withM, hm.k, 'mn')}<p class="small muted" style="margin:8px 0 4px">同じ絵柄は、何個付けていても1つと数えます。${hm.mn < STAT_THIN ? `<b>まだ${hm.mn}人なので参考程度です。</b>` : ''}</p>${pieOn(s.el, 'm') ? pieHTML(s.el, 'stat', 'm', medRows.map(([i, v]) => { const k = Core.MEDAL_KEYS[i]; return { k, n: MEDAL_NAME[k] || k, v, ic: MEDAL_IMG[k] || '' }; }), '個') : ''}<div class="mlist"${pieOn(s.el, 'm') ? ' style="display:none"' : ''}>${mr}</div>` : '<p class="small muted" style="margin:0">この条件では、メダルの記録がありません。</p>'}</div></div>
     <div class="section"><div class="panel"><h2>ステージの勝率</h2>${hpick('st-hg', [{ k: '', t: '全ヒーロー' }].concat(hgList.map(e => ({ k: e.k, t: dispName(e.k) }))), hg)}<p class="small muted" style="margin:8px 0 6px">${hg ? `「${esc(dispName(hg))}」を使っていた人（味方・敵を含む全員）の、ステージごとの勝率です。` : '提供した人自身の、ステージごとの勝率です。'}</p>${gr || '<p class="small muted">この条件のデータはありません。</p>'}${more('g', GL.length, lim('g'))}`;
   }
   el.innerHTML = head + `<div class="section"><div class="panel"><details class="fdet" data-fd="stat"${statsUI.fopen.has('stat') ? ' open' : ''}><summary>絞り込み${s.season !== 'all' || s.band !== 'all' || s.mode !== 'a' ? '<span class="admn">変更中</span><button type="button" class="btn ghost fdclr" data-act="stat-clear-filter">解除</button>' : ''}</summary>${filters}</details>${body}</div></div>` + pubBox + admin;
