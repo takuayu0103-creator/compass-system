@@ -322,7 +322,7 @@ textarea.memo{display:block;width:100%;box-sizing:border-box;min-height:0;margin
 .datein{font:inherit;font-size:.8rem;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:3px 6px;max-width:11em}
 .ptrow{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center}
 .ptbox input.calc{color:var(--muted);border-style:dashed}
-.ptbox input.after{width:5.5em}
+.ptbox input.after{width:10.5em}
 .rank{font-family:var(--f-num);font-weight:900;color:var(--muted);margin-right:4px}
 .subh{font-size:.78rem;font-weight:700;color:var(--muted);font-family:var(--f-ui);letter-spacing:.06em;margin-top:4px}
 .formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;align-items:end}
@@ -2095,7 +2095,7 @@ function ptBox(kind, id, sign, val, calc) {
   return `<span class="ptbox">${kind === 'pt' ? '<span class="small muted">シーズンpt</span>' : ''}<button type="button" class="sgn ${sign === '-' ? 'minus' : 'plus'}" data-${kind}sign="${id}" aria-label="増減の切り替え（今は${sign === '-' ? '減った' : '増えた'}）">${sign === '-' ? '−' : '＋'}</button><input type="text" inputmode="numeric"${calc ? ' class="calc"' : ''} id="${kind}-${id}" data-${kind}="${id}" value="${esc(String(val))}" placeholder="例 12" aria-label="増減したpt">pt</span>`;
 }
 function afterBox(kind, id, val, calc) {
-  return `<label class="ptbox"><span class="small muted">試合後</span><input type="text" inputmode="numeric" class="after${calc ? ' calc' : ''}" id="${kind}-${id}" data-${kind}="${id}" value="${val === '' || val == null ? '' : val}" placeholder="今のpt／S2の250" aria-label="試合後のpt（S2の250のようなランク表記でも入れられます）">pt<span class="rkprev small" aria-live="polite"></span></label>`;
+  return `<label class="ptbox"><span class="small muted">試合後</span><input type="text" inputmode="numeric" class="after${calc ? ' calc' : ''}" id="${kind}-${id}" data-${kind}="${id}" value="${val === '' || val == null ? '' : val}" placeholder="今のpt/S2の250" aria-label="試合後のpt（S2の250のようなランク表記でも入れられます）">pt<span class="rkprev small" aria-live="polite"></span></label>`;
 }
 // シーズンごとに、試合後ptと増減ptをつないで計算する。{id: {d: 増減, after: 試合後pt, src: 'after'|'delta', gap: 前に未入力あり}}
 function ptCalc() {
@@ -3886,7 +3886,12 @@ function mfOpen(id) {
   const sn = m && m.stage ? ((db.stages.find(x => x.id === m.stage) || {}).name || '') : '';
   const rankSel = (id2, cur) => `<select id="${id2}"><option value="">不明</option>${RANK_ORDER.map(r => `<option${r === cur ? ' selected' : ''}>${r}</option>`).join('')}</select>`;
   const medSel = (id2, cur) => `<select id="${id2}"><option value="">なし・不明</option>${Core.MEDAL_KEYS.map((k, i) => `<option value="${i}"${String(i) === cur ? ' selected' : ''}>${esc(MEDAL_NAME[k] || k)}</option>`).join('')}</select>`;
-  const pv = m && typeof m.pt === 'number' ? m.pt : '';
+  // 試合の前のpt（シーズンに入っている試合だけ）。これがあれば、増減ptと試合後ptを行き来して計算できる
+  mf.pb = m ? ptBeforeOf(m) : null; mf.last = '';
+  const pcx = m ? ptCalc()[m.id] : null;
+  const pv = m && typeof m.pt === 'number' ? m.pt : (pcx && pcx.src === 'after' ? pcx.d : '');
+  const pa = pcx ? pcx.after : '';
+  mf.pt0 = String(pv); mf.pa0 = String(pa);
   const d = document.createElement('div'); d.className = 'mfback'; d.id = 'mf';
   d.innerHTML = `<div class="mfbox" role="dialog" aria-modal="true" aria-label="試合の入力">
     <h2>${m ? '試合を直す' : 'スクショなしで手入力'}</h2>
@@ -3899,6 +3904,7 @@ function mfOpen(id) {
       <div class="fl"><span class="label" id="mf-sclab">${mf.ns ? 'スコア（自分 - 相手）' : 'スコア（青 - 赤）'}</span><div class="mfnum"><input type="number" min="0" max="99" inputmode="numeric" id="mf-b" value="${m && m.b != null ? m.b : ''}"><span>-</span><input type="number" min="0" max="99" inputmode="numeric" id="mf-r" value="${m && m.r != null ? m.r : ''}"></div></div>
       <label class="fl"><span class="label">勝敗</span><select id="mf-res"><option value="">スコアから決める</option>${['w', 'l', 'd'].map(r => `<option value="${r}"${m && m.res === r ? ' selected' : ''}>${RES_LABEL[r]}</option>`).join('')}</select></label>
       <label class="fl"><span class="label">増減pt（バトルアリーナ）</span><input type="number" inputmode="numeric" id="mf-pt" value="${pv}" placeholder="例 40 / -30"></label>
+      ${mf.pb != null ? `<label class="fl"><span class="label">試合後のpt（どちらか1つでOK）</span><input type="text" id="mf-after" value="${pa}" placeholder="今のpt/S2の250" autocomplete="off"><span class="rkprev small" id="mf-afprev" aria-live="polite"></span></label>` : ''}
       <label class="row" style="grid-column:1/-1;gap:6px;align-items:center"><input type="checkbox" id="mf-nos"${m && m.noSeason ? ' checked' : ''}><span class="small">シーズンに入れない（バトルアリーナのみ）</span></label>
     </div>
     <h3>ヒーローとランク</h3>
@@ -3918,6 +3924,25 @@ document.addEventListener('change', e => {
   const v = e.target.value, prev = mf.cur ?? (mf.ns ? '' : mf.side), myFirst = x => x !== 'red';
   if (myFirst(prev) !== myFirst(v)) { const a = document.getElementById('mf-b'), c = document.getElementById('mf-r'); [a.value, c.value] = [c.value, a.value]; }
   mf.cur = v; document.getElementById('mf-sclab').textContent = v ? 'スコア（青 - 赤）' : 'スコア（自分 - 相手）';
+});
+// この試合が始まる前のpt：同じシーズンの、1つ前までの試合から数える（なければシーズン開始時のpt）。シーズンに入っていなければnull
+function ptBeforeOf(m) {
+  if (m.mode !== ARENA || m.noSeason) return null;
+  const se = seasonOfAt(m.at); if (!se) return null;
+  const pc = ptCalc(); let cur = se.pt;
+  for (const x of seasonMatches(se)) { if (x.id === m.id) return cur; if (pc[x.id]) cur = pc[x.id].after; }
+  return null;
+}
+// 増減ptと試合後ptは、片方を入れるともう片方も計算して出す
+document.addEventListener('input', e => {
+  const t = e.target; if (!mf || mf.pb == null || !t || (t.id !== 'mf-pt' && t.id !== 'mf-after')) return;
+  const dEl = document.getElementById('mf-pt'), aEl = document.getElementById('mf-after'), pv = document.getElementById('mf-afprev');
+  if (t.id === 'mf-pt') { mf.last = 'pt'; const v = t.value.trim(); aEl.value = v !== '' && !isNaN(+v) ? String(mf.pb + Math.round(+v)) : ''; pv.textContent = ''; }
+  else {
+    mf.last = 'after'; const r = ptRank(t.value), v = parsePtR(t.value);
+    pv.style.color = r && r.err ? 'var(--lose)' : 'var(--accent)'; pv.textContent = !r ? '' : r.err ? r.err : `＝ ${r.pt}pt`;
+    dEl.value = v ? String(v.abs - mf.pb) : '';
+  }
 });
 function mfClose() { const d = document.getElementById('mf'); if (d) d.remove(); mf = null; }
 function mfSave() {
@@ -3951,8 +3976,15 @@ function mfSave() {
   { const fxs = sl.map((x, j) => j > 0 && x.k === 'a' && g('mf-fx' + j) && g('mf-fx' + j).checked ? x.idx : -1).filter(i => i >= 0); if (fxs.length) m.fxs = fxs; else delete m.fxs; }
   const res = g('mf-res').value; if (res) m.res = res; else delete m.res;
   if (m.mode === ARENA && g('mf-nos').checked) m.noSeason = true; else delete m.noSeason;
-  const ptv = g('mf-pt').value.trim();
-  if (m.mode === ARENA && ptv !== '' && !isNaN(+ptv)) { if (m.pt !== +ptv) { m.pt = Math.round(+ptv); delete m.ptAfter; } } else if (ptv === '') { delete m.pt; }
+  const ptv = g('mf-pt').value.trim(), afv = g('mf-after') ? g('mf-after').value.trim() : '';
+  if (g('mf-after') && mf.last === 'after' && m.mode === ARENA) {
+    // 「試合後のpt」を入れた時は、それをそのまま保存する（増減は前後の試合から自動で出る）
+    const v = afv === '' ? null : parsePtR(afv);
+    if (afv !== '' && !v) { const rr = ptRank(afv); msg(rr && rr.err ? rr.err : '試合後のptは「2750」か「S2の250」の形で入れてください。'); return; }
+    if (v) { m.ptAfter = v.abs; delete m.pt; } else { delete m.ptAfter; delete m.pt; }
+  } else if (g('mf-after') && mf.last !== 'pt') {
+    // どちらの欄も触っていない：今のptはそのまま
+  } else if (m.mode === ARENA && ptv !== '' && !isNaN(+ptv)) { if (m.pt !== +ptv || mf.last === 'pt') { m.pt = Math.round(+ptv); delete m.ptAfter; } } else if (ptv === '') { delete m.pt; if (mf.last === 'pt') delete m.ptAfter; }
   const myRank = ranks[side][sl[0].idx];
   if (myRank) m.rank = myRank; else delete m.rank;
   if (anyR) m.ranks = ranks; else delete m.ranks;
@@ -4362,7 +4394,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-12-BE', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-13-BF', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
