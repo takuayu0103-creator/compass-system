@@ -448,6 +448,8 @@ body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],bod
 .bcx>b,.bcx>svg,.bcx>canvas,.bcx>div{position:absolute;display:block}
 
 .bc-still *,.bcp .bcx *{animation-play-state:paused!important}
+/* 背景コレクションのシートを開いている間は、裏の背景を止める（スクロール中の描画落ち対策） */
+body.bc-so #bc-bg *,body.bc-so #bc-bg{animation-play-state:paused!important}
 .bc-vig{inset:0;background:radial-gradient(ellipse at 50% 42%,transparent 48%,rgb(0 0 0/.62))}
 .bc-grn{inset:0;opacity:.07;mix-blend-mode:overlay;background-size:180px 180px}
 .bc-sl{left:0;top:0;width:1px;height:1px;border-radius:50%;animation:bcsdr linear infinite;will-change:transform}
@@ -578,7 +580,7 @@ body.bc-so #bc-sheet{transform:none;visibility:visible;transition:transform .35s
 .bc-it.on{border-color:var(--accent);box-shadow:0 0 12px color-mix(in srgb,var(--accent) 45%,transparent)}
 .bc-it.boss:not(.lk){border-color:transparent;background:linear-gradient(#0c0e13,#0c0e13) padding-box,conic-gradient(from var(--bcga),#ffd36a,#fff4c4,#ff8a3d,#ffd36a,#fff4c4,#ff8a3d,#ffd36a) border-box;animation:bcgr 5s linear infinite}
 @property --bcga{syntax:"<angle>";initial-value:0deg;inherits:false}@keyframes bcgr{to{--bcga:360deg}}
-.bc-pv{display:block;height:92px;position:relative;overflow:hidden}
+.bc-pv{display:block;height:92px;position:relative;overflow:hidden;content-visibility:auto}
 .bc-pv .bc-sc{position:absolute;width:390px;height:844px;left:50%;top:var(--fy,30%);transform:translate(-50%,calc(var(--fy,30%) * -1)) scale(var(--k,.45));transform-origin:50% var(--fy,30%)}
 .bc-pv .bc-none{position:absolute;inset:0;width:auto;height:auto;transform:none;background:var(--bg)}
 .bc-nm{display:block;padding:6px 8px;font-size:.82rem;background:#0f1117;color:#e7e9f0}.bc-nm small{display:block;color:#9aa1b3;font-size:.7rem}
@@ -1724,6 +1726,8 @@ function mount(el,id,live){el.className='bcx'+(live?'':' bc-still')+(id?' '+id:'
 // [解放する試合数, 名前, id, 章, 章の山場]。続きはここに足していく（1000戦ごとに章）
 const BC_LIST = [[100, '星の夜', 'n1', 1], [300, '月夜', 'n2', 1], [500, '星座', 'n3', 1], [750, 'オーロラ', 'n4', 1], [1000, '天の川', 'n5', 1, 1], [1250, '回路', 'd1', 2], [1500, 'データの雨', 'd2', 2], [1750, 'ネオン都市', 'd3', 2], [2000, '解析コア', 'd4', 2, 1]];
 const BC_CH = ['夜空', '電脳'];
+// 次の背景は、解放の直前でもここまでしか見えない（解放前に中身が分かりすぎないように）。1=完全に見える、0.5=半分
+const BC_VMAX = 0.5;
 const BC_FY = { n2: '12%', n5: '40%', d1: '24%', d3: '62%', d4: '34%', n4: '40%' };
 const BC_KEY = DBKEY + '-bc';
 let bcS = { got: [], pend: [], cur: '', still: false };
@@ -1786,9 +1790,9 @@ function bcHTML() {
     if (!ci) h += `<button type="button" class="bc-it${bcS.cur ? '' : ' on'}" data-bcset=""><span class="bc-pv"><span class="bc-sc bc-none"></span></span><span class="bc-nm">なし<small>いつもの背景</small></span></button>`;
     for (const b of L) {
       const own = bcS.got.includes(b[2]), pend = bcS.pend.includes(b[2]), isNext = nx && nx[2] === b[2], pr = isNext ? Math.max(0, (n - p0) / (b[0] - p0)) : 0;
-      const st = own ? '' : isNext ? `--bl:${(16 - 14 * pr).toFixed(1)}px;--br:${(.4 + .5 * pr).toFixed(2)}` : '--bl:22px;--br:.25';
+      const st = own ? '' : isNext ? `--bl:${(16 - 14 * pr * BC_VMAX).toFixed(1)}px;--br:${(.4 + .5 * pr * BC_VMAX).toFixed(2)}` : '--bl:22px;--br:.25';
       const cls = ['bc-it', b[4] ? 'big boss' : '', own ? '' : 'lk', own || pend ? '' : isNext ? 'near' : 'far', bcS.cur === b[2] ? 'on' : ''].join(' ');
-      const sub = own ? `${b[0].toLocaleString('ja-JP')}戦で入手` : pend ? '未開封（押すと開けます）' : isNext ? `あと${(b[0] - n).toLocaleString('ja-JP')}戦（${Math.floor(pr * 100)}%見えています）` : `${b[0].toLocaleString('ja-JP')}戦`;
+      const sub = own ? `${b[0].toLocaleString('ja-JP')}戦で入手` : pend ? '未開封（押すと開けます）' : isNext ? `あと${(b[0] - n).toLocaleString('ja-JP')}戦（${Math.floor(pr * BC_VMAX * 100)}%見えています）` : `${b[0].toLocaleString('ja-JP')}戦`;
       h += `<button type="button" class="${cls}" ${own ? `data-bcset="${b[2]}"` : pend ? 'data-bcopen="1"' : 'disabled'} style="${st}"><span class="bc-pv"><span class="bc-sc" data-bcid="${b[2]}" style="--fy:${BC_FY[b[2]] || '30%'}"></span>${b[4] ? '<span class="bc-tag">★ 章の山場</span>' : ''}</span><span class="bc-nm">${own || pend || isNext ? esc(b[1]) : '？？？'}<small>${sub}</small></span></button>`;
     }
     h += '</div></div>';
@@ -5028,7 +5032,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-17-BV', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-17-BX', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
