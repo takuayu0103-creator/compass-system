@@ -617,6 +617,7 @@ body.bc-so #bc-sheet{transform:none;visibility:visible;transition:transform .35s
 .tg-l select,.tg-l input{font:inherit;font-size:15px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 8px}
 .tgp .kpis{grid-template-columns:repeat(3,1fr)}
 .tg-bar{height:10px;border-radius:99px;background:var(--soft);overflow:hidden}.tg-bar i{display:block;height:100%;background:var(--win);border-radius:99px}
+.tg-sum{margin-top:6px}.tg-hd{display:flex;justify-content:space-between;align-items:center;gap:8px}.tg-q{margin-top:6px;padding:6px 10px;border-radius:8px;border:1px solid var(--accent)}.tg-q.ok{border-color:var(--win)}.tg-form{display:flex;flex-direction:column;gap:8px}.tg-card{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .tg-box{border:1px solid var(--line);border-radius:10px;padding:10px}.tg-box.hl{border-color:var(--accent)}.tg-box b{font-size:1.25rem}
 .tg-ok{color:var(--win)}.tg-ng{color:var(--lose)}
 
@@ -1865,68 +1866,104 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (document.getElementById('bc-ov')?.classList.contains('show')) bcClose(false); else if (document.body.classList.contains('bc-so')) bcSheet(false); });
 try { bcApply(); } catch (e) {}
 
-/* ---------- 称号目標（キャラごとの試合数の目標）。この端末だけに保存 ---------- */
-const TG_KEY = DBKEY + '-tgoal';
-let tgS = { cur: '', win: '30', h: {} };
+/* ---------- 称号目標（キャラごとの試合数の目標。10個まで）。この端末だけに保存 ---------- */
+const TG_KEY = DBKEY + '-tgoal', TG_MAX = 10;
+let tgS = { cur: '', win: '30', goals: [], h: {} };
 try { tgS = Object.assign(tgS, JSON.parse(localStorage.getItem(TG_KEY) || '{}')); } catch (e) {}
+if (!Array.isArray(tgS.goals)) tgS.goals = [];
+// 前の版（ヒーローごとに1つ）の設定を、目標に引き継ぐ
+if (tgS.h && Object.keys(tgS.h).length) {
+  for (const hk of Object.keys(tgS.h)) { const r = tgS.h[hk]; if (r && r.base != null && !tgS.goals.some(g => g.hk === hk)) tgS.goals.push({ id: 'g' + Date.now().toString(36) + hk.slice(-3), hk, goal: r.goal || 1000, date: r.date || '', base: r.base, at: r.at || Date.now() }); }
+  tgS.h = {};
+}
 const tgSave = () => { try { localStorage.setItem(TG_KEY, JSON.stringify(tgS)); } catch (e) {} };
 const TG_GOALS = [1000, 5000, 10000];
+const tgUI = { edit: '', draft: {} };
+// ゲーム内の称号名：1000戦＝「○○使い」、5000戦＝「殿堂入り」、10000戦＝「伝説」
+const tgTitle = (name, g) => g === 1000 ? `${name}使い称号` : g === 5000 ? `${name}の殿堂入り称号` : `${name}の伝説称号`;
 function tgSpan(d) { if (d < 60) return `約${d}日`; const mm = Math.round(d / 30.4); if (mm < 12) return `約${mm}か月（約${d}日）`; const y = Math.floor(mm / 12), m = mm % 12; return `約${y}年${m ? m + 'か月' : ''}（約${d}日）`; }
+function tgCalc(g, w30) {
+  const DAY = 864e5, now = Date.now(), t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  const mine = db.matches.filter(m => String(mineOf(m)) === g.hk), recent = mine.filter(m => (m.at || 0) > (g.at || 0));
+  const cur = g.base + recent.length, rem = Math.max(0, g.goal - cur);
+  const ats = mine.map(m => m.at).filter(Boolean), first = ats.length ? Math.min(...ats) : now, days = Math.max(1, Math.ceil((now - first) / DAY));
+  const per = w30 ? Math.min(30, days) : days, cn = w30 ? mine.filter(m => m.at && m.at > now - 30 * DAY).length : ats.length, pace = cn / per;
+  const eta = rem && pace > 0 ? Math.ceil(rem / pace) : null;
+  const done = recent.filter(m => m.at >= t0.getTime()).length;
+  let dd = null, perDay = null, left = null;
+  if (g.date) { dd = Math.round((new Date(g.date + 'T00:00:00') - t0) / DAY) + 1; if (dd >= 1 && rem + done > 0) { perDay = Math.ceil((rem + done) / dd); left = Math.max(0, perDay - done); } }
+  return { cur, rem, pace, per, cn, days, eta, done, dd, perDay, left, r: Math.min(1, cur / g.goal) };
+}
+function tgFormHTML(g, keys, name) {
+  const d = tgUI.draft, isNew = !g, f = v => v.toLocaleString('ja-JP');
+  const hk = d.hk != null ? d.hk : (g ? g.hk : (keys.includes(tgS.cur) ? tgS.cur : keys[0]));
+  const goal = d.goal || (g ? g.goal : 1000), base = d.base != null ? d.base : (g ? g.base : ''), date = d.date != null ? d.date : (g ? g.date : '');
+  return `<div class="tg-box tg-form"><b style="font-size:1rem">${isNew ? '目標を追加' : '目標を編集'}</b>
+    <label class="tg-l">ヒーロー<select data-tgf="hk"${isNew ? '' : ' disabled'}>${keys.map(k => `<option value="${esc(k)}"${k === hk ? ' selected' : ''}>${esc(name(k))}</option>`).join('')}</select></label>
+    <label class="tg-l">ゲーム内の現在の試合数<input type="number" inputmode="numeric" min="0" data-tgf="base" value="${base}" placeholder="例：2013"></label>
+    <div class="tg-l">目標の称号</div><div class="row segs">${TG_GOALS.map(x => `<button type="button" class="seg${x === goal ? ' on' : ''}" data-tggoal="${x}">${f(x)}戦（${x === 1000 ? '使い' : x === 5000 ? '殿堂入り' : '伝説'}）</button>`).join('')}</div>
+    <label class="tg-l">目標日（任意）<input type="date" data-tgf="date" value="${esc(date)}"></label>
+    <div class="row"><button type="button" class="btn primary" data-tgok="${g ? g.id : 'new'}">${isNew ? 'この目標に決定' : '保存'}</button><button type="button" class="btn ghost" data-tgcancel="1">やめる</button>${g ? `<button type="button" class="btn ghost" data-tgdel="${g.id}">削除</button>` : ''}</div></div>`;
+}
 function titleGoalHTML(nm) {
   const cnt = new Map();
   for (const m of db.matches) { const k = mineOf(m); if (k == null || k === EMPTY) continue; cnt.set(String(k), (cnt.get(String(k)) || 0) + 1); }
   if (!cnt.size) return '';
   const keys = [...cnt.keys()].sort((a, b) => cnt.get(b) - cnt.get(a));
-  const hk = cnt.has(tgS.cur) ? tgS.cur : keys[0];
   const name = k => { const x = db.matches.find(m => String(mineOf(m)) === k); return nm(x ? mineOf(x) : k); };
-  const rec = tgS.h[hk] || {};
-  const mine = db.matches.filter(m => String(mineOf(m)) === hk);
-  const f = v => v.toLocaleString('ja-JP');
-  let h = `<div class="section"><div class="panel tgp"><h2>称号目標</h2><p class="small muted" style="margin:0">ヒーローごとに、ゲーム内の試合数から1000戦・5000戦・10000戦までの残りと、今のペースで届く日を出します。入れた数字のあとにこのアプリへ登録した試合が、自動で足されます。この端末だけに保存されます。</p>`;
-  const sel = `<label class="tg-l">ヒーロー<select data-tg="hero">${keys.map(k => `<option value="${esc(k)}"${k === hk ? ' selected' : ''}>${esc(name(k))}</option>`).join('')}</select></label>`;
-  const base = rec.base;
-  const since = base != null ? mine.filter(m => (m.at || 0) > (rec.at || 0)).length : 0;
-  const cur = base != null ? base + since : null;
-  const inp = `<label class="tg-l">ゲーム内の現在の試合数<input type="number" inputmode="numeric" min="0" data-tg="base" value="${base != null ? base : ''}" placeholder="例：2013"></label>
-    <p class="small muted" style="margin:0">${base == null ? 'ゲームで見られる、このヒーローの今の試合数を入れてください。' : `入れた時点の${f(base)}戦に、その後このアプリへ登録した${since}戦を足しています。登録していない試合は足せないので、ずれたら入れ直してください。`}</p>`;
-  if (cur == null) return h + `<div class="fsum small muted">${esc(name(hk))}：ゲーム内の試合数を入れると使えます</div>${sel}${inp}</div></div>`;
-  const goal = rec.goal || TG_GOALS.find(g => g > cur) || 10000;
-  const rem = Math.max(0, goal - cur), r = Math.min(1, cur / goal);
-  const now = Date.now(), DAY = 864e5, ats = mine.map(m => m.at).filter(Boolean);
-  const first = ats.length ? Math.min(...ats) : now, days = Math.max(1, Math.ceil((now - first) / DAY));
-  const w30 = tgS.win !== 'all', per = w30 ? Math.min(30, days) : days, cn = w30 ? mine.filter(m => m.at && m.at > now - 30 * DAY).length : ats.length, pace = cn / per;
-  const eta = rem && pace > 0 ? Math.ceil(rem / pace) : null;
-  const dstr = d => { const x = new Date(now + d * DAY); return `${x.getFullYear()}/${x.getMonth() + 1}/${x.getDate()}`; };
-  h += `<div class="fsum small muted">${esc(name(hk))}：${rem ? `あと${f(rem)}戦${eta ? `・${tgSpan(eta)}で到達見込み` : ''}` : `${f(goal)}戦 達成済み 🎉`}</div>${sel}${inp}
-    <div class="tg-l">目標</div><div class="row segs">${TG_GOALS.map(g => `<button class="seg${g === goal ? ' on' : ''}" data-tggoal="${g}">${f(g)}戦</button>`).join('')}</div>
-    <div class="kpis"><div class="kpi"><div class="label">現在</div><div class="v">${f(cur)}<small>戦</small></div></div><div class="kpi"><div class="label">残り</div><div class="v">${f(rem)}<small>戦</small></div></div><div class="kpi"><div class="label">達成率</div><div class="v">${(r * 100).toFixed(1)}<small>%</small></div></div></div>
-    <div class="tg-bar"><i style="width:${(r * 100).toFixed(1)}%"></i></div>`;
-  if (!rem) return h + `<div class="tg-box hl"><b>🎉 ${f(goal)}戦 達成済み</b></div></div></div>`;
-  h += `<div class="tg-l">ペースの計算</div><div class="row segs"><button class="seg${w30 ? ' on' : ''}" data-tgwin="30">直近30日</button><button class="seg${w30 ? '' : ' on'}" data-tgwin="all">登録した全期間</button></div>
-    <div class="tg-box"><div class="small muted">今のペース（${w30 ? `直近${per}日` : `登録した${days}日`}）</div><b>${pace.toFixed(1)}戦/日</b><div class="small muted">${cn}戦 ÷ ${per}日（休んだ日も数えています。このアプリに登録した試合だけで計算します）</div></div>
-    <div class="tg-box hl">${eta ? `<div class="small muted">今のペースで続けると</div><b>${tgSpan(eta)}で到達</b><div class="small">${dstr(eta)}ごろ</div>` : '<div class="small muted">この期間は登録した試合がないので、ペースが出せません</div>'}</div>
-    <label class="tg-l">目標日（任意）<input type="date" data-tg="date" value="${rec.date || ''}"></label>`;
-  if (rec.date) {
-    const t0 = new Date(); t0.setHours(0, 0, 0, 0); const dd = Math.round((new Date(rec.date + 'T00:00:00') - t0) / DAY) + 1;
-    if (dd < 1) h += `<div class="tg-box"><div class="small">目標日が過ぎています。選び直してください</div></div>`;
-    else { const nd = rem / dd, x = pace > 0 ? nd / pace : null;
-      h += `<div class="tg-box"><div class="small muted">${rec.date.replace(/-/g, '/')}（${dd}日後）までに</div><b>1日 ${(Math.ceil(nd * 10) / 10).toFixed(1)}戦</b>${x == null ? '' : x <= 1 ? `<div class="small tg-ok">今のペースで間に合います（必要なのは今の${(x * 100).toFixed(0)}%）</div>` : `<div class="small tg-ng">今のペースの${x.toFixed(1)}倍が必要</div>`}</div>`; }
+  const f = v => v.toLocaleString('ja-JP'), w30 = tgS.win !== 'all';
+  const gs = tgS.goals.filter(g => cnt.has(g.hk) || true);
+  let h = `<div class="section"><div class="panel tgp"><h2>称号目標</h2><p class="small muted" style="margin:0">決めた称号まで、あと何戦かを出します（10個まで）。ゲーム内の試合数を入れると、そのあとにこのアプリへ登録した試合が自動で足されます。この端末だけに保存されます。</p>`;
+  if (!gs.length) h += `<div class="fsum small muted">目標を決めると、閉じていても「あと○戦」が出ます</div>`;
+  for (const g of gs) {
+    const c = tgCalc(g, w30), tt = tgTitle(name(g.hk), g.goal);
+    h += `<div class="fsum small tg-sum"><b>${esc(tt)}</b>${c.rem ? `まで あと<b>${f(c.rem)}戦</b>` : ' 達成済み 🎉'}${c.left != null && c.rem ? `<br>本日のノルマ ${c.left ? `あと<b>${c.left}試合</b>` : '<b>達成🎉</b>'}（1日${c.perDay}戦・今日${c.done}戦）` : ''}</div>`;
   }
+  for (const g of gs) {
+    const c = tgCalc(g, w30), tt = tgTitle(name(g.hk), g.goal);
+    if (tgUI.edit === g.id) { h += tgFormHTML(g, keys, name); continue; }
+    h += `<div class="tg-box tg-card"><div class="tg-hd"><b>${esc(tt)}</b><button type="button" class="btn ghost" data-tgedit="${g.id}">編集</button></div>
+      <div class="small muted">現在 ${f(c.cur)}戦 ／ 目標 ${f(g.goal)}戦 ／ 達成率 ${(c.r * 100).toFixed(1)}%</div><div class="tg-bar"><i style="width:${(c.r * 100).toFixed(1)}%"></i></div>`;
+    if (!c.rem) h += `<div class="tg-ok"><b>🎉 ${f(g.goal)}戦 達成済み</b></div>`;
+    else {
+      h += `<div>あと<b>${f(c.rem)}戦</b>${c.eta ? `（今のペース${c.pace.toFixed(1)}戦/日なら ${tgSpan(c.eta)}で到達）` : '（この期間は登録した試合がなく、ペースが出せません）'}</div>`;
+      if (g.date) {
+        if (c.dd < 1) h += `<div class="small">目標日が過ぎています。編集で選び直してください</div>`;
+        else { const x = c.pace > 0 ? (c.rem / c.dd) / c.pace : null;
+          h += `<div class="small muted">${g.date.replace(/-/g, '/')}（${c.dd}日後）までに 1日${(Math.ceil(c.rem / c.dd * 10) / 10).toFixed(1)}戦${x == null ? '' : x <= 1 ? `<span class="tg-ok">・今のペースで間に合います</span>` : `<span class="tg-ng">・今のペースの${x.toFixed(1)}倍が必要</span>`}</div>
+          <div class="tg-q ${c.left ? '' : 'ok'}">本日のノルマ ${c.left ? `あと<b>${c.left}試合</b>` : '<b>達成🎉</b>'} <span class="small muted">（1日${c.perDay}戦・今日${c.done}戦）</span></div>`; }
+      }
+    }
+    h += `</div>`;
+  }
+  if (tgUI.edit === 'new' || (!gs.length)) h += tgFormHTML(null, keys, name);
+  else if (gs.length < TG_MAX) h += `<div class="row"><button type="button" class="btn" data-tgedit="new">＋ 目標を追加</button><span class="small muted">${gs.length}/${TG_MAX}</span></div>`;
+  else h += `<div class="small muted">目標は${TG_MAX}個までです</div>`;
+  if (gs.length) h += `<div class="tg-l">ペースの計算</div><div class="row segs"><button class="seg${w30 ? ' on' : ''}" data-tgwin="30">直近30日</button><button class="seg${w30 ? '' : ' on'}" data-tgwin="all">登録した全期間</button></div>`;
   return h + '</div></div>';
 }
 document.addEventListener('change', e => {
-  const t = e.target; if (!t || !t.dataset || !t.dataset.tg) return;
-  const k = t.dataset.tg;
-  if (k === 'hero') tgS.cur = t.value;
-  else { const hk = (document.querySelector('[data-tg="hero"]') || {}).value; if (!hk) return; const rec = tgS.h[hk] = tgS.h[hk] || {};
-    if (k === 'base') { const v = parseInt(t.value, 10); if (isNaN(v) || v < 0) { delete rec.base; delete rec.at; } else { rec.base = v; rec.at = Date.now(); } }
-    if (k === 'date') { if (t.value) rec.date = t.value; else delete rec.date; } }
-  tgSave(); renderStats();
+  const t = e.target; if (!t || !t.dataset || !t.dataset.tgf) return;
+  const k = t.dataset.tgf; tgUI.draft[k] = k === 'base' ? (t.value === '' ? '' : parseInt(t.value, 10)) : t.value;
 });
 document.addEventListener('click', e => {
-  const t = e.target.closest && e.target.closest('[data-tggoal],[data-tgwin],[data-hosort],[data-hoall]'); if (!t) return;
+  const t = e.target.closest && e.target.closest('[data-tggoal],[data-tgwin],[data-tgedit],[data-tgok],[data-tgcancel],[data-tgdel],[data-hosort],[data-hoall]'); if (!t) return;
   const v = document.getElementById('view-stats');
-  if (t.dataset.tggoal) { const hk = (document.querySelector('[data-tg="hero"]') || {}).value; if (!hk) return; (tgS.h[hk] = tgS.h[hk] || {}).goal = +t.dataset.tggoal; tgSave(); }
+  const readForm = () => { const box = t.closest('.tg-form'); if (!box) return; box.querySelectorAll('[data-tgf]').forEach(i => { tgUI.draft[i.dataset.tgf] = i.dataset.tgf === 'base' ? (i.value === '' ? '' : parseInt(i.value, 10)) : i.value; }); };
+  if (t.dataset.tggoal) { readForm(); tgUI.draft.goal = +t.dataset.tggoal; }
+  else if (t.dataset.tgedit) { tgUI.edit = t.dataset.tgedit; tgUI.draft = {}; }
+  else if (t.dataset.tgcancel) { tgUI.edit = ''; tgUI.draft = {}; }
+  else if (t.dataset.tgdel) { tgS.goals = tgS.goals.filter(g => g.id !== t.dataset.tgdel); tgUI.edit = ''; tgUI.draft = {}; tgSave(); }
+  else if (t.dataset.tgok) {
+    readForm(); const d = tgUI.draft, id = t.dataset.tgok;
+    const g0 = id === 'new' ? null : tgS.goals.find(g => g.id === id);
+    const hk = g0 ? g0.hk : (d.hk || (document.querySelector('[data-tgf="hk"]') || {}).value), base = d.base != null ? d.base : (g0 ? g0.base : '');
+    if (!hk || base === '' || isNaN(base) || base < 0) { alert('ゲーム内の現在の試合数を入れてください'); return; }
+    const goal = d.goal || (g0 ? g0.goal : 1000), date = d.date != null ? d.date : (g0 ? g0.date : '');
+    if (g0) { if (base !== g0.base) { g0.base = base; g0.at = Date.now(); } g0.goal = goal; g0.date = date || ''; }
+    else if (tgS.goals.length < TG_MAX) { tgS.goals.push({ id: 'g' + Date.now().toString(36), hk, goal, date: date || '', base, at: Date.now() }); tgS.cur = hk; }
+    tgUI.edit = ''; tgUI.draft = {}; tgSave();
+  }
   else if (t.dataset.tgwin) { tgS.win = t.dataset.tgwin; tgSave(); }
   else if (t.dataset.hosort) v.dataset.hoSort = t.dataset.hosort;
   else if (t.dataset.hoall) v.dataset.hoAll = v.dataset.hoAll === '1' ? '' : '1';
@@ -4977,7 +5014,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-17-BS', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-17-BT', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
