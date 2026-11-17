@@ -442,12 +442,184 @@ body.viewing input:disabled,body.viewing textarea:disabled,body.viewing select:d
 body.viewing #tab-add,body.viewing #tab-data,body.viewing #view-add,body.viewing #view-data{display:none!important}
 body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],body.viewing [data-reseason],body.viewing [data-memo],body.viewing [data-mdate],body.viewing [data-act="season-new"],body.viewing #season-new{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ============ 背景の共通部品 ============ */
+.bcx{position:absolute;inset:0;overflow:hidden;background:#0a0b10;container-type:size}
+.bcx>b,.bcx>svg,.bcx>canvas,.bcx>div{position:absolute;display:block}
+
+.bc-still *,.bcp .bcx *{animation-play-state:paused!important}
+.bc-vig{inset:0;background:radial-gradient(ellipse at 50% 42%,transparent 48%,rgb(0 0 0/.62))}
+.bc-grn{inset:0;opacity:.07;mix-blend-mode:overlay;background-size:180px 180px}
+.bc-sl{left:0;top:0;width:1px;height:1px;border-radius:50%;animation:bcsdr linear infinite;will-change:transform}
+@keyframes bcsdr{to{transform:translateY(-1000px)}}
+.bc-gl{width:var(--s);height:var(--s);margin:calc(var(--s)/-2) 0 0 calc(var(--s)/-2);background:radial-gradient(circle,#fff 0 7%,var(--c) 13%,transparent 32%),linear-gradient(90deg,transparent 47%,var(--c) 50%,transparent 53%),linear-gradient(transparent 47%,var(--c) 50%,transparent 53%);-webkit-mask:radial-gradient(circle,#000 15%,transparent 68%);mask:radial-gradient(circle,#000 15%,transparent 68%);animation:bcglt ease-in-out infinite alternate}
+@keyframes bcglt{from{opacity:.2;transform:scale(.55) rotate(0)}to{opacity:1;transform:scale(1) rotate(45deg)}}
+.bc-ss{width:170px;height:2px;border-radius:2px;background:linear-gradient(90deg,#fff,#cfe2ff88 25%,transparent);box-shadow:0 0 6px #fff8;opacity:0;animation:bcss linear infinite}
+@keyframes bcss{0%,84%{opacity:0;transform:rotate(-34deg) translateX(0)}86%{opacity:1}95%,100%{opacity:0;transform:rotate(-34deg) translateX(-480px)}}
+@keyframes bcbr{from{opacity:var(--o0,.55);transform:scale(1)}to{opacity:var(--o1,.95);transform:scale(var(--s1,1.06))}}
+
+/* 1 星の夜 */
+.n1-sky{inset:0;background:radial-gradient(ellipse 120% 70% at 50% 115%,oklch(.32 .09 262),transparent 70%),radial-gradient(ellipse 60% 35% at 18% 28%,oklch(.3 .09 300/.35),transparent 70%),radial-gradient(ellipse 55% 30% at 82% 58%,oklch(.32 .08 225/.28),transparent 70%),linear-gradient(in oklch,oklch(.11 .03 268),oklch(.16 .05 272) 60%,oklch(.22 .07 262))}
+.n1-hz{left:0;right:0;bottom:0;height:22%;background:linear-gradient(transparent,oklch(.35 .09 255/.35))}
+/* 2 月夜 */
+.n2-sky{inset:0;background:linear-gradient(in oklch,oklch(.13 .04 255),oklch(.2 .06 245) 55%,oklch(.3 .07 235))}
+.n2-halo{right:-30cqmin;top:-28cqmin;width:120cqmin;height:120cqmin;border-radius:50%;background:radial-gradient(circle,oklch(.92 .04 90/.55) 0 9%,oklch(.8 .06 240/.22) 22%,oklch(.6 .07 245/.08) 40%,transparent 62%);animation:bcbr 9s ease-in-out infinite alternate;--o0:.7;--o1:1;--s1:1.04}
+.n2-moon{right:16cqmin;top:16cqmin;width:24cqmin;height:24cqmin;border-radius:50%;background:radial-gradient(circle at 34% 30%,oklch(.86 .02 90/.0) 0 8%,transparent 9%),radial-gradient(circle at 62% 58%,oklch(.78 .02 90/.6) 0 9%,transparent 10%),radial-gradient(circle at 40% 68%,oklch(.8 .02 90/.5) 0 6%,transparent 7%),radial-gradient(circle at 70% 30%,oklch(.82 .02 90/.45) 0 5%,transparent 6%),radial-gradient(circle at 38% 36%,#fffcee,oklch(.92 .03 92) 55%,oklch(.8 .03 90));box-shadow:inset -2.4cqmin -1.6cqmin 4cqmin oklch(.4 .03 260/.45),0 0 4cqmin oklch(.95 .05 90/.6),0 0 14cqmin oklch(.85 .06 240/.35)}
+.n2-cl{left:0;width:calc(100% + 800px);-webkit-mask:linear-gradient(transparent,#000 25%,#000 65%,transparent);mask:linear-gradient(transparent,#000 25%,#000 65%,transparent);background-repeat:repeat-x;background-size:800px 100%;animation:bccl linear infinite;mix-blend-mode:screen}
+@keyframes bccl{to{transform:translateX(-800px)}}
+.n2-mt{left:0;right:0;bottom:0;height:26%;background-size:100% 100%}
+.n2-sea{left:0;right:0;bottom:0;height:9%;background:linear-gradient(oklch(.15 .03 250),oklch(.1 .02 255))}
+.n2-ref{right:calc(28cqmin - 2px);bottom:0;width:4px;height:9%;transform-origin:50% 100%;background:linear-gradient(oklch(.95 .05 90/.8),transparent);box-shadow:0 0 12px 6px oklch(.9 .05 90/.25);animation:bcrf 3s ease-in-out infinite alternate}
+@keyframes bcrf{from{opacity:.5;transform:scaleX(1.6)}to{opacity:1;transform:scaleX(.7)}}
+/* 3 星座 */
+.n3-sky{inset:0;background:radial-gradient(ellipse 70% 40% at 60% 40%,oklch(.26 .08 280/.35),transparent 70%),linear-gradient(in oklch,oklch(.1 .03 275),oklch(.15 .05 265) 70%,oklch(.19 .06 245))}
+.n3-cs{inset:0;width:100%;height:100%;overflow:visible}
+.n3-cs .ln{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;animation:bccon 27s ease-in-out infinite}
+@keyframes bccon{0%{stroke-dashoffset:1;opacity:0}3%{opacity:1}14%{stroke-dashoffset:0}72%{stroke-dashoffset:0;opacity:1}86%,100%{stroke-dashoffset:0;opacity:.18}}
+.n3-gr{inset:0;width:100%;height:100%;opacity:.16}
+.n3-gr circle,.n3-gr ellipse{fill:none;stroke:oklch(.8 .06 240);stroke-width:.8;stroke-dasharray:2 5}
+/* 4 オーロラ */
+.n4-sky{inset:0;background:linear-gradient(in oklch,oklch(.1 .03 260),oklch(.14 .05 230) 55%,oklch(.2 .06 200) 78%,oklch(.12 .03 230))}
+.n4-c{left:-25%;width:150%;top:3%;height:66%;mix-blend-mode:screen;-webkit-mask-composite:source-in;mask-composite:intersect;-webkit-mask-repeat:repeat-x,no-repeat;mask-repeat:repeat-x,no-repeat;-webkit-mask-size:520px 100%,100% 100%;mask-size:520px 100%,100% 100%;animation:bcau ease-in-out infinite alternate;will-change:transform}
+@keyframes bcau{0%{transform:translateX(-5%) skewX(-7deg) scaleY(.94)}100%{transform:translateX(5%) skewX(7deg) scaleY(1.08)}}
+.n4-g{left:-10%;right:-10%;top:30%;height:36%;background:radial-gradient(ellipse 50% 45% at 50% 60%,oklch(.75 .17 160/.28),transparent 70%);animation:bcbr 7s ease-in-out infinite alternate;--o0:.5;--o1:1;--s1:1.05}
+.n4-mt{left:0;right:0;bottom:0;height:30%;background-size:100% 100%}
+.n4-lk{left:0;right:0;bottom:0;height:11%;background:linear-gradient(oklch(.2 .06 190/.9),oklch(.09 .02 240));overflow:hidden}
+.n4-lk::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 30px,oklch(.75 .16 165/.18) 30px 44px,transparent 44px 90px);filter:blur(4px);animation:bclk 8s ease-in-out infinite alternate}
+@keyframes bclk{to{transform:translateX(30px)}}
+/* 5 天の川（山場） */
+.n5-sky{inset:0;background:radial-gradient(ellipse 80% 40% at 35% 100%,oklch(.45 .1 55/.45),transparent 70%),linear-gradient(in oklch,oklch(.08 .02 275),oklch(.13 .04 285) 55%,oklch(.2 .06 300))}
+.n5-w{inset:-50%;animation:bcsw 150s ease-in-out infinite alternate;will-change:transform}
+@keyframes bcsw{from{transform:rotate(-36deg)}to{transform:rotate(-24deg)}}
+.n5-w>b{position:absolute;display:block}
+.n5-band{inset:0;background:linear-gradient(transparent 46.5%,oklch(.6 .07 280/.22) 48.5%,oklch(.8 .06 60/.26) 50%,oklch(.6 .1 250/.22) 51.5%,transparent 53.5%),radial-gradient(ellipse 7% 4% at 41% 50%,oklch(.97 .05 80/.8),transparent 70%),radial-gradient(ellipse 18% 6% at 42% 50%,oklch(.85 .09 70/.45),transparent 70%),radial-gradient(ellipse 70% 7% at 50% 50%,oklch(.82 .06 60/.3),transparent 72%),radial-gradient(ellipse 40% 15% at 46% 49%,oklch(.62 .16 330/.3),transparent 70%),radial-gradient(ellipse 46% 17% at 58% 51%,oklch(.6 .13 250/.3),transparent 70%),radial-gradient(ellipse 60% 12% at 50% 50%,oklch(.5 .08 270/.35),transparent 75%)}
+.n5-dust{inset:0;background:oklch(.06 .02 280/.92);-webkit-mask-composite:source-in;mask-composite:intersect;-webkit-mask-repeat:repeat,no-repeat;mask-repeat:repeat,no-repeat;-webkit-mask-size:700px 260px,100% 100%;mask-size:700px 260px,100% 100%}
+.n5-bloom{left:41%;top:50%;width:44cqmin;height:18cqmin;margin:-9cqmin 0 0 -22cqmin;border-radius:50%;background:radial-gradient(ellipse,oklch(.95 .08 75/.55),oklch(.75 .12 50/.2) 45%,transparent 70%);filter:blur(10px);animation:bcbr 10s ease-in-out infinite alternate;--o0:.45;--o1:1;--s1:1.12}
+.n5-bs{left:50%;top:50%}
+.n5-hz{left:0;right:0;bottom:0;height:16%;background-size:100% 100%}
+/* 6 回路 */
+.d1-b{inset:0;background:radial-gradient(ellipse 80% 45% at 50% 28%,oklch(.24 .06 205),transparent 70%),linear-gradient(in oklch,oklch(.11 .025 230),oklch(.09 .02 240));}
+.d1-gr{inset:0;background:linear-gradient(oklch(.6 .08 210/.07) 1px,transparent 1px) 0 0/13px 13px,linear-gradient(90deg,oklch(.6 .08 210/.07) 1px,transparent 1px) 0 0/13px 13px}
+.d1-s{inset:0;width:100%;height:100%}
+.d1-s .pk{fill:none;stroke-linecap:round;stroke-dasharray:.045 .955;animation:bcpk linear infinite}
+@keyframes bcpk{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+.d1-s .pf{animation:bcpf linear infinite}
+@keyframes bcpf{0%,90%{opacity:.25}95%{opacity:1}100%{opacity:.25}}
+.d1-cg{left:50%;top:28%;width:90cqmin;height:90cqmin;margin:-45cqmin 0 0 -45cqmin;border-radius:50%;background:radial-gradient(circle,oklch(.8 .14 200/.4),oklch(.6 .12 210/.12) 35%,transparent 65%);animation:bcbr 3s ease-in-out infinite alternate;--o0:.4;--o1:.9;--s1:1.05}
+.bc-scan{inset:0;background:repeating-linear-gradient(0deg,transparent 0 3px,rgb(0 0 0/.16) 3px 4px)}
+/* 7 データの雨 */
+.d2-b{inset:0;background:radial-gradient(ellipse 90% 40% at 50% 100%,oklch(.35 .1 210/.5),transparent 70%),linear-gradient(in oklch,oklch(.1 .03 240),oklch(.12 .04 225))}
+.d2-cv{inset:0;width:100%;height:100%}
+.d2-far{filter:blur(1.2px);opacity:.65}
+.d2-fd{inset:0;background:linear-gradient(oklch(.08 .03 240/.95),transparent 22%,transparent 72%,oklch(.12 .05 215/.6))}
+/* 8 ネオン都市 */
+.d3-sky{inset:0;background:radial-gradient(ellipse 80% 28% at 50% 68%,oklch(.6 .24 350/.55),transparent 70%),linear-gradient(in oklch,oklch(.1 .05 285),oklch(.18 .11 300) 40%,oklch(.4 .2 345) 66%,oklch(.12 .06 300) 68.2%)}
+.d3-sun{left:50%;top:39%;width:52cqmin;height:52cqmin;margin-left:-26cqmin;border-radius:50%;background:linear-gradient(in oklch,oklch(.93 .17 95),oklch(.75 .2 40) 55%,oklch(.62 .26 355));-webkit-mask:linear-gradient(#000 48%,transparent 0),repeating-linear-gradient(transparent 0 calc(4% - 1px),#000 calc(4% - 1px) 6%);mask:linear-gradient(#000 48%,transparent 0),repeating-linear-gradient(transparent 0 calc(4% - 1px),#000 calc(4% - 1px) 6%)}
+.d3-sg{left:50%;top:30%;width:100cqmin;height:70cqmin;margin-left:-50cqmin;border-radius:50%;background:radial-gradient(ellipse,oklch(.75 .22 20/.45),transparent 65%);animation:bcbr 4s ease-in-out infinite alternate;--o0:.55;--o1:1;--s1:1.04}
+.d3-sk{left:0;bottom:32%;width:calc(100% + 800px);background-repeat:repeat-x;background-size:800px 100%;background-position:0 100%;animation:bccl linear infinite;will-change:transform}
+.d3-fk{animation:bcfk 3.2s steps(1) infinite}
+@keyframes bcfk{0%,100%{opacity:1}31%{opacity:.25}34%{opacity:1}62%{opacity:.6}66%{opacity:1}}
+.d3-fl{left:0;right:0;top:68%;bottom:0;perspective:220px;perspective-origin:50% 0;overflow:hidden;-webkit-mask:linear-gradient(transparent,#000 30%);mask:linear-gradient(transparent,#000 30%)}
+.d3-pl{position:absolute;left:-150%;width:400%;top:0;height:400%;transform-origin:50% 0;background:linear-gradient(90deg,oklch(.72 .27 335/.85) 2px,transparent 2px) 0 0/48px 48px,linear-gradient(oklch(.8 .15 200/.8) 2px,transparent 2px) 0 0/48px 48px,linear-gradient(oklch(.14 .08 300),oklch(.08 .04 290));animation:bcfl 1.1s linear infinite;will-change:transform}
+@keyframes bcfl{from{transform:rotateX(72deg) translateY(0)}to{transform:rotateX(72deg) translateY(48px)}}
+.d3-hl{left:0;right:0;top:68%;height:2px;margin-top:-1px;background:oklch(.85 .2 345);box-shadow:0 0 14px 4px oklch(.7 .26 345/.7),0 0 40px 10px oklch(.6 .25 330/.35)}
+.d3-rn{left:0;right:0;top:-240px;height:calc(100% + 240px);opacity:.35;background-size:180px 240px;animation:bcrn .55s linear infinite}
+@keyframes bcrn{to{transform:translateY(240px)}}
+/* 9 解析コア（山場） */
+.d4-b{inset:0;background:radial-gradient(ellipse 90% 55% at 50% 38%,oklch(.22 .07 215),transparent 70%),linear-gradient(in oklch,oklch(.08 .02 250),oklch(.1 .03 235))}
+.d4-hx{inset:0;opacity:.16;background-size:30px 52px;-webkit-mask:radial-gradient(circle at 50% 38%,#000 0,transparent 70%);mask:radial-gradient(circle at 50% 38%,#000 0,transparent 70%)}
+.d4-c{left:50%;top:38%;width:0;height:0}
+.d4-c>b,.d4-c>svg{position:absolute;display:block;left:0;top:0;width:var(--d);height:var(--d);margin:calc(var(--d)/-2) 0 0 calc(var(--d)/-2);border-radius:50%}
+.bc-rg{-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - var(--t)),#000 calc(100% - var(--t) + 1px));mask:radial-gradient(farthest-side,transparent calc(100% - var(--t)),#000 calc(100% - var(--t) + 1px))}
+.bc-rot{animation:bcrot linear infinite;will-change:transform}.bc-rev{animation-direction:reverse}
+@keyframes bcrot{to{transform:rotate(360deg)}}
+.d4-sh{border:.5cqmin solid oklch(.9 .1 200);box-shadow:0 0 2cqmin oklch(.8 .14 200/.7),inset 0 0 2cqmin oklch(.8 .14 200/.5);animation:bcshk 6s ease-out infinite;opacity:0}
+@keyframes bcshk{0%{transform:scale(.3);opacity:0}4%{opacity:.9}70%,100%{transform:scale(3.4);opacity:0}}
+.d4-core{animation:bcbeat 4s ease-in-out infinite}
+@keyframes bcbeat{0%,100%{transform:scale(.88);filter:brightness(.95)}8%{transform:scale(1.12);filter:brightness(1.4)}16%{transform:scale(.95)}24%{transform:scale(1.06);filter:brightness(1.2)}}
+.d4-bl{filter:blur(2cqmin);animation:bcbr 4s ease-in-out infinite alternate;--o0:.45;--o1:.95;--s1:1.1}
+.d4-xh{left:0;right:0;top:38%;height:1px;background:linear-gradient(90deg,transparent 4%,oklch(.85 .13 200/.4) 22%,transparent 40%,transparent 60%,oklch(.85 .13 200/.4) 78%,transparent 96%)}
+.d4-xv{top:0;bottom:30%;left:50%;width:1px;background:linear-gradient(transparent 6%,oklch(.85 .13 200/.3) 20%,transparent 32%,transparent 44%,oklch(.85 .13 200/.3) 58%,transparent 80%)}
+.d4-tx{font:600 2.6cqmin/1.5 ui-monospace,Menlo,monospace;color:oklch(.85 .13 200/.55);letter-spacing:.08em;white-space:pre}
+.d4-tx i{font-style:normal;color:oklch(.85 .15 75/.8)}
+.d4-blink{animation:bcfk 2.4s steps(1) infinite}
+@media (prefers-reduced-motion:reduce){.bcx *{animation:none!important}}
+/* ===== 背景コレクション ===== */
+#bc-bg{position:fixed;inset:0;z-index:-1;pointer-events:none}
+html.bc-on .panel{background-color:color-mix(in srgb,var(--surface) 84%,transparent)}
+:root.bc-on:not([data-skin]){--bg:#13151b;--surface:#1c1f28;--ink:#e7e9f0;--muted:#9aa1b3;--line:#2e3341;--stripe:rgba(255,255,255,.022);--blue:#7088ff;--red:#ff5d66;--accent:#ff8a3d;--accent-ink:#1a1206;--win:#43c682;--lose:#ff6f80;--draw:#9aa1b3;--soft:#242835;color-scheme:dark}
+.bcbtn{position:relative;font:inherit;font-weight:800;font-size:.7rem;line-height:1.2;padding:4px 11px;border-radius:20px;border:1px solid #8fb4ff;background:linear-gradient(135deg,#1b2a4a,#2a1b4a);color:#dfe8ff;cursor:pointer;white-space:nowrap;box-shadow:0 0 10px rgba(106,140,255,.45);overflow:hidden}
+.bcbtn::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.28) 50%,transparent 70%);background-size:250% 100%;animation:bcshn 3.2s ease-in-out infinite;pointer-events:none}
+@keyframes bcshn{from{background-position:130% 0}to{background-position:-30% 0}}
+.bcbtn.has{padding-right:44px}.bcbd{display:none;position:absolute;right:5px;top:50%;transform:translateY(-50%);min-width:18px;padding:0 5px;height:17px;line-height:17px;border-radius:9px;background:#ffd36a;color:#1a1206;font-size:.66rem}.bcbtn.has .bcbd{display:block}
+body.viewing .bcbtn{display:none!important}
+#bc-shd{position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s}
+#bc-sheet{position:fixed;left:0;right:0;bottom:0;max-width:760px;margin:0 auto;max-height:86vh;overflow:auto;overscroll-behavior:contain;z-index:8001;background:#141720;color:#e7e9f0;border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.14);padding:6px 14px calc(22px + env(safe-area-inset-bottom));transform:translateY(105%);visibility:hidden;transition:transform .35s cubic-bezier(.2,.9,.3,1),visibility 0s .35s;box-shadow:0 -10px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:10px;--ink:#e7e9f0;--muted:#9aa1b3;--line:#2e3341;--surface:#1c1f28;--soft:#242835;--accent:#ff8a3d;--accent-ink:#1a1206;--bg:#13151b}
+body.bc-so #bc-sheet{transform:none;visibility:visible;transition:transform .35s cubic-bezier(.2,.9,.3,1)}body.bc-so #bc-shd{opacity:1;pointer-events:auto}body.bc-so{overflow:hidden}
+.bc-grab{width:44px;height:5px;border-radius:3px;background:rgba(255,255,255,.25);margin:2px auto 0;flex:none}
+.bc-shh{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-6px;background:#141720;padding:6px 0;z-index:6;font-size:1.05rem}
+.bc-x{font:inherit;width:34px;height:34px;border-radius:50%;border:1px solid #2e3341;background:none;color:#e7e9f0;font-size:15px;cursor:pointer}
+#bc-box{display:flex;flex-direction:column;gap:10px}
+.bcnext{margin-top:4px;display:flex;flex-direction:column;gap:6px}
+.bcn-t{font-size:.88rem}.bcn-t b{color:var(--accent);font-size:1.05em}
+.bcn-bar{height:7px;border-radius:99px;background:var(--soft,rgba(0,0,0,.25));overflow:hidden}.bcn-bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.bcn-pend{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px;color:#1a1206;background:linear-gradient(90deg,#ffd36a,#ff8a3d);cursor:pointer;animation:bcpb 1.4s ease-in-out infinite alternate}
+@keyframes bcpb{to{filter:brightness(1.22)}}
+.bc-ch{margin-top:4px}.bc-chh{display:flex;justify-content:space-between;align-items:baseline;font-weight:700}.bc-chh small{color:var(--muted);font-weight:400}
+.bc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.bc-it{font:inherit;color:var(--ink);text-align:left;padding:0;display:block;border:2px solid var(--line);border-radius:12px;overflow:hidden;background:#0c0e13;cursor:pointer;position:relative}
+.bc-it:disabled{cursor:default;opacity:1}
+.bc-it.big{grid-column:1/-1}.bc-it.big .bc-pv{height:150px}
+.bc-it.on{border-color:var(--accent);box-shadow:0 0 12px color-mix(in srgb,var(--accent) 45%,transparent)}
+.bc-it.boss:not(.lk){border-color:transparent;background:linear-gradient(#0c0e13,#0c0e13) padding-box,conic-gradient(from var(--bcga),#ffd36a,#fff4c4,#ff8a3d,#ffd36a,#fff4c4,#ff8a3d,#ffd36a) border-box;animation:bcgr 5s linear infinite}
+@property --bcga{syntax:"<angle>";initial-value:0deg;inherits:false}@keyframes bcgr{to{--bcga:360deg}}
+.bc-pv{display:block;height:92px;position:relative;overflow:hidden}
+.bc-pv .bc-sc{position:absolute;width:390px;height:844px;left:50%;top:var(--fy,30%);transform:translate(-50%,calc(var(--fy,30%) * -1)) scale(var(--k,.45));transform-origin:50% var(--fy,30%)}
+.bc-pv .bc-none{position:absolute;inset:0;width:auto;height:auto;transform:none;background:var(--bg)}
+.bc-nm{display:block;padding:6px 8px;font-size:.82rem;background:#0f1117;color:#e7e9f0}.bc-nm small{display:block;color:#9aa1b3;font-size:.7rem}
+.bc-tag{position:absolute;left:6px;top:5px;z-index:5;font-size:.7rem;background:rgba(0,0,0,.6);border-radius:99px;padding:1px 8px;color:#ffd36a;font-weight:700}
+.bc-it.lk .bc-sc{filter:blur(var(--bl,16px)) brightness(var(--br,.5)) saturate(.8)}
+.bc-it.far .bc-pv::after{content:"？？？";position:absolute;inset:0;display:grid;place-items:center;font-weight:700;color:#fff8;letter-spacing:.2em;z-index:4}
+.bc-it.lk .bc-nm{color:#9aa1b3}
+#bc-ov{position:fixed;inset:0;z-index:9000;display:none;place-items:center;background:#000d}#bc-ov.show{display:grid}
+#bc-ovb{opacity:0;transition:opacity 1.2s}#bc-ov.op #bc-ovb{opacity:1}#bc-ov.op #bc-ovb.ign{animation:bcign 2.6s ease-out both}
+@keyframes bcign{0%{opacity:0;filter:brightness(.15);transform:scale(1.14)}45%{opacity:1;filter:brightness(.55)}62%{filter:brightness(2.6)}100%{opacity:1;filter:brightness(1);transform:scale(1)}}
+.bc-card{position:relative;z-index:2;width:220px;height:300px;perspective:900px;cursor:pointer;background:none;border:0;padding:0;font:inherit;color:#fff}
+.bc-in{position:absolute;inset:0;display:block;transition:transform .8s cubic-bezier(.3,1.4,.5,1);transform-style:preserve-3d}
+#bc-ov.op .bc-in{transform:rotateY(180deg) scale(.9)}#bc-ov.op .bc-card{opacity:0;transition:opacity .5s .6s;pointer-events:none}
+.bc-face{position:absolute;inset:0;border-radius:18px;backface-visibility:hidden;display:grid;place-items:center;text-align:center;padding:16px}
+.bc-front{background:linear-gradient(145deg,#2a2f3f,#151821);border:2px solid #ff8a3d;box-shadow:0 0 30px #ff8a3d55;animation:bcsh 1.2s ease-in-out infinite}
+#bc-ov.boss .bc-front{border-color:#ffd36a;box-shadow:0 0 60px #ffd36aaa;background:linear-gradient(145deg,#3a2e10,#1a1408)}
+@keyframes bcsh{0%,100%{transform:rotate(0)}10%{transform:rotate(-3deg)}20%{transform:rotate(3deg)}30%{transform:rotate(0)}}
+.bc-seal{display:block;font-size:54px;line-height:1}.bc-ct,.bc-tap{display:block;margin-top:8px;font-size:13px;color:#9aa1b3}.bc-tap{color:#fff}
+.bc-back{transform:rotateY(180deg)}
+.bc-msg{position:absolute;z-index:3;bottom:8%;left:16px;right:16px;text-align:center;color:#fff;opacity:0;pointer-events:none;transition:opacity .6s .9s}#bc-ov.op .bc-msg{opacity:1;pointer-events:auto}#bc-ov.op.boss .bc-msg{transition-delay:2.3s}
+.bc-msg h3{margin:0;font-size:22px;text-shadow:0 2px 12px #000}.bc-msg p{margin:2px 0 12px;color:#ddd;text-shadow:0 1px 6px #000}
+.bc-msg button{font:inherit;border:0;border-radius:12px;padding:10px 18px;font-weight:700;margin:0 4px;font-size:15px;cursor:pointer}.bc-u{background:#ff8a3d;color:#1a1206}.bc-l{background:#fff2;color:#fff}
+#bc-cf{position:fixed;inset:0;pointer-events:none;z-index:3}
+.bc-skip{position:absolute;z-index:3;bottom:7%;left:50%;transform:translateX(-50%);font:inherit;font-size:14px;color:#fff;background:rgba(255,255,255,.14);border:0;border-radius:999px;padding:8px 22px;cursor:pointer}#bc-ov.op .bc-skip{display:none}
+@media (prefers-reduced-motion:reduce){.bc-front,.bcn-pend,.bcbtn::before,.bc-it.boss{animation:none!important}#bc-sheet{transition:none}}
+/* ===== ヒーロー別の戦績・称号目標 ===== */
+.fsum{margin:0}
+.ho-list{display:flex;flex-direction:column}
+.ho-r{font:inherit;color:var(--ink);background:none;border:0;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 3.2em 4.6em 4.4em;gap:6px;align-items:center;padding:8px 2px;text-align:right;cursor:pointer;font-variant-numeric:tabular-nums}
+.ho-r>span:first-child{text-align:left}
+.ho-r.ho-h{border-top:0;color:var(--muted);font-size:.75rem;cursor:default;padding-top:0}
+.ho-r.thin{opacity:.6}
+.ho-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ho-n small{color:var(--muted);font-size:.72rem}
+.ho-w{color:var(--win);font-weight:700}.ho-lo{color:var(--lose);font-weight:700}
+.tg-l{display:flex;flex-direction:column;gap:3px;font-size:.78rem;color:var(--muted)}
+.tg-l select,.tg-l input{font:inherit;font-size:15px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 8px}
+.tgp .kpis{grid-template-columns:repeat(3,1fr)}
+.tg-bar{height:10px;border-radius:99px;background:var(--soft);overflow:hidden}.tg-bar i{display:block;height:100%;background:var(--win);border-radius:99px}
+.tg-box{border:1px solid var(--line);border-radius:10px;padding:10px}.tg-box.hl{border-color:var(--accent)}.tg-box b{font-size:1.25rem}
+.tg-ok{color:var(--win)}.tg-ng{color:var(--lose)}
+
 </style>
 
 <div class="wrap">
   <header class="top">
     <div class="brand"><h1>【戦績摂理<img class="mark" alt="" src="data:image/png;base64,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">解析システム】</h1></div>
-      <div class="hbadge"><button type="button" id="sbadge" class="sbadge" hidden></button><button type="button" id="xbtn" class="xbtn" hidden title="データタブの「色・背景」へ">🎄 クリスマスの色へ</button></div>
+      <div class="hbadge"><button type="button" id="sbadge" class="sbadge" hidden></button><button type="button" id="xbtn" class="xbtn" hidden title="データタブの「色・背景」へ">🎄 クリスマスの色へ</button><button type="button" id="bcbtn" class="bcbtn" aria-haspopup="dialog">🖼 背景コレクション<span class="bcbd" id="bcbd"></span></button></div>
     <p class="lede intro">#コンパス 非公式戦績トラッカー ― リプレイの詳細画面のスクショから、どのステージ・どの相手に負けがちかを集計します。</p>
   </header>
 
@@ -482,6 +654,7 @@ body.viewing [data-del],body.viewing [data-ask],body.viewing [data-unseason],bod
           <input type="file" id="file" class="picker" accept="image/*" multiple aria-label="スクショを選ぶ">
         </div>
         <div class="row" style="gap:8px;align-items:center"><button class="btn ghost" data-act="mf-new">スクショなしで手入力する</button><span class="small muted">読み取れなかった試合や、スクショを撮り忘れた試合を登録できます</span></div>
+        <div id="bc-next" class="bcnext" hidden></div>
         <div class="pastehelp">
           <h3>選べないときは貼り付けで</h3>
           <p class="small muted" style="margin:0">写真アプリでスクショを開いて「コピー」→ 下の欄を長押しして「ペースト」。1枚ずつ貼っても、読み取った試合に追加されていきます。</p>
@@ -1428,6 +1601,333 @@ function saveWarn() {
 let pendingRestore = null;
 // フレンドのデータを見ている間（閲覧のみ）。この間は保存も同期もしない
 const view = { on: false, my: null, pend: '', lid: '', uid: '', name: '', at: 0, unsub: null };
+/* ---------- 背景コレクション（登録した試合数で背景が届く）。設定と解放の記録はこの端末だけに保存 ---------- */
+const BCX = (() => {
+let UID=0;
+const SVG=s=>`url('data:image/svg+xml,${encodeURIComponent(s).replace(/'/g,'%27').replace(/\(/g,'%28').replace(/\)/g,'%29')}')`;
+const GRAIN=SVG(`<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`);
+const NOISE=(w,h,fx,fy,oct,seed,a,b,rgb='1 1 1')=>{const [r,g,bb]=rgb.split(' ');return SVG(`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'><filter id='f' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='${fx} ${fy}' numOctaves='${oct}' seed='${seed}' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 ${r} 0 0 0 0 ${g} 0 0 0 0 ${bb} ${a} 0 0 0 ${b}'/></filter><rect width='100%' height='100%' filter='url(#f)'/></svg>`)};
+function rng(seed){let s=seed%2147483647||1;return()=>(s=s*16807%2147483647)/2147483647}
+function stars(seed,n,W,s0,s1,cols){const r=rng(seed),a=[];for(let i=0;i<n;i++){const x=Math.round(r()*W),y=Math.round(r()*1000),s=s0+r()*(s1-s0),sp=Math.max(0,(s-1)/2).toFixed(1),c=cols[Math.floor(r()*cols.length)];a.push(`${x}px ${y}px 0 ${sp}px ${c}`,`${x}px ${y+1000}px 0 ${sp}px ${c}`)}return a.join(',')}
+const sLayer=(seed,dens,W,s0,s1,cols,dur,op=1)=>`<b class="bc-sl" style="box-shadow:${stars(seed,Math.round(dens*W/1000),W,s0,s1,cols)};animation-duration:${dur}s;opacity:${op}"></b>`;
+function glints(seed,n,W,H,cols,s0=14,s1=26,yMax=1){const r=rng(seed);let h='';for(let i=0;i<n;i++)h+=`<b class="bc-gl" style="left:${(r()*W)|0}px;top:${(r()*H*yMax)|0}px;--s:${(s0+r()*(s1-s0))|0}px;--c:${cols[Math.floor(r()*cols.length)]};animation-duration:${(2+r()*3).toFixed(1)}s;animation-delay:-${(r()*5).toFixed(1)}s"></b>`;return h}
+const TOP=`<b class="bc-vig"></b><b class="bc-grn" style="background-image:${GRAIN}"></b>`;
+function ridge(seed,w,h,base,amp,step,fill,extra=''){const r=rng(seed);let p=`M0 ${h} L0 ${base}`,y=base;for(let x=0;x<=w;x+=step){y=Math.max(4,Math.min(h-4,y+(r()-.5)*amp));p+=` L${x} ${y.toFixed(1)}`}p+=` L${w} ${h}Z`;return `<path d='${p}' fill='${fill}'/>`+extra}
+const SKYW=['#ffffffb0','#d6e4ffa0','#fff0d8a0'],SKYM=['#fff','#dfe8ff','#ffe9cc'];
+
+// ===== 9つの背景 =====
+const SC={
+ n1:(W,H)=>`<b class="n1-sky"></b><b class="n1-hz"></b>
+  ${sLayer(11,420,W,1,1.4,SKYW,220)}${sLayer(12,150,W,1.4,2.2,SKYM,140)}${sLayer(13,40,W,2.4,3.2,['#fff','#cfe0ff'],85)}
+  ${glints(5,8,W,H,['#cfe0ff','#fff2d6','#ffffff'],12,22,.8)}${TOP}`,
+ n2:(W,H)=>`<b class="n2-sky"></b>${sLayer(21,300,W,1,1.6,SKYW,260,.55)}${sLayer(22,60,W,1.6,2.4,SKYM,170,.6)}
+  <b class="n2-halo"></b><b class="n2-moon"></b>
+  <b class="n2-cl" style="top:4%;height:44%;opacity:.42;background-image:${NOISE(800,400,'.0035','.011',4,3,2.6,-1.15,'.78 .84 .95')};animation-duration:150s"></b>
+  <b class="n2-cl" style="top:20%;height:36%;opacity:.3;background-image:${NOISE(800,300,'.005','.016',4,8,2.6,-1.2,'.7 .76 .9')};animation-duration:95s"></b>
+  <b class="n2-mt" style="background-image:${SVG(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200' preserveAspectRatio='none'>${ridge(4,400,200,90,34,10,'#1a2340')}${ridge(9,400,200,140,26,8,'#070a14')}</svg>`)}"></b>
+  <b class="n2-sea"></b><b class="n2-ref"></b>${TOP}`,
+ n3:(W,H)=>{const F=[[[.08,.12],[.2,.08],[.3,.15],[.27,.26],[.4,.3],[.46,.22]],[[.6,.2],[.72,.17],[.86,.24],[.8,.34],[.68,.31],[.6,.2]],[[.22,.64],[.34,.6],[.45,.67],[.56,.63],[.66,.72],[.52,.8],[.45,.67]]];
+  const fig=(pts,i)=>{const d=pts.map(p=>`${(p[0]*W).toFixed(1)},${(p[1]*H).toFixed(1)}`).join(' ');const dl=`animation-delay:-${(i*9+2)}s`;return `<polyline class="ln" pathLength="1" points="${d}" stroke="oklch(.8 .1 230/.35)" stroke-width="5" style="${dl};filter:blur(2px)"/><polyline class="ln" pathLength="1" points="${d}" stroke="oklch(.88 .08 230/.85)" stroke-width="1.2" style="${dl}"/>`};
+  let gl='';F.forEach((pts,i)=>pts.forEach((p,j)=>{if(j===pts.length-1&&i>0)return;gl+=`<b class="bc-gl" style="left:${(p[0]*W)|0}px;top:${(p[1]*H)|0}px;--s:${j%2?18:26}px;--c:${['#bcd6ff','#ffe2b0','#d8c8ff'][i]};animation-duration:${(2.5+j*.4).toFixed(1)}s;animation-delay:-${j}s"></b>`}));
+  return `<b class="n3-sky"></b>${sLayer(31,380,W,1,1.4,SKYW,300)}${sLayer(32,110,W,1.4,2.2,SKYM,200)}
+  <svg class="n3-gr" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><ellipse cx="${W/2}" cy="${H*1.15}" rx="${W*1.1}" ry="${H*.9}"/><ellipse cx="${W/2}" cy="${H*1.15}" rx="${W*.8}" ry="${H*.65}"/><ellipse cx="${W/2}" cy="${H*1.15}" rx="${W*.5}" ry="${H*.42}"/><ellipse cx="${W/2}" cy="${H*.1}" rx="${W*.15}" ry="${H*1.2}"/></svg>
+  <svg class="n3-cs" viewBox="0 0 ${W} ${H}">${F.map(fig).join('')}</svg>${gl}${TOP}`},
+ n4:(W,H)=>{const cur=(seed,c1,c2,c3,d,op,top)=>`<b class="n4-c" style="top:${top}%;opacity:${op};background:linear-gradient(to top,transparent 6%,${c1} 26%,${c2} 52%,${c3} 76%,transparent 96%);-webkit-mask-image:${NOISE(520,300,'.035','.0015',2,seed,3.4,-1.35)},linear-gradient(transparent,#000 18%,#000 70%,transparent);mask-image:${NOISE(520,300,'.035','.0015',2,seed,3.4,-1.35)},linear-gradient(transparent,#000 18%,#000 70%,transparent);animation-duration:${d}s;animation-delay:-${d/3}s"></b>`;
+  return `<b class="n4-sky"></b>${sLayer(41,320,W,1,1.5,SKYW,260,.8)}${sLayer(42,70,W,1.5,2.3,SKYM,170,.8)}
+  <b class="n4-g"></b>
+  ${cur(4,'oklch(.82 .19 158/.85)','oklch(.78 .15 185/.55)','oklch(.6 .17 300/.4)',24,1,2)}
+  ${cur(17,'oklch(.85 .17 165/.6)','oklch(.72 .14 205/.45)','oklch(.62 .2 320/.35)',31,.75,-4)}
+  ${cur(29,'oklch(.8 .19 150/.5)','oklch(.7 .15 175/.3)','transparent',19,.6,10)}
+  <b class="n4-mt" style="background-image:${SVG(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200' preserveAspectRatio='none'>${ridge(21,400,200,70,40,12,'#0e1a26')}${ridge(5,400,200,115,30,9,'#050a10')}</svg>`)}"></b><b class="n4-lk"></b>${TOP}`},
+ n5:(W,H)=>{const r=rng(55),g=()=>{let s=0;for(let i=0;i<4;i++)s+=r();return (s-2)/2};let a=[];const ww=W*2;
+  for(let i=0;i<Math.round(W*2.6);i++){const x=Math.round((r()-.5)*ww*1.6),y=Math.round(g()*H*(r()<.7?.07:.18)),s=.8+r()*(r()<.08?1.6:.7),c=['#fff','#ffe6c4','#ffd9a8','#d6e2ff','#ffc8e8'][Math.floor(r()*5)];a.push(`${x}px ${y}px 0 ${Math.max(0,(s-1)/2).toFixed(1)}px ${c}`)}
+  return `<b class="n5-sky"></b>${sLayer(51,300,W,1,1.4,SKYW,400,.75)}
+  <div class="n5-w"><b class="n5-band"></b><b class="n5-bs" style="width:1px;height:1px;border-radius:50%;box-shadow:${a.join(',')}"></b>
+   <b class="n5-dust" style="-webkit-mask-image:${NOISE(700,260,'.0045','.03',4,12,3.2,-1.55)},linear-gradient(transparent 47.5%,#000 49.5%,#000 50.6%,transparent 52.5%);mask-image:${NOISE(700,260,'.0045','.03',4,12,3.2,-1.55)},linear-gradient(transparent 47.5%,#000 49.5%,#000 50.6%,transparent 52.5%)"></b>
+   <b class="n5-bloom"></b></div>
+  ${glints(57,11,W,H,['#ffe6b8','#cfe0ff','#fff','#ffd0ef'],16,32,.85)}
+  <b class="bc-ss" style="left:72%;top:14%;animation-duration:9s"></b><b class="bc-ss" style="left:95%;top:34%;animation-duration:13s;animation-delay:-5s"></b><b class="bc-ss" style="left:60%;top:5%;animation-duration:17s;animation-delay:-11s"></b>
+  <b class="n5-hz" style="background-image:${SVG(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 100' preserveAspectRatio='none'>${ridge(33,400,100,60,22,6,'#05040a')}</svg>`)}"></b>${TOP}`},
+ d1:(W,H)=>{const r=rng(71),cx=W/2,cy=H*.28,cs=Math.min(W*.3,120),dim='oklch(.55 .09 205/.38)';let dimP='',pk='',pads='',pins='';
+  const route=(x,y,dx,dy,n)=>{const pts=[[x,y]];for(let k=0;k<n;k++){const L=(k===0?14:26+r()*60);x+=dx*L;y+=dy*L;pts.push([x,y]);if(k<n-1){const t=r()<.5?1:-1;if(dx===0){dx=t;}else{dy=t;}const L2=12+r()*24;x+=dx*L2;y+=dy*L2;pts.push([x,y]);if(Math.abs(dx)&&Math.abs(dy)){if(r()<.5)dx=0;else dy=0}}}return pts};
+  const pl=p=>p.map(q=>q[0].toFixed(1)+','+q[1].toFixed(1)).join(' ');
+  let flows=0;
+  for(const [sx,sy,dx,dy] of [[0,-1,0,-1],[0,1,0,1],[-1,0,-1,0],[1,0,1,0]])for(let i=0;i<7;i++){const o=(i-3)*cs/8;const x0=cx+sx*cs/2+(sx?0:o),y0=cy+sy*cs/2+(sy?0:o);pins+=`<line x1="${x0}" y1="${y0}" x2="${x0+dx*8}" y2="${y0+dy*8}" stroke="oklch(.75 .1 200/.8)" stroke-width="2.2"/>`;
+   const p=route(x0+dx*8,y0+dy*8,dx,dy,2+Math.floor(r()*3));const e=p[p.length-1];dimP+=`<polyline points="${pl(p)}"/>`;
+   if(r()<.42&&flows<12){flows++;const d=(2.2+r()*2.2).toFixed(2),dl=(r()*4).toFixed(2);pk+=`<polyline class="pk" pathLength="1" points="${pl(p)}" stroke="oklch(.85 .14 200/.28)" stroke-width="6" style="animation-duration:${d}s;animation-delay:-${dl}s"/><polyline class="pk" pathLength="1" points="${pl(p)}" stroke="#d8fbff" stroke-width="2" style="animation-duration:${d}s;animation-delay:-${dl}s"/>`;pads+=`<circle class="pf" cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="5" fill="oklch(.85 .14 200)" style="animation-duration:${d}s;animation-delay:-${dl}s"/>`}
+   pads+=`<circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="3.4" fill="none" stroke="${dim}" stroke-width="1.5"/>`}
+  for(let i=0;i<26;i++){let x=Math.round(r()*W/13)*13,y=Math.round((H*.5+r()*H*.5)/13)*13;const d=r()<.5?[1,0]:[0,1];const p=route(x,y,d[0]*(r()<.5?1:-1),d[1]*(r()<.5?1:-1),2);dimP+=`<polyline points="${pl(p)}"/>`;const e=p[p.length-1];pads+=`<circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="2.6" fill="${dim}"/>`}
+  const chip=`<rect x="${cx-cs/2}" y="${cy-cs/2}" width="${cs}" height="${cs}" rx="8" fill="oklch(.16 .03 220)" stroke="oklch(.75 .12 200/.7)" stroke-width="1.5"/><rect x="${cx-cs/2+12}" y="${cy-cs/2+12}" width="${cs-24}" height="${cs-24}" rx="4" fill="url(#cg)" stroke="oklch(.85 .13 200/.5)"/><text x="${cx}" y="${cy+4}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="${cs*.12}" fill="oklch(.9 .1 200/.85)" letter-spacing="2">◆ CORE</text>`;
+  return `<b class="d1-b"></b><b class="d1-gr"></b><b class="d1-cg"></b><svg class="d1-s" viewBox="0 0 ${W} ${H}"><defs><linearGradient id="cg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="oklch(.3 .07 205)"/><stop offset="1" stop-color="oklch(.18 .04 225)"/></linearGradient></defs><g fill="none" stroke="${dim}" stroke-width="1.6" stroke-linejoin="round">${dimP}</g>${pk}${pads}${pins}${chip}</svg><b class="bc-scan"></b>${TOP}`},
+ d2:(W,H)=>`<b class="d2-b"></b><canvas class="d2-cv d2-far"></canvas><canvas class="d2-cv d2-near"></canvas><b class="d2-fd"></b><b class="bc-scan"></b>${TOP}`,
+ d3:(W,H)=>{const sky=(seed,h,mn,mx,fill,win,rim)=>{const r=rng(seed);let s='',w='',f='',x=0;while(x<800){const bw=16+r()*36,bh=mn+r()*(mx-mn);s+=`<rect x='${x.toFixed(1)}' y='${(h-bh).toFixed(1)}' width='${(bw+.6).toFixed(1)}' height='${bh.toFixed(1)}'/>`;if(r()<.22)s+=`<rect x='${(x+bw/2-1).toFixed(1)}' y='${(h-bh-14-r()*16).toFixed(1)}' width='2' height='34'/>`;
+   if(rim&&r()<.35)w+=`<rect x='${x.toFixed(1)}' y='${(h-bh).toFixed(1)}' width='${bw.toFixed(1)}' height='1.6' fill='${r()<.5?'#ff4fd8':'#4ff0ff'}'/>`;
+   if(win)for(let wy=h-bh+7;wy<h-5;wy+=7)for(let wx=x+4;wx<x+bw-4;wx+=6)if(r()<win){const c=r()<.65?'#ffcf86':r()<.5?'#7ff4ff':'#ff7ad9',q=`<rect x='${wx.toFixed(1)}' y='${wy.toFixed(1)}' width='2.6' height='3.2' fill='${c}'/>`;if(r()<.12)f+=q;else w+=q}
+   x+=bw+(r()<.3?3:0)}
+   return [`<svg xmlns='http://www.w3.org/2000/svg' width='800' height='${h}'><g fill='${fill}'>${s}</g>${w}</svg>`,`<svg xmlns='http://www.w3.org/2000/svg' width='800' height='${h}'>${f}</svg>`]};
+  const L1=sky(81,260,50,190,'#2a1240',.05),L2=sky(82,230,30,140,'#160a26',.12),L3=sky(83,200,20,100,'#07030f',.22,1);
+  const rain=SVG(`<svg xmlns='http://www.w3.org/2000/svg' width='180' height='240'>${(()=>{const r=rng(9);let s='';for(let i=0;i<16;i++){const x=r()*180,y=r()*240,l=14+r()*22;s+=`<line x1='${x.toFixed(1)}' y1='${y.toFixed(1)}' x2='${x.toFixed(1)}' y2='${(y+l).toFixed(1)}' stroke='#a6dcff' stroke-opacity='${(.3+r()*.5).toFixed(2)}' stroke-width='1'/>`}return s})()}</svg>`);
+  const lay=(L,h,d,op)=>`<b class="d3-sk" style="height:${h}px;background-image:${SVG(L[0])};animation-duration:${d}s;opacity:${op}"></b><b class="d3-sk d3-fk" style="height:${h}px;background-image:${SVG(L[1])};animation-duration:${d}s,3.2s;animation-name:bccl,bcfk;animation-timing-function:linear,steps(1)"></b>`;
+  return `<b class="d3-sky"></b>${sLayer(91,120,W,1,1.5,['#ffffff90','#ffd0f0a0'],300,.7)}<b class="d3-sg"></b><b class="d3-sun"></b>
+  ${lay(L1,260,260,.95)}${lay(L2,230,170,1)}${lay(L3,200,110,1)}
+  <div class="d3-fl"><b class="d3-pl"></b></div><b class="d3-hl"></b><b class="d3-rn" style="background-image:${rain}"></b>${TOP}`},
+ d4:(W,H)=>{const hx=SVG(`<svg xmlns='http://www.w3.org/2000/svg' width='30' height='52'><path d='M15 0 L30 8.66 L30 25.98 L15 34.64 L0 25.98 L0 8.66Z M15 34.64 L15 52' fill='none' stroke='#7ff4ff' stroke-width='1'/></svg>`);
+  const r=rng(99);let hexs='';for(let i=0;i<60;i++)hexs+=(Math.floor(r()*256)).toString(16).toUpperCase().padStart(2,'0')+(i%6===5?' ◆ ':' ');
+  const C='oklch(.86 .13 200',A='oklch(.84 .16 75';
+  return `<b class="d4-b"></b><b class="d4-hx" style="background-image:${hx}"></b><b class="d4-xh"></b><b class="d4-xv"></b>
+  <div class="d4-c">
+   <b class="d4-bl" style="--d:70cqmin;background:radial-gradient(circle,${C}/.5),oklch(.6 .2 290/.18) 45%,transparent 70%)"></b>
+   <b class="bc-rg bc-rot" style="--d:96cqmin;--t:1.8cqmin;background:repeating-conic-gradient(${C}/.55) 0 .5deg,transparent .5deg 4deg);animation-duration:140s"></b>
+   <b class="bc-rg" style="--d:96cqmin;--t:.25cqmin;background:${C}/.35)"></b>
+   <b class="bc-rg bc-rot bc-rev" style="--d:82cqmin;--t:1.1cqmin;background:conic-gradient(from 10deg,${C}/.8) 0 17%,transparent 0 21%,${C}/.8) 0 39%,transparent 0 45%,${C}/.8) 0 46%,transparent 0 55%,${C}/.8) 0 79%,transparent 0);animation-duration:48s"></b>
+   <b class="bc-rot" style="--d:82cqmin;background:conic-gradient(from 0deg,transparent 0 76%,${C}/.06) 86%,${C}/.5) 100%);-webkit-mask:radial-gradient(circle,transparent 0 22%,#000 23%);mask:radial-gradient(circle,transparent 0 22%,#000 23%);animation-duration:5.5s"></b>
+   <svg class="bc-rot" viewBox="0 0 100 100" style="--d:72cqmin;animation-duration:80s;overflow:visible"><defs><path id="tp" d="M50 50 m-46 0 a46 46 0 1 1 92 0 a46 46 0 1 1 -92 0"/></defs><text font-family="ui-monospace,monospace" font-size="3.1" fill="${C}/.6)" letter-spacing=".4"><textPath href="#tp">${hexs}</textPath></text></svg>
+   <b class="bc-rg bc-rot" style="--d:64cqmin;--t:.9cqmin;background:conic-gradient(${A}) 0 13%,transparent 0 50%,${A}) 0 61%,transparent 0);filter:drop-shadow(0 0 1.4cqmin ${A}/.9));animation-duration:26s"></b>
+   <b class="bc-rg bc-rot bc-rev" style="--d:50cqmin;--t:.6cqmin;background:repeating-conic-gradient(${C}/.9) 0 2.5deg,transparent 2.5deg 7deg);animation-duration:13s"></b>
+   <b class="bc-rg" style="--d:40cqmin;--t:.3cqmin;background:${A}/.55)"></b>
+   <b class="d4-sh" style="--d:30cqmin"></b><b class="d4-sh" style="--d:30cqmin;animation-delay:-3s"></b>
+   <b class="bc-rot" style="--d:58cqmin;animation-duration:9s;background:radial-gradient(circle at 50% 0,#fff 0 .8cqmin,${C}) 1.2cqmin,transparent 2.4cqmin),radial-gradient(circle at 0 50%,${A}) 0 .6cqmin,transparent 1.6cqmin)"></b>
+   <b class="d4-core" style="--d:22cqmin;background:radial-gradient(circle,#fff 0 18%,oklch(.94 .1 195) 30%,oklch(.75 .17 230/.85) 48%,oklch(.55 .22 295/.5) 62%,transparent 72%)"></b>
+  </div>
+  <b class="d4-tx" style="left:5%;bottom:22%">SYNC   <i>98.2%</i>\nNODE   0x3F7A\nSTATE  <span class="d4-blink">■</span> ANALYZING</b>
+  <b class="d4-tx" style="right:5%;bottom:22%;text-align:right">CORE TEMP <i>412K</i>\nLINK  ▮▮▮▮▯\nv.2000</b>
+  <b class="bc-scan"></b>${TOP}`}
+};
+
+// ===== データの雨（キャンバス） =====
+const GLY='0123456789ABCDEF<>/=+*#ｱｲｳｴｵｶｷｸｹｺﾊﾋﾌﾍﾎ'.split('');
+const RAIN=new Set();let rainOn=false,rainT=0;
+function rainMake(cv,far,W,H){const dpr=Math.min(1.5,devicePixelRatio||1),sz=far?11:16;cv.width=W*dpr;cv.height=H*dpr;const x=cv.getContext('2d');x.scale(dpr,dpr);x.font=`${sz}px ui-monospace,Menlo,monospace`;x.textBaseline='top';
+ const n=Math.ceil(W/sz),r=rng(far?7:13);return {cv,x,far,W,H,sz,y:Array.from({length:n},()=>-r()*H/sz),sp:Array.from({length:n},()=>(far?.25:.4)+r()*(far?.3:.5)),pc:Array(n).fill(-1),pg:Array(n).fill('')}}
+function rainStep(o){const x=o.x;x.globalCompositeOperation='destination-out';x.fillStyle=`rgba(0,0,0,${o.far?.09:.11})`;x.fillRect(0,0,o.W,o.H);x.globalCompositeOperation='source-over';
+ for(let i=0;i<o.y.length;i++){o.y[i]+=o.sp[i];const c=Math.floor(o.y[i]);if(c===o.pc[i])continue;
+  if(o.pc[i]>=0){x.fillStyle=o.pg[i]==='◆'?'#ff8a3d':(o.far?'#1d8fa8':'#3fd8f5');x.fillText(o.pg[i],i*o.sz,o.pc[i]*o.sz)}
+  const g=Math.random()<.008?'◆':GLY[(Math.random()*GLY.length)|0];x.fillStyle=o.far?'#8fe9ff':'#effdff';x.shadowColor='#7ff4ff';x.shadowBlur=o.far?0:8;x.fillText(g,i*o.sz,c*o.sz);x.shadowBlur=0;o.pc[i]=c;o.pg[i]=g;
+  if(c*o.sz>o.H&&Math.random()>.94){o.y[i]=-Math.random()*12;o.pc[i]=-1}}}
+function rainLoop(t){if(!document.hidden&&t-rainT>33){rainT=t;for(const o of RAIN){if(!o.cv.isConnected){RAIN.delete(o);continue}rainStep(o)}}if(RAIN.size)requestAnimationFrame(rainLoop);else rainOn=false}
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function rainInit(el,live){const W=el.clientWidth,H=el.clientHeight;el.querySelectorAll('canvas').forEach(cv=>{const o=rainMake(cv,cv.classList.contains('d2-far'),W,H);for(let i=0;i<160;i++)rainStep(o);if(live&&!RM){RAIN.add(o);if(!rainOn){rainOn=true;requestAnimationFrame(rainLoop)}}})}
+function mount(el,id,live){el.className='bcx'+(live?'':' bc-still')+(id?' '+id:'');if(!id){el.innerHTML='';return}const W=el.clientWidth||390,H=el.clientHeight||844;el.innerHTML=SC[id](W,H).replace(/(id="|#)(tp|cg)\b/g,(m,a,b)=>a+b+'u'+(++UID));if(id==='d2')rainInit(el,live)}
+  const RMs = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.addEventListener('visibilitychange', () => document.documentElement.classList.toggle('bcp', document.hidden));
+  return { mount, reduce: RMs };
+})();
+// [解放する試合数, 名前, id, 章, 章の山場]。続きはここに足していく（1000戦ごとに章）
+const BC_LIST = [[100, '星の夜', 'n1', 1], [300, '月夜', 'n2', 1], [500, '星座', 'n3', 1], [750, 'オーロラ', 'n4', 1], [1000, '天の川', 'n5', 1, 1], [1250, '回路', 'd1', 2], [1500, 'データの雨', 'd2', 2], [1750, 'ネオン都市', 'd3', 2], [2000, '解析コア', 'd4', 2, 1]];
+const BC_CH = ['夜空', '電脳'];
+const BC_FY = { n2: '12%', n5: '40%', d1: '24%', d3: '62%', d4: '34%', n4: '40%' };
+const BC_KEY = DBKEY + '-bc';
+let bcS = { got: [], pend: [], cur: '', still: false };
+try { bcS = Object.assign(bcS, JSON.parse(localStorage.getItem(BC_KEY) || '{}')); } catch (e) {}
+const bcSave = () => { try { localStorage.setItem(BC_KEY, JSON.stringify(bcS)); } catch (e) {} };
+const bcB = id => BC_LIST.find(b => b[2] === id);
+// 解放は「この端末に今ある試合数」で判定。一度届いた背景は、試合を消しても残る
+// 新しく届いた分（登録の直後に開封を出すため。renderAll の中で先に届いていても拾う）
+const bcFresh = new Set();
+function bcCheck(open) {
+  if (view.on || !db || !db.matches) return;
+  const n = db.matches.length; let add = false;
+  for (const b of BC_LIST) if (b[0] <= n && !bcS.got.includes(b[2]) && !bcS.pend.includes(b[2])) { bcS.pend.push(b[2]); bcFresh.add(b[2]); add = true; }
+  if (add) bcSave();
+  bcBadge();
+  if (open && bcFresh.size) { bcFresh.clear(); setTimeout(bcOpenNext, 600); }
+}
+function bcNext() { const n = db.matches.length, nx = BC_LIST.find(b => b[0] > n), pv = [...BC_LIST].reverse().find(b => b[0] <= n); return { n, nx, p0: pv ? pv[0] : 0 }; }
+function bcBadge() {
+  const bt = document.getElementById('bcbtn'), bd = document.getElementById('bcbd');
+  if (bt) { bt.classList.toggle('has', bcS.pend.length > 0); bd.textContent = bcS.pend.length ? '🎁' + bcS.pend.length : ''; bt.setAttribute('aria-label', '背景コレクション' + (bcS.pend.length ? `（未開封${bcS.pend.length}個）` : '')); }
+  const el = document.getElementById('bc-next'); if (!el) return;
+  if (view.on || !db.matches.length) { el.hidden = true; return; }
+  const { n, nx, p0 } = bcNext();
+  el.hidden = false;
+  el.innerHTML = (nx ? `<div class="bcn-t">🖼 次の背景「${esc(nx[1])}」まで あと<b>${(nx[0] - n).toLocaleString('ja-JP')}</b>戦</div><div class="bcn-bar"><i style="width:${((n - p0) / (nx[0] - p0) * 100).toFixed(1)}%"></i></div>` : `<div class="bcn-t">🖼 今ある背景は、すべて届きました（続きは追加予定）</div>`)
+    + (bcS.pend.length ? `<button type="button" class="bcn-pend" data-bcopen="1">🎁 未開封の背景が ${bcS.pend.length}個 あります</button>` : '');
+}
+function bcApply() {
+  let el = document.getElementById('bc-bg');
+  if (!el) { el = document.createElement('div'); el.id = 'bc-bg'; el.setAttribute('aria-hidden', 'true'); document.body.insertBefore(el, document.body.firstChild); }
+  if (bcS.cur && !bcS.got.includes(bcS.cur)) bcS.cur = '';
+  BCX.mount(el, bcS.cur, !bcS.still && !BCX.reduce);
+  document.documentElement.classList.toggle('bc-on', !!bcS.cur);
+}
+function bcHTML() {
+  const { n, nx, p0 } = bcNext();
+  let h = `<p class="small muted" style="margin:0">登録した試合数で、画面の奥の背景が届きます。次の背景は、近づくほど見えてきます。この端末だけの設定です（データタブの「◆ 動く背景」とは別で、重ねて使えます）。</p>
+  <div class="bcn-t">${nx ? `いま${n.toLocaleString('ja-JP')}戦。次の背景「${esc(nx[1])}」まで あと<b>${(nx[0] - n).toLocaleString('ja-JP')}</b>戦` : `いま${n.toLocaleString('ja-JP')}戦。今ある背景は、すべて届きました（続きは追加予定）`}</div>
+  <div class="bcn-bar"><i style="width:${nx ? ((n - p0) / (nx[0] - p0) * 100).toFixed(1) : 100}%"></i></div>
+  ${bcS.pend.length ? `<button type="button" class="bcn-pend" data-bcopen="1">🎁 未開封の背景が ${bcS.pend.length}個 あります</button>` : ''}
+  <div class="row segs" style="flex-wrap:wrap"><span class="small muted">背景の動き</span><button class="seg${bcS.still ? '' : ' on'}" data-bcmove="1">動かす</button><button class="seg${bcS.still ? ' on' : ''}" data-bcmove="0">止める</button></div>`;
+  BC_CH.forEach((cn, ci) => {
+    const L = BC_LIST.filter(b => b[3] === ci + 1), k = L.filter(b => bcS.got.includes(b[2])).length;
+    h += `<div class="bc-ch"><div class="bc-chh">第${ci + 1}章　${n >= ci * 1000 || k ? cn : '？？？'}<small>${k}/${L.length}${k === L.length ? '　完結' : ''}</small></div><div class="bc-grid">`;
+    if (!ci) h += `<button type="button" class="bc-it${bcS.cur ? '' : ' on'}" data-bcset=""><span class="bc-pv"><span class="bc-sc bc-none"></span></span><span class="bc-nm">なし<small>いつもの背景</small></span></button>`;
+    for (const b of L) {
+      const own = bcS.got.includes(b[2]), pend = bcS.pend.includes(b[2]), isNext = nx && nx[2] === b[2], pr = isNext ? Math.max(0, (n - p0) / (b[0] - p0)) : 0;
+      const st = own ? '' : isNext ? `--bl:${(16 - 14 * pr).toFixed(1)}px;--br:${(.4 + .5 * pr).toFixed(2)}` : '--bl:22px;--br:.25';
+      const cls = ['bc-it', b[4] ? 'big boss' : '', own ? '' : 'lk', own || pend ? '' : isNext ? 'near' : 'far', bcS.cur === b[2] ? 'on' : ''].join(' ');
+      const sub = own ? `${b[0].toLocaleString('ja-JP')}戦で入手` : pend ? '未開封（押すと開けます）' : isNext ? `あと${(b[0] - n).toLocaleString('ja-JP')}戦（${Math.floor(pr * 100)}%見えています）` : `${b[0].toLocaleString('ja-JP')}戦`;
+      h += `<button type="button" class="${cls}" ${own ? `data-bcset="${b[2]}"` : pend ? 'data-bcopen="1"' : 'disabled'} style="${st}"><span class="bc-pv"><span class="bc-sc" data-bcid="${b[2]}" style="--fy:${BC_FY[b[2]] || '30%'}"></span>${b[4] ? '<span class="bc-tag">★ 章の山場</span>' : ''}</span><span class="bc-nm">${own || pend || isNext ? esc(b[1]) : '？？？'}<small>${sub}</small></span></button>`;
+    }
+    h += '</div></div>';
+  });
+  return h;
+}
+function bcThumbs(root) {
+  (root || document).querySelectorAll('.bc-sc[data-bcid]').forEach(sc => {
+    const w = sc.parentElement.clientWidth; if (!w) return;
+    sc.style.setProperty('--k', (w / 390).toFixed(3)); BCX.mount(sc, sc.dataset.bcid, false); sc.classList.add('bc-sc');
+  });
+}
+function bcRender() { const box = document.getElementById('bc-box'); if (!box || !document.body.classList.contains('bc-so')) return; box.innerHTML = bcHTML(); bcThumbs(box); }
+function bcSheet(open) {
+  let sh = document.getElementById('bc-sheet');
+  if (!sh) {
+    const bk = document.createElement('div'); bk.id = 'bc-shd'; document.body.appendChild(bk);
+    sh = document.createElement('div'); sh.id = 'bc-sheet'; sh.setAttribute('role', 'dialog'); sh.setAttribute('aria-modal', 'true'); sh.setAttribute('aria-label', '背景コレクション');
+    sh.innerHTML = '<div class="bc-grab"></div><div class="bc-shh"><b>🖼 背景コレクション</b><button type="button" class="bc-x" data-bcsheet="0" aria-label="閉じる">✕</button></div><div id="bc-box"></div>';
+    document.body.appendChild(sh); bk.addEventListener('click', () => bcSheet(false));
+  }
+  document.body.classList.toggle('bc-so', !!open);
+  if (open) { bcRender(); sh.scrollTop = 0; }
+}
+let bcOpening = null;
+function bcOv() {
+  let o = document.getElementById('bc-ov'); if (o) return o;
+  o = document.createElement('div'); o.id = 'bc-ov'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-modal', 'true');
+  o.innerHTML = `<div class="bcx" id="bc-ovb"></div><button type="button" class="bc-card" id="bc-cd" aria-label="タップして開ける"><span class="bc-in"><span class="bc-face bc-front"><span><span class="bc-seal" id="bc-sl">✉</span><span class="bc-ct" id="bc-ct"></span><span class="bc-tap">タップして開ける</span></span></span><span class="bc-face bc-back"></span></span></button>
+    <button type="button" class="bc-skip" data-bcclose="0">あとで</button>
+    <div class="bc-msg"><h3 id="bc-mt"></h3><p id="bc-mp"></p><button type="button" class="bc-u" data-bcclose="1">使う</button><button type="button" class="bc-l" data-bcclose="0">あとで</button></div><canvas id="bc-cf"></canvas>`;
+  document.body.appendChild(o); return o;
+}
+function bcOpenNext() {
+  if (!bcS.pend.length || view.on) return;
+  const b = bcB(bcS.pend[0]); if (!b) { bcS.pend.shift(); bcSave(); return bcOpenNext(); }
+  bcOpening = b; const o = bcOv();
+  o.className = 'show' + (b[4] ? ' boss' : ''); const ob = document.getElementById('bc-ovb'); ob.className = 'bcx'; ob.innerHTML = '';
+  document.getElementById('bc-sl').textContent = b[4] ? '👑' : '✉';
+  document.getElementById('bc-ct').textContent = `第${b[3]}章${b[4] ? '　章の山場' : ''}`;
+  document.getElementById('bc-mt').textContent = b[4] ? `第${b[3]}章 完結！「${b[1]}」` : `「${b[1]}」が届きました`;
+  document.getElementById('bc-mp').textContent = `${b[0].toLocaleString('ja-JP')}戦の登録で入手`;
+}
+function bcReveal() {
+  const o = document.getElementById('bc-ov'); if (!o || o.classList.contains('op') || !bcOpening) return;
+  const b = bcOpening, ob = document.getElementById('bc-ovb');
+  BCX.mount(ob, b[2], !BCX.reduce); if (b[4]) ob.classList.add('ign');
+  o.classList.add('op');
+  bcS.pend = bcS.pend.filter(x => x !== b[2]); if (!bcS.got.includes(b[2])) bcS.got.push(b[2]); bcSave();
+  setTimeout(() => bcConfetti(b[4] ? 240 : 60), b[4] ? 1600 : 200);
+}
+function bcClose(use) {
+  const o = document.getElementById('bc-ov'); if (!o) return;
+  const was = o.classList.contains('op'); // 開ける前に閉じた時は、続けて次を出さない
+  o.className = ''; document.getElementById('bc-ovb').innerHTML = '';
+  if (use && bcOpening) { bcS.cur = bcOpening[2]; bcSave(); bcApply(); }
+  bcBadge(); bcRender();
+  if (was && bcS.pend.length) setTimeout(bcOpenNext, 350);
+}
+function bcConfetti(n) {
+  if (BCX.reduce) return;
+  const c = document.getElementById('bc-cf'); if (!c) return; const x = c.getContext('2d'); c.width = innerWidth; c.height = innerHeight;
+  const col = ['#ff5f6d', '#ffd36a', '#5fdc97', '#5fb8ff', '#b07cff', '#fff'];
+  const P = Array.from({ length: n }, () => ({ x: c.width / 2 + (Math.random() - .5) * 60, y: c.height * .45, vx: (Math.random() - .5) * 16, vy: -6 - Math.random() * 13, s: 4 + Math.random() * 5, c: col[Math.random() * 6 | 0], r: Math.random() * 6 }));
+  let fr = 0; (function a() { x.clearRect(0, 0, c.width, c.height); P.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += .33; p.vx *= .99; p.r += .2; x.fillStyle = p.c; x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); x.restore(); }); if (++fr < 130) requestAnimationFrame(a); else x.clearRect(0, 0, c.width, c.height); })();
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-bcset],[data-bcopen],[data-bcmove],[data-bcclose],[data-bcsheet],#bc-cd,#bcbtn'); if (!t) return;
+  if (t.id === 'bcbtn') return bcSheet(true);
+  if (t.dataset.bcsheet !== undefined) return bcSheet(false);
+  if (t.id === 'bc-cd') return bcReveal();
+  if (t.dataset.bcclose !== undefined) return bcClose(t.dataset.bcclose === '1');
+  if (t.dataset.bcopen) return bcOpenNext();
+  if (t.dataset.bcmove !== undefined) { bcS.still = t.dataset.bcmove === '0'; bcSave(); bcApply(); bcRender(); return; }
+  if (t.dataset.bcset !== undefined) { bcS.cur = t.dataset.bcset; bcSave(); bcApply(); bcRender(); }
+});
+document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (document.getElementById('bc-ov')?.classList.contains('show')) bcClose(false); else if (document.body.classList.contains('bc-so')) bcSheet(false); });
+try { bcApply(); } catch (e) {}
+
+/* ---------- 称号目標（キャラごとの試合数の目標）。この端末だけに保存 ---------- */
+const TG_KEY = DBKEY + '-tgoal';
+let tgS = { cur: '', win: '30', h: {} };
+try { tgS = Object.assign(tgS, JSON.parse(localStorage.getItem(TG_KEY) || '{}')); } catch (e) {}
+const tgSave = () => { try { localStorage.setItem(TG_KEY, JSON.stringify(tgS)); } catch (e) {} };
+const TG_GOALS = [1000, 5000, 10000];
+function tgSpan(d) { if (d < 60) return `約${d}日`; const mm = Math.round(d / 30.4); if (mm < 12) return `約${mm}か月（約${d}日）`; const y = Math.floor(mm / 12), m = mm % 12; return `約${y}年${m ? m + 'か月' : ''}（約${d}日）`; }
+function titleGoalHTML(nm) {
+  const cnt = new Map();
+  for (const m of db.matches) { const k = mineOf(m); if (k == null || k === EMPTY) continue; cnt.set(String(k), (cnt.get(String(k)) || 0) + 1); }
+  if (!cnt.size) return '';
+  const keys = [...cnt.keys()].sort((a, b) => cnt.get(b) - cnt.get(a));
+  const hk = cnt.has(tgS.cur) ? tgS.cur : keys[0];
+  const name = k => { const x = db.matches.find(m => String(mineOf(m)) === k); return nm(x ? mineOf(x) : k); };
+  const rec = tgS.h[hk] || {};
+  const mine = db.matches.filter(m => String(mineOf(m)) === hk);
+  const f = v => v.toLocaleString('ja-JP');
+  let h = `<div class="section"><div class="panel tgp"><h2>称号目標</h2><p class="small muted" style="margin:0">ヒーローごとに、ゲーム内の試合数から1000戦・5000戦・10000戦までの残りと、今のペースで届く日を出します。入れた数字のあとにこのアプリへ登録した試合が、自動で足されます。この端末だけに保存されます。</p>`;
+  const sel = `<label class="tg-l">ヒーロー<select data-tg="hero">${keys.map(k => `<option value="${esc(k)}"${k === hk ? ' selected' : ''}>${esc(name(k))}</option>`).join('')}</select></label>`;
+  const base = rec.base;
+  const since = base != null ? mine.filter(m => (m.at || 0) > (rec.at || 0)).length : 0;
+  const cur = base != null ? base + since : null;
+  const inp = `<label class="tg-l">ゲーム内の現在の試合数<input type="number" inputmode="numeric" min="0" data-tg="base" value="${base != null ? base : ''}" placeholder="例：2013"></label>
+    <p class="small muted" style="margin:0">${base == null ? 'ゲームで見られる、このヒーローの今の試合数を入れてください。' : `入れた時点の${f(base)}戦に、その後このアプリへ登録した${since}戦を足しています。登録していない試合は足せないので、ずれたら入れ直してください。`}</p>`;
+  if (cur == null) return h + `<div class="fsum small muted">${esc(name(hk))}：ゲーム内の試合数を入れると使えます</div>${sel}${inp}</div></div>`;
+  const goal = rec.goal || TG_GOALS.find(g => g > cur) || 10000;
+  const rem = Math.max(0, goal - cur), r = Math.min(1, cur / goal);
+  const now = Date.now(), DAY = 864e5, ats = mine.map(m => m.at).filter(Boolean);
+  const first = ats.length ? Math.min(...ats) : now, days = Math.max(1, Math.ceil((now - first) / DAY));
+  const w30 = tgS.win !== 'all', per = w30 ? Math.min(30, days) : days, cn = w30 ? mine.filter(m => m.at && m.at > now - 30 * DAY).length : ats.length, pace = cn / per;
+  const eta = rem && pace > 0 ? Math.ceil(rem / pace) : null;
+  const dstr = d => { const x = new Date(now + d * DAY); return `${x.getFullYear()}/${x.getMonth() + 1}/${x.getDate()}`; };
+  h += `<div class="fsum small muted">${esc(name(hk))}：${rem ? `あと${f(rem)}戦${eta ? `・${tgSpan(eta)}で到達見込み` : ''}` : `${f(goal)}戦 達成済み 🎉`}</div>${sel}${inp}
+    <div class="tg-l">目標</div><div class="row segs">${TG_GOALS.map(g => `<button class="seg${g === goal ? ' on' : ''}" data-tggoal="${g}">${f(g)}戦</button>`).join('')}</div>
+    <div class="kpis"><div class="kpi"><div class="label">現在</div><div class="v">${f(cur)}<small>戦</small></div></div><div class="kpi"><div class="label">残り</div><div class="v">${f(rem)}<small>戦</small></div></div><div class="kpi"><div class="label">達成率</div><div class="v">${(r * 100).toFixed(1)}<small>%</small></div></div></div>
+    <div class="tg-bar"><i style="width:${(r * 100).toFixed(1)}%"></i></div>`;
+  if (!rem) return h + `<div class="tg-box hl"><b>🎉 ${f(goal)}戦 達成済み</b></div></div></div>`;
+  h += `<div class="tg-l">ペースの計算</div><div class="row segs"><button class="seg${w30 ? ' on' : ''}" data-tgwin="30">直近30日</button><button class="seg${w30 ? '' : ' on'}" data-tgwin="all">登録した全期間</button></div>
+    <div class="tg-box"><div class="small muted">今のペース（${w30 ? `直近${per}日` : `登録した${days}日`}）</div><b>${pace.toFixed(1)}戦/日</b><div class="small muted">${cn}戦 ÷ ${per}日（休んだ日も数えています。このアプリに登録した試合だけで計算します）</div></div>
+    <div class="tg-box hl">${eta ? `<div class="small muted">今のペースで続けると</div><b>${tgSpan(eta)}で到達</b><div class="small">${dstr(eta)}ごろ</div>` : '<div class="small muted">この期間は登録した試合がないので、ペースが出せません</div>'}</div>
+    <label class="tg-l">目標日（任意）<input type="date" data-tg="date" value="${rec.date || ''}"></label>`;
+  if (rec.date) {
+    const t0 = new Date(); t0.setHours(0, 0, 0, 0); const dd = Math.round((new Date(rec.date + 'T00:00:00') - t0) / DAY) + 1;
+    if (dd < 1) h += `<div class="tg-box"><div class="small">目標日が過ぎています。選び直してください</div></div>`;
+    else { const nd = rem / dd, x = pace > 0 ? nd / pace : null;
+      h += `<div class="tg-box"><div class="small muted">${rec.date.replace(/-/g, '/')}（${dd}日後）までに</div><b>1日 ${(Math.ceil(nd * 10) / 10).toFixed(1)}戦</b>${x == null ? '' : x <= 1 ? `<div class="small tg-ok">今のペースで間に合います（必要なのは今の${(x * 100).toFixed(0)}%）</div>` : `<div class="small tg-ng">今のペースの${x.toFixed(1)}倍が必要</div>`}</div>`; }
+  }
+  return h + '</div></div>';
+}
+document.addEventListener('change', e => {
+  const t = e.target; if (!t || !t.dataset || !t.dataset.tg) return;
+  const k = t.dataset.tg;
+  if (k === 'hero') tgS.cur = t.value;
+  else { const hk = (document.querySelector('[data-tg="hero"]') || {}).value; if (!hk) return; const rec = tgS.h[hk] = tgS.h[hk] || {};
+    if (k === 'base') { const v = parseInt(t.value, 10); if (isNaN(v) || v < 0) { delete rec.base; delete rec.at; } else { rec.base = v; rec.at = Date.now(); } }
+    if (k === 'date') { if (t.value) rec.date = t.value; else delete rec.date; } }
+  tgSave(); renderStats();
+});
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-tggoal],[data-tgwin],[data-hosort],[data-hoall]'); if (!t) return;
+  const v = document.getElementById('view-stats');
+  if (t.dataset.tggoal) { const hk = (document.querySelector('[data-tg="hero"]') || {}).value; if (!hk) return; (tgS.h[hk] = tgS.h[hk] || {}).goal = +t.dataset.tggoal; tgSave(); }
+  else if (t.dataset.tgwin) { tgS.win = t.dataset.tgwin; tgSave(); }
+  else if (t.dataset.hosort) v.dataset.hoSort = t.dataset.hosort;
+  else if (t.dataset.hoall) v.dataset.hoAll = v.dataset.hoAll === '1' ? '' : '1';
+  renderStats();
+});
+
+/* ---------- ヒーロー別の戦績（絞り込まずに全ヒーローを一覧。最初は閉じている） ---------- */
+function heroOverviewHTML(list, nm, el) {
+  const rows = tally(list, m => [mineOf(m)]); if (!rows.length) return '';
+  const tot = rows.reduce((a, r) => a + r.n, 0), byN = [...rows].sort((a, b) => b.n - a.n), top = byN[0];
+  const srt = el.dataset.hoSort === 'w' ? 'w' : 'n', all = el.dataset.hoAll === '1';
+  const L = srt === 'w' ? pickTop(rows, 1, Infinity) : byN, V = all ? L : L.slice(0, 5);
+  const p1 = (a, b) => b ? (a / b * 100).toFixed(1) : '0.0';
+  return `<div class="section"><div class="panel hop"><h2>ヒーロー別の戦績</h2><p class="small muted" style="margin:0">使ったヒーローごとの試合数・勝敗・勝率です。名前の横は使用率（そのヒーローの試合数 ÷ 全試合数）です。ヒーローを押すと、そのヒーローの分析に切り替わります。ステージ・対戦モードの絞り込みは反映します。${srt === 'w' ? '勝率順では、5試合以上のヒーローを先に並べます。' : ''}</p>
+    <div class="fsum small muted">${rows.length}体を使用。いちばん使ったのは${esc(nm(top.k))}（${top.n}試合・${p1(top.w, top.n)}%）</div>
+    <div class="row segs"><button class="seg${srt === 'n' ? ' on' : ''}" data-hosort="n">使用数順</button><button class="seg${srt === 'w' ? ' on' : ''}" data-hosort="w">勝率順</button></div>
+    <div class="ho-list"><div class="ho-r ho-h"><span>ヒーロー</span><span>試合</span><span>勝-敗</span><span>勝率</span></div>
+    ${V.map(r => `<button type="button" class="ho-r${r.n < MIN_N ? ' thin' : ''}" data-pickhero="${esc(r.k)}"><span class="ho-n">${esc(nm(r.k))} <small>${p1(r.n, tot)}%</small></span><span>${r.n}</span><span><b class="ho-w">${r.w}</b>-<b class="ho-lo">${r.l}</b></span><span>${p1(r.w, r.n)}%</span></button>`).join('')}</div>
+    ${rows.length > 5 ? `<button type="button" class="btn ghost" data-hoall="1">${all ? '上位5体だけにする' : `全${rows.length}体を見る`}</button>` : ''}</div></div>`;
+}
+
 /* ---------- 保存先：IndexedDB（容量が大きい）。使えないブラウザでは localStorage ---------- */
 // 古い試合の「同じスクショか」を見分ける縮小画像は消す（リプレイ一覧に出るのは直近の試合だけ。メダルを書き足せる試合は残す）
 const HASH_KEEP = 200;
@@ -2121,6 +2621,7 @@ function saveBatch() {
   cardNudgeShow();
   if (added) pubNudgeShow();
   renderAll();
+  if (added) try { bcCheck(true); } catch (e) {}
 }
 
 /* ---------- pt・グラフ ---------- */
@@ -2527,7 +3028,7 @@ function medalHTML(list) {
 }
 let sampleShow = false; // 記録が無い時の「例を見る」（この画面を開いている間だけ）
 // 分析タブの目次の名前（見出しから短く）
-const TOC_NAME = [[/の戦績$/, '戦績'], [/の分析$/, '概要'], [/^直近/, '直近'], [/^ヒーローの/, 'ヒーロー'], [/^デッキ/, 'デッキ'], [/^編成/, '編成'], [/^みんなの統計に提供/, '提供'], [/^みんなの統計$/, 'みんなの統計'], [/^連勝/, '連勝連敗'], [/推移（期間）/, '推移(期間)'], [/推移（試合数）/, '推移(試合数)'], [/勝率ランキング$/, 'ランキング'], [/^敵ヒーロー/, '敵ヒーロー'], [/^ランク別/, 'ランク別'], [/^敵ランク別/, '敵ランク'], [/^使ったヒーロー別/, 'ヒーロー別'], [/^ステージ勝率|ステージ の勝率/, 'ステージ'], [/^メダル/, 'メダル'], [/^カード/, 'カード']];
+const TOC_NAME = [[/^ヒーロー別の戦績/, 'ヒーロー別'], [/^称号目標/, '称号'], [/の戦績$/, '戦績'], [/の分析$/, '概要'], [/^直近/, '直近'], [/^ヒーローの/, 'ヒーロー'], [/^デッキ/, 'デッキ'], [/^編成/, '編成'], [/^みんなの統計に提供/, '提供'], [/^みんなの統計$/, 'みんなの統計'], [/^連勝/, '連勝連敗'], [/推移（期間）/, '推移(期間)'], [/推移（試合数）/, '推移(試合数)'], [/勝率ランキング$/, 'ランキング'], [/^敵ヒーロー/, '敵ヒーロー'], [/^ランク別/, 'ランク別'], [/^敵ランク別/, '敵ランク'], [/^使ったヒーロー別/, 'ヒーロー別'], [/^ステージ勝率|ステージ の勝率/, 'ステージ'], [/^メダル/, 'メダル'], [/^カード/, 'カード']];
 // シーズンの開始日を直す（試合は消えず、期間に入る試合が日付で入れ替わる）
 document.addEventListener('change', e => { const t = e.target; if (!t || !t.dataset || !t.dataset.ssdate) return; const se = seasonList().find(x => x.id === t.dataset.ssdate); if (!se) return;
   const msg = document.getElementById('sdmsg-' + se.id), di = document.getElementById('ssd-' + se.id), ti = document.getElementById('sst-' + se.id);
@@ -2543,7 +3044,7 @@ document.addEventListener('change', e => { const t = e.target; if (!t || !t.data
 // 目次（.stoc）をタブの真下に付けるため、タブの実際の高さを測って --tabsH に入れる
 (function () { const set = () => { const n = document.querySelector('nav.tabs'); if (n) document.documentElement.style.setProperty('--tabsH', n.offsetHeight + 'px'); };
   set(); window.addEventListener('resize', set); window.addEventListener('load', set); if (document.fonts && document.fonts.ready) document.fonts.ready.then(set); if (window.ResizeObserver) { const n = document.querySelector('nav.tabs'); if (n) new ResizeObserver(set).observe(n); } })();
-const statsUI = { help: new Set(), fold: new Set(), fopen: new Set() };
+const statsUI = { help: new Set(), fold: new Set(['f:ヒーロー別の戦績', 'f:称号目標']), fopen: new Set() };
 // 「絞り込み」の見出しの中のボタンは、押しても開閉しない
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.fdet>summary [data-act]')) e.preventDefault(); }, true);
 document.addEventListener('toggle', e => { const d = e.target; if (d && d.dataset && d.dataset.fd) { if (d.open) statsUI.fopen.add(d.dataset.fd); else statsUI.fopen.delete(d.dataset.fd); } }, true);
@@ -2572,7 +3073,7 @@ function statsPost(vid) {
     const key = 'f:' + h2.textContent.replace(/[0-9（）()？]/g, '').trim().slice(0, 30), folded = statsUI.fold.has(key);
     const kids = []; for (let n = head.nextElementSibling; n; n = n.nextElementSibling) kids.push(n);
     if (!kids.length) return;
-    const apply = f => kids.forEach(x => x.classList.toggle('fold-hide', f));
+    const apply = f => kids.forEach(x => x.classList.toggle('fold-hide', x.classList.contains('fsum') ? !f : f));
     const b = document.createElement('button'); b.type = 'button'; b.className = 'foldb'; b.setAttribute('aria-label', 'この欄を開閉'); b.setAttribute('aria-expanded', !folded); b.textContent = folded ? '▼' : '▲';
     apply(folded);
     b.addEventListener('click', () => { const f = !statsUI.fold.has(key); if (f) statsUI.fold.add(key); else statsUI.fold.delete(key); apply(f); b.textContent = f ? '▼' : '▲'; b.setAttribute('aria-expanded', !f); });
@@ -2710,6 +3211,8 @@ function renderStats0() {
     ${all.n && all.n < MIN_N ? `<p class="small muted" style="margin:0">まだ${all.n}試合なので、勝率はあまり当てになりません（目安は${MIN_N}試合以上）。</p>` : ''}
     ${real && all.n ? `<button class="drillbtn" data-drill='${esc(JSON.stringify(mkF({ hero: heroKey, stage: stageKey, mode: fMode !== 'all' ? fMode : '' })))}'>この条件の履歴を見る <span aria-hidden="true">›</span></button>` : ''}
   </div>`;
+  if (real && !view.on) h += titleGoalHTML(nm);
+  if (real) h += heroOverviewHTML(base, nm, el);
   if (real) h += medalHeroHTML(base);
   if (stageKey != null || (allStage && !allHero)) {
     // 選んだステージ（すべてのステージなら全試合）で、自分が使ったヒーローの勝率ランキング（モードの絞り込みは反映）
@@ -2895,13 +3398,6 @@ function heroSections(ms, hk, nm, sn, el) {
     (allMode ? '自分が使ったヒーローに関係なく、' : `${esc(hname)}を使ったとき、`) + (enAll ? '相手チームにいたヒーローの勝率ランキングです。上ほど勝ちやすい相手です。' : '相手チームにいたヒーローごとの勝率です。'));
   h += withDrill(D(k => mkF({ hero: hk, rank: k })), () => rankPanel(hm, allMode ? '' : `${esc(hname)}を使った試合だけで計算しています。`));
   h += enemyRankPanel(hm);
-  if (allMode) {
-    // 使ったヒーロー別の勝率（すべてのヒーローのときだけ）
-    const hs = tally(hm, m => [mineOf(m)]), hAll = el.dataset.heroAll === '1';
-    h += pnl('使ったヒーロー別の勝率', `<div class="statlist">${withDrill(D(k => mkF({ hero: k })), () => hAll ? rankRows(hs, nm) : topRows(pickTop(hs, 1, 3), nm))}</div>`
-      + (hs.length > 3 || hAll ? `<div class="row"><button class="btn ghost" data-act="hero-all">${hAll ? 'Top3だけにする' : `詳しく表示（全${hs.length}ヒーロー）`}</button></div>` : ''),
-      hAll ? '自分が使った全ヒーローの勝率ランキングです。' : '自分が使ったヒーローのうち、勝率が高いTop3です。5試合以上のヒーローを優先します。');
-  }
   return h;
 }
 
@@ -4065,6 +4561,7 @@ function mfSave() {
   m.ranksFix = true;
   if (!old) db.matches.push(m);
   persist(); renderAll(); mfClose();
+  if (!old) try { bcCheck(true); } catch (e) {}
   const pm = $('#prog-text'); if (!old && pm) { $('#prog-wrap').hidden = false; pm.textContent = '手入力の試合を1件登録しました。'; }
 }
 document.addEventListener('click', e => {
@@ -4077,7 +4574,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && mf) mfClose(); });
 
-function renderAll() { headIntro(); renderStats(); renderSeason(); renderOut(); renderHist(); renderData(); }
+function renderAll() { try { bcCheck(false); } catch (e) {} headIntro(); renderStats(); renderSeason(); renderOut(); renderHist(); renderData(); }
 
 /* ---------- イベント ---------- */
 function showTab(t) {
@@ -4465,7 +4962,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-16-BL', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-17-BN', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
