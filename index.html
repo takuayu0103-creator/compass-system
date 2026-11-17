@@ -62,6 +62,7 @@
 :root[data-skin="xmas"] .bar i.w{background:linear-gradient(90deg,#3fb877,#7bf0b0)}
 :root[data-skin="xmas"] .bar i.l{background:linear-gradient(90deg,#e8505b,#ff8a94)}
 /* ヘッダー右上：シーズンのバッジの下の「クリスマスの色へ」ボタン（どの色でも同じ見た目） */
+.hbtns{grid-column:1/-1;display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}.hbtns:empty{display:none}
 .hbadge{display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:0}
 .xbtn{font:inherit;font-weight:800;font-size:.7rem;line-height:1.2;padding:4px 11px;border-radius:20px;border:1px solid #f5d36a;background:linear-gradient(180deg,#ec5964,#c93644);color:#fff;cursor:pointer;white-space:nowrap;box-shadow:0 0 10px rgba(232,80,91,.5);animation:xglow 2.4s ease-in-out infinite}
 .xbtn[hidden]{display:none}
@@ -550,8 +551,13 @@ html.bc-on .panel{background-color:color-mix(in srgb,var(--surface) 84%,transpar
 .bcbtn{position:relative;font:inherit;font-weight:800;font-size:.7rem;line-height:1.2;padding:4px 11px;border-radius:20px;border:1px solid #8fb4ff;background:linear-gradient(135deg,#1b2a4a,#2a1b4a);color:#dfe8ff;cursor:pointer;white-space:nowrap;box-shadow:0 0 10px rgba(106,140,255,.45);overflow:hidden}
 .bcbtn::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.28) 50%,transparent 70%);background-size:250% 100%;animation:bcshn 3.2s ease-in-out infinite;pointer-events:none}
 @keyframes bcshn{from{background-position:130% 0}to{background-position:-30% 0}}
+.bcbtn.xm{background:linear-gradient(135deg,#7a1f2a,#17402a);border-color:#f5d36a;box-shadow:0 0 12px rgba(245,211,106,.55)}
+.dsg-tabs{margin:2px 0 10px}.dsg-sec h3{margin:0 0 4px;font-size:1rem}.dsg-sec+.dsg-sec{margin-top:6px;padding-top:12px;border-top:1px solid var(--line)}
+:root.bc-on[data-skin="xmas"] .panel{background-image:repeating-linear-gradient(135deg,#e8505b 0 8px,#f7f0e2 8px 16px),linear-gradient(color-mix(in srgb,var(--surface) 80%,transparent),color-mix(in srgb,var(--surface) 80%,transparent))}
 .bcbtn.has{padding-right:44px}.bcbd{display:none;position:absolute;right:5px;top:50%;transform:translateY(-50%);min-width:18px;padding:0 5px;height:17px;line-height:17px;border-radius:9px;background:#ffd36a;color:#1a1206;font-size:.66rem}.bcbtn.has .bcbd{display:block}
 body.viewing .bcbtn{display:none!important}
+.dsgb{background:linear-gradient(135deg,#1f3a3a,#1b2a4a);border-color:#7fe0c8;box-shadow:0 0 10px rgba(127,224,200,.4)}
+.dsgb::before{display:none}
 #bc-shd{position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s}
 #bc-sheet{position:fixed;left:0;right:0;bottom:0;max-width:760px;margin:0 auto;max-height:86vh;overflow:auto;overscroll-behavior:contain;z-index:8001;background:#141720;color:#e7e9f0;border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.14);padding:6px 14px calc(22px + env(safe-area-inset-bottom));transform:translateY(105%);visibility:hidden;transition:transform .35s cubic-bezier(.2,.9,.3,1),visibility 0s .35s;box-shadow:0 -10px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:10px;--ink:#e7e9f0;--muted:#9aa1b3;--line:#2e3341;--surface:#1c1f28;--soft:#242835;--accent:#ff8a3d;--accent-ink:#1a1206;--bg:#13151b}
 body.bc-so #bc-sheet{transform:none;visibility:visible;transition:transform .35s cubic-bezier(.2,.9,.3,1)}body.bc-so #bc-shd{opacity:1;pointer-events:auto}body.bc-so{overflow:hidden}
@@ -619,7 +625,8 @@ body.bc-so #bc-sheet{transform:none;visibility:visible;transition:transform .35s
 <div class="wrap">
   <header class="top">
     <div class="brand"><h1>【戦績摂理<img class="mark" alt="" src="data:image/png;base64,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">解析システム】</h1></div>
-      <div class="hbadge"><button type="button" id="sbadge" class="sbadge" hidden></button><button type="button" id="xbtn" class="xbtn" hidden title="データタブの「色・背景」へ">🎄 クリスマスの色へ</button><button type="button" id="bcbtn" class="bcbtn" aria-haspopup="dialog">🖼 背景コレクション<span class="bcbd" id="bcbd"></span></button></div>
+      <div class="hbadge"><button type="button" id="sbadge" class="sbadge" hidden></button></div>
+    <div class="hbtns"><button type="button" id="dsgbtn" class="bcbtn dsgb" aria-haspopup="dialog"><span id="dsgl">🎨 デザインテーマ</span></button><button type="button" id="bcbtn" class="bcbtn" aria-haspopup="dialog"><span id="bcbl">🖼 背景コレクション</span><span class="bcbd" id="bcbd"></span></button></div>
     <p class="lede intro">#コンパス 非公式戦績トラッカー ― リプレイの詳細画面のスクショから、どのステージ・どの相手に負けがちかを集計します。</p>
   </header>
 
@@ -1734,6 +1741,7 @@ function bcCheck(open) {
 }
 function bcNext() { const n = db.matches.length, nx = BC_LIST.find(b => b[0] > n), pv = [...BC_LIST].reverse().find(b => b[0] <= n); return { n, nx, p0: pv ? pv[0] : 0 }; }
 function bcBadge() {
+  try { xbtnSync(); } catch (e) {}
   const bt = document.getElementById('bcbtn'), bd = document.getElementById('bcbd');
   if (bt) { bt.classList.toggle('has', bcS.pend.length > 0); bd.textContent = bcS.pend.length ? '🎁' + bcS.pend.length : ''; bt.setAttribute('aria-label', '背景コレクション' + (bcS.pend.length ? `（未開封${bcS.pend.length}個）` : '')); }
   const el = document.getElementById('bc-next'); if (!el) return;
@@ -1749,10 +1757,11 @@ function bcApply() {
   if (bcS.cur && !bcS.got.includes(bcS.cur)) bcS.cur = '';
   BCX.mount(el, bcS.cur, !bcS.still && !BCX.reduce);
   document.documentElement.classList.toggle('bc-on', !!bcS.cur);
+  try { if (window.__fxApply) window.__fxApply(); } catch (e) {}
 }
 function bcHTML() {
   const { n, nx, p0 } = bcNext();
-  let h = `<p class="small muted" style="margin:0">登録した試合数で、画面の奥の背景が届きます。次の背景は、近づくほど見えてきます。この端末だけの設定です（データタブの「◆ 動く背景」とは別で、重ねて使えます）。</p>
+  let h = `<p class="small muted" style="margin:0">登録した試合数で、画面の奥の背景が届きます。次の背景は、近づくほど見えてきます。この端末だけの設定で、デザインテーマの色とは重ねて使えます。</p>
   <div class="bcn-t">${nx ? `いま${n.toLocaleString('ja-JP')}戦。次の背景「${esc(nx[1])}」まで あと<b>${(nx[0] - n).toLocaleString('ja-JP')}</b>戦` : `いま${n.toLocaleString('ja-JP')}戦。今ある背景は、すべて届きました（続きは追加予定）`}</div>
   <div class="bcn-bar"><i style="width:${nx ? ((n - p0) / (nx[0] - p0) * 100).toFixed(1) : 100}%"></i></div>
   ${bcS.pend.length ? `<button type="button" class="bcn-pend" data-bcopen="1">🎁 未開封の背景が ${bcS.pend.length}個 あります</button>` : ''}
@@ -1778,17 +1787,26 @@ function bcThumbs(root) {
     sc.style.setProperty('--k', (w / 390).toFixed(3)); BCX.mount(sc, sc.dataset.bcid, false); sc.classList.add('bc-sc');
   });
 }
-function bcRender() { const box = document.getElementById('bc-box'); if (!box || !document.body.classList.contains('bc-so')) return; box.innerHTML = bcHTML(); bcThumbs(box); }
-function bcSheet(open) {
+let dsgTab = 'th';
+function bcRender() {
+  const box = document.getElementById('bc-box'); if (!box || !document.body.classList.contains('bc-so')) return;
+  const fb = document.getElementById('fx-btn'), hd = document.getElementById('fx-hold'); if (fb && hd) hd.appendChild(fb);
+  const hasTh = skinVisible(), tb = hasTh ? dsgTab : 'bc', pn = bcS.pend.length;
+  box.innerHTML = (!hasTh ? '' : `<div class="row segs dsg-tabs"><button class="seg${tb === 'th' ? ' on' : ''}" data-dsgtab="th">デザインテーマ</button><button class="seg${tb === 'bc' ? ' on' : ''}" data-dsgtab="bc">背景コレクション${pn ? ` 🎁${pn}` : ''}</button></div>`)
+    + (tb === 'th' ? `<div class="dsg-sec">${skinHTML()}</div>` : `${hasTh ? '' : `<div class="dsg-sec">${fxHTML()}</div>`}<div class="dsg-sec">${bcHTML()}</div>`); if (tb === 'bc') bcThumbs(box);
+  const sl = document.getElementById('fx-slot'); if (fb && sl) sl.appendChild(fb);
+}
+function bcSheet(open, tab) {
   let sh = document.getElementById('bc-sheet');
   if (!sh) {
     const bk = document.createElement('div'); bk.id = 'bc-shd'; document.body.appendChild(bk);
-    sh = document.createElement('div'); sh.id = 'bc-sheet'; sh.setAttribute('role', 'dialog'); sh.setAttribute('aria-modal', 'true'); sh.setAttribute('aria-label', '背景コレクション');
-    sh.innerHTML = '<div class="bc-grab"></div><div class="bc-shh"><b>🖼 背景コレクション</b><button type="button" class="bc-x" data-bcsheet="0" aria-label="閉じる">✕</button></div><div id="bc-box"></div>';
+    sh = document.createElement('div'); sh.id = 'bc-sheet'; sh.setAttribute('role', 'dialog'); sh.setAttribute('aria-modal', 'true'); sh.setAttribute('aria-label', 'デザイン');
+    sh.innerHTML = '<div class="bc-grab"></div><div class="bc-shh"><b>🎨 デザイン</b><button type="button" class="bc-x" data-bcsheet="0" aria-label="閉じる">✕</button></div><div id="bc-box"></div>';
     document.body.appendChild(sh); bk.addEventListener('click', () => bcSheet(false));
   }
   document.body.classList.toggle('bc-so', !!open);
-  if (open) { bcRender(); sh.scrollTop = 0; }
+  if (!open) { const fb = document.getElementById('fx-btn'), hd = document.getElementById('fx-hold'); if (fb && hd) hd.appendChild(fb); }
+  if (open) { dsgTab = tab || (bcS.pend.length ? 'bc' : dsgTab); bcRender(); sh.scrollTop = 0; }
 }
 let bcOpening = null;
 function bcOv() {
@@ -1833,8 +1851,10 @@ function bcConfetti(n) {
   let fr = 0; (function a() { x.clearRect(0, 0, c.width, c.height); P.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += .33; p.vx *= .99; p.r += .2; x.fillStyle = p.c; x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); x.restore(); }); if (++fr < 130) requestAnimationFrame(a); else x.clearRect(0, 0, c.width, c.height); })();
 }
 document.addEventListener('click', e => {
-  const t = e.target.closest && e.target.closest('[data-bcset],[data-bcopen],[data-bcmove],[data-bcclose],[data-bcsheet],#bc-cd,#bcbtn'); if (!t) return;
-  if (t.id === 'bcbtn') return bcSheet(true);
+  const t = e.target.closest && e.target.closest('[data-bcset],[data-bcopen],[data-bcmove],[data-bcclose],[data-bcsheet],[data-dsgtab],#bc-cd,#bcbtn,#dsgbtn'); if (!t) return;
+  if (t.id === 'bcbtn') return bcSheet(true, 'bc');
+  if (t.id === 'dsgbtn') return bcSheet(true, 'th');
+  if (t.dataset.dsgtab) { dsgTab = t.dataset.dsgtab; bcRender(); return; }
   if (t.dataset.bcsheet !== undefined) return bcSheet(false);
   if (t.id === 'bc-cd') return bcReveal();
   if (t.dataset.bcclose !== undefined) return bcClose(t.dataset.bcclose === '1');
@@ -3870,13 +3890,12 @@ document.getElementById('sbadge').addEventListener('click', () => {
   if (id) openSeasons.add(id); else el.dataset.form = '1';
   showTab('season'); renderSeason(); window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 });
-// 「クリスマスの色へ」：クリスマスの色を出している間、選んでいない人に出す。押すとデータタブの「色・背景」へ飛ぶ
-function xbtnSync() { const b = document.getElementById('xbtn'); if (b) b.hidden = !(XMAS_ON && skinNow() !== 'xmas'); }
-document.getElementById('xbtn').addEventListener('click', () => {
-  if (view.on) return;
-  showTab('data');
-  requestAnimationFrame(() => { const el = document.getElementById('skin-sec'); if (!el || el.hidden) return; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 2300); });
-});
+// ヘッダーの「デザイン」ボタン：クリスマスの色を出している間、選んでいない人には赤緑に光って誘導する
+function xbtnSync() {
+  const b = document.getElementById('dsgbtn'), l = document.getElementById('dsgl'); if (!b || !l) return;
+  b.hidden = !skinVisible();
+  const x = !!(XMAS_ON && skinNow() !== 'xmas'); b.classList.toggle('xm', x); l.textContent = x ? '🎄 クリスマスの色へ' : '🎨 デザインテーマ';
+}
 setInterval(seasonBadge, 60000);
 // シーズンの目標：目標のランクまであと何pt、今のペースであと何試合か
 function goalInfo(se, sm) {
@@ -4201,19 +4220,15 @@ function cardNameHTML(el) {
 function headIntro() { document.body.classList.toggle('hasdata', !!(db && db.matches && db.matches.length)); }
 function renderData() {
   renderData0();
-  const fb = document.getElementById('fx-btn'), sl = document.getElementById('fx-slot'); if (fb && sl) sl.appendChild(fb);
 }
 function renderData0() {
   const el = $('#view-data');
-  { const fb = document.getElementById('fx-btn'), hd = document.getElementById('fx-hold'); if (fb && hd) hd.appendChild(fb); }
   const hcnt = new Map(); for (const m of db.matches) for (const x of new Set(m.blue.concat(m.red))) hcnt.set(x, (hcnt.get(x) || 0) + 1);
   const used = new Set(hcnt.keys());
   const hs = db.heroes.filter(h => used.has(h.id)).sort((a, b) => heroOrd(a.id) - heroOrd(b.id) || a.name.localeCompare(b.name, 'ja'));
   el.innerHTML = `
   <div class="section"><div class="panel" id="sync-box">${syncHTML()}</div></div>
   <div class="section"><div class="panel" id="pub-box-d">${pubHTML(true)}</div></div>
-  <div class="section"><div class="panel"><h2>背景</h2><p class="small muted" style="margin:0 0 8px">ロゴの◆が回って、薄い◆が浮かぶ飾りです。この端末だけの設定です。</p><div id="fx-slot"></div></div></div>
-  <div class="section" id="skin-sec"${skinVisible() ? '' : ' hidden'}><div class="panel" id="skin-box">${skinHTML()}</div></div>
   <div class="section"><div class="panel"><h2>バックアップ</h2>
     <p class="small muted" style="margin:0">記録はこのブラウザの中にだけあります。ブラウザのデータを消すと戦績も消えるので、ときどき下の文字列をコピーしてメモ帳などに保存してください。</p>
     <textarea id="backup-out" readonly aria-label="バックアップ用の文字列" placeholder="「コピー」を押すと、ここにバックアップの文字列が入ります"></textarea>
@@ -4264,7 +4279,7 @@ function renderGuide() {
       <li><b>シーズン外：</b>フリーバトルやカスタムバトル、シーズン期間外のバトルアリーナなど、シーズンptに入らない試合です。試合ごとにメモを書けます。</li>
       <li><b>統計：</b>提供に同意した人の試合をまとめた、みんなの統計です。「絞り込み」は最初は閉じていて、押すと開きます（条件を変えている時は「変更中」と出ます）。シーズン（「全期間」「シーズン外」「各シーズン」から選べます）・ランク（複数選べます）・対戦モードごとに、ヒーローの使用率と勝率、ヒーローごとのカードとメダルの使用率、ステージの勝率を見られます。ヒーローの欄は「使用率」と「勝率」を切り替えられ、使用率ではn回/全体の回数も出ます。上の「最終更新」と、カード・メダルの「何人中何人」で、集計の新しさと元の人数を確かめられます。同じ試合は1回だけ数え、自分とフレンド連携した固定の仲間のデッキが同じ時も1回にまとめます。「デッキの勝率」では、ヒーローを選ぶと、カード4枚の組み合わせごとの勝率・試合数・計人数が、勝率の高い順（1位から）に出ます。カード名は1枚ずつ縦に並びます（4枚とも名前が分かっていて、2試合以上あるデッキだけ。引き分けは数えません。「期間ごと」の指定中は出ません）。タブの下の「目次」で欄に飛べ、欄の名前の横の「▲」で閉じたり開いたりできます。カードの絵は、提供者から送られた小さな切り抜きも使います。カードとメダルの使用率には「期間ごと」のボタンがあり、ONにすると、毎月25日〜翌月24日を1期間として、1ヶ月・3ヶ月・6ヶ月・1年（または1ヶ月刻みで好きな長さ）でまとめて見られます。◀▶で前後の期間に動けます。この表では、シーズンの内外と対戦モードを、ボタンの下の欄で別に選べます。提供するかどうかは、統計タブかデータタブで選べます（最初は「提供しない」）。</li>
       <li><b>履歴：</b>登録した全試合を、新しい順に見られます。ヒーロー・ステージ・対戦モード・敵ヒーロー・自分のランクで絞り込めます。試合の削除もここでできます（削除は元に戻せません）。</li>
-      <li><b>データ：</b>ログイン、フレンド連携、バックアップと復元、ヒーロー名の修正、カードの名前付け、背景の飾り（「◆ 動く背景」のON/OFF）、全データの削除があります。</li>
+      <li><b>データ：</b>ログイン、フレンド連携、バックアップと復元、ヒーロー名の修正、カードの名前付け、（背景・色は、ヘッダーの「デザイン」から）、全データの削除があります。</li>
     </ul>`)}
   ${acc('3. フレンド連携', `
     <p>連携すると、お互いの戦績を見られます（見るだけで、編集はできません）。メモは共有されません。どちらからでも、いつでも解除できます。</p>
@@ -4746,8 +4761,8 @@ document.addEventListener('click', e => {
   else if (act === 'discard') { batch = null; rebuildCache(); renderReview(); $('#prog-wrap').hidden = true; }
   else if (t.dataset.ask !== undefined && !t.dataset.del) { $('#view-hist').dataset.ask = t.dataset.ask; renderHist(); }
   else if (t.dataset.del) { db.matches = db.matches.filter(m => m.id !== t.dataset.del); $('#view-hist').dataset.ask = ''; persist(); renderAll(); }
-  else if (act === 'skin') { skinSet(t.dataset.skin); syncRender(); }
-  else if (act === 'fxv') { fxvSet(t.dataset.v); syncRender(); }
+  else if (act === 'skin') { skinSet(t.dataset.skin); syncRender(); try { bcRender(); } catch (e) {} }
+  else if (act === 'fxv') { fxvSet(t.dataset.v); syncRender(); try { bcRender(); } catch (e) {} }
   else if (act === 'copy') {
     const ta = $('#backup-out'), str = JSON.stringify(db), big = str.length > 300000;
     // 大きいときは欄に入れない（描画で固まるため）。クリップボードへ直接送る
@@ -4962,7 +4977,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-17-BN', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-17-BR', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -5429,7 +5444,7 @@ function syncRender(msg, err) {
   try { fxSync(); } catch (e) {}
   if (msg !== undefined) { syncS.msg = msg; syncS.err = !!err; }
   const el = document.getElementById('sync-box'); if (el) el.innerHTML = syncHTML();
-  const sb = document.getElementById('skin-box'); if (sb) { sb.innerHTML = skinHTML(); const ss = document.getElementById('skin-sec'); if (ss) ss.hidden = !skinVisible(); }
+  try { bcRender(); } catch (e) {}
   whoRender();
 }
 function syncLoad() {
@@ -5714,10 +5729,12 @@ const FXV_KEY = 'senseki-fxv';
 const fxvGet = () => { try { const v = localStorage.getItem(FXV_KEY) || ''; return FXV[v] ? v : 'diamond'; } catch (e) { return 'diamond'; } };
 function fxvSet(v) { try { if (v && v !== 'diamond') localStorage.setItem(FXV_KEY, v); else localStorage.removeItem(FXV_KEY); } catch (e) {} if (window.__fxRefresh) window.__fxRefresh(); }
 // いまは管理者（開発者）だけが選べる。管理者でなくなったら元に戻す
-const skinHTML = () => !skinVisible() ? '' : `<h2>色・背景${isAdmin() ? '（開発者用）' : canSkin() ? '' : '（期間限定）'}</h2><p class="small muted" style="margin:0">この端末の見た目だけが変わります。シーズン総括の画像にも反映されます。</p>
-  <div class="row segs" style="margin-top:8px;flex-wrap:wrap">${skinKeys().map(k => `<button class="seg${(skinNow() || 'base') === k ? ' on' : ''}" data-act="skin" data-skin="${k}">${SKINS[k].n}</button>`).join('')}</div>${!canSkin() ? '' : `
+const skinThemeHTML = () => !skinVisible() ? '' : `<h3>デザインテーマ${isAdmin() ? '（開発者用）' : canSkin() ? '' : '（期間限定）'}</h3><p class="small muted" style="margin:0">色や飾りが変わります。この端末の見た目だけが変わり、シーズン総括の画像にも反映されます。背景は「背景コレクション」で別に選べます。</p>
+  <div class="row segs" style="margin-top:8px;flex-wrap:wrap">${skinKeys().map(k => `<button class="seg${(skinNow() || 'base') === k ? ' on' : ''}" data-act="skin" data-skin="${k}">${SKINS[k].n}</button>`).join('')}</div>`;
+const fxHTML = () => `<h3 style="margin-top:${skinVisible() ? 14 : 0}px">◆ 動く背景</h3><p class="small muted" style="margin:0 0 8px">ロゴの◆が回って、薄い◆が浮かぶ飾りです。背景コレクションの背景を使っている間は止まります。</p><div id="fx-slot"></div>${!canSkin() ? '' : `
   <p class="small muted" style="margin:10px 0 0">動く背景の種類（「◆ 動く背景」がONの時に出ます）</p>
   <div class="row segs" style="margin-top:6px;flex-wrap:wrap">${Object.keys(FXV).map(k => `<button class="seg${fxvGet() === k ? ' on' : ''}" data-act="fxv" data-v="${k}">${FXV[k]}</button>`).join('')}</div>`}`;
+const skinHTML = () => skinThemeHTML() + (skinVisible() ? fxHTML() : '');
 const ADMIN_UIDS = ['OHVoIZI3n7cioMO8ZvsU89Kr7qv1'];
 // アビリティ固定の編成（ヒーロー名は集計データと同じ公式の書き方）
 const COMP_NAMED = [['リリカ', 'マルコス’55'], ['鏡音 リン', '鏡音 レン'], ['アダム=ユーリエフ', 'ソーン=ユーリエフ'], ['リリカ', 'ルルカ'], ['芥川 龍之介', '中島 敦'], ['キリト', 'アスナ'], ['レム', 'ラム'], ['ベル・クラネル', 'アイズ・ヴァレンシュタイン'], ['アミスター=バランディン', 'マリア=S=レオンブルク']], COMP_MIN = 10;
@@ -6660,9 +6677,11 @@ storeInit().then(() => {
   }
   function goldTopOff() { if (window.__goldTop) { window.__goldTop.c.remove(); window.__goldTop = null; } }
   function stop() { cancelAnimationFrame(raf); raf = 0; goldTopOff(); if (cv) { cv.remove(); cv = null; cx = null; } logo.style.transform = ''; logo.style.filter = ''; }
-  function apply() { btn.setAttribute('aria-pressed', on ? 'true' : 'false'); btn.textContent = '◆ 動く背景：' + (on ? 'ON' : 'OFF'); if (on && !document.hidden) start(); else stop(); }
+  const bcOn = () => document.documentElement.classList.contains('bc-on');
+  function apply() { btn.setAttribute('aria-pressed', on ? 'true' : 'false'); btn.textContent = '◆ 動く背景：' + (on ? 'ON' : 'OFF') + (on && bcOn() ? '（背景コレクション中は止まっています）' : ''); if (on && !bcOn() && !document.hidden) start(); else stop(); }
+  window.__fxApply = apply;
   btn.addEventListener('click', () => { on = !on; try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {} apply(); });
-  document.addEventListener('visibilitychange', () => { if (on) { if (document.hidden) { cancelAnimationFrame(raf); raf = 0; } else if (!raf) start(); } });
+  document.addEventListener('visibilitychange', () => { if (on && !bcOn()) { if (document.hidden) { cancelAnimationFrame(raf); raf = 0; } else if (!raf) start(); } });
   addEventListener('resize', () => { if (cv) size(); });
   const go = () => apply(); if (logo.complete) go(); else logo.addEventListener('load', go, { once: true });
 })();
