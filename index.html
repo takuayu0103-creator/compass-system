@@ -28,6 +28,7 @@
   --win:#43c682; --lose:#ff6f80; --draw:#9aa1b3; --soft:#242835; color-scheme:dark}
 :root[data-skin="gold"]{--bg:#17130a;--surface:#221b0d;--ink:#fbf1d2;--muted:#b9a672;--line:#5a4719;--stripe:rgba(245,197,66,.05);--blue:#7088ff;--red:#ff5d66;--accent:#f5c542;--accent-ink:#241a00;--win:#43c682;--lose:#ff6f80;--draw:#b9a672;--soft:#2c2410;color-scheme:dark}
 :root[data-skin="sakura"]{--bg:#fbeef2;--surface:#fff8fa;--ink:#3a1f2b;--muted:#8d6676;--line:#efc3d0;--stripe:rgba(224,69,123,.05);--blue:#1f3fd1;--red:#d8232f;--accent:#e0457b;--accent-ink:#fff;--win:#16814a;--lose:#b02a3c;--draw:#8d6676;--soft:#f7dde6;color-scheme:light}
+:root[data-skin="light"]{--bg:#f2f2f4;--surface:#ffffff;--ink:#191b21;--muted:#686e7d;--line:#dcdce2;--stripe:rgba(25,27,33,.04);--blue:#3b5bff;--red:#e5343e;--accent:#f07d1e;--accent-ink:#1a1206;--win:#18a058;--lose:#d92c38;--draw:#686e7d;--soft:#ececf0;color-scheme:light}
 :root[data-skin="team"]{--bg:#0f1430;--surface:#171d45;--ink:#eaf0ff;--muted:#98a4dc;--line:#2f3a82;--stripe:rgba(112,136,255,.07);--blue:#7088ff;--red:#ff5d66;--accent:#ff5d66;--accent-ink:#fff;--win:#43c682;--lose:#ff8a96;--draw:#98a4dc;--soft:#1f2756;color-scheme:dark}
 :root[data-skin="maru"]{--bg:#171419;--surface:#221e26;--ink:#f4ece6;--muted:#b3a5a8;--line:#3b3446;--stripe:rgba(255,200,170,.025);--blue:#7088ff;--red:#ff5d66;--accent:#ffa05c;--accent-ink:#2a1500;--win:#43c682;--lose:#ff6f80;--draw:#b3a5a8;--soft:#2c2732;color-scheme:dark;--f-ui:"Zen Maru Gothic","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-display:"Zen Maru Gothic","Archivo","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-body:"Zen Maru Gothic","Hiragino Sans","Noto Sans JP",system-ui,sans-serif}
 :root[data-skin="dot"]{--bg:#101612;--surface:#17211b;--ink:#dcf2d8;--muted:#8fae94;--line:#2b3d31;--stripe:rgba(107,224,139,.03);--blue:#7088ff;--red:#ff5d66;--accent:#6be08b;--accent-ink:#06210f;--win:#43c682;--lose:#ff6f80;--draw:#8fae94;--soft:#1f2d24;color-scheme:dark;--f-ui:"DotGothic16","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-display:"DotGothic16","Archivo","Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;--f-body:"DotGothic16","Hiragino Sans","Noto Sans JP",system-ui,sans-serif}
@@ -5705,7 +5706,7 @@ function syncLoad() {
   syncLoading = (async () => {
     try { FBA = window.__FB_MOCK || await fbReal(); }
     catch (e) { syncLoading = null; throw e; }
-    FBA.onUser(u => { togStop(); viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = u; if (!canSkin()) { const sk = skinGet(); if (sk && !(XMAS_ON && sk === 'xmas')) skinSet(''); if (fxvGet() !== 'diamond') fxvSet(''); } syncS.links = []; syncS.fmsg = ''; syncS.delAsk = ''; if (!u) { syncS.status = 'out'; pubS.on = false; pubS.loaded = false; pubS.ask = false; pubS.msg = ''; pubRender(); syncRender(''); return; } syncRun(); pubLoad(); try { if (bcAdminAll()) { bcBadge(); bcApply(); } } catch (e) {} });
+    FBA.onUser(u => { togStop(); viewClose(); if (syncS.lw) { try { syncS.lw(); } catch (e) {} syncS.lw = null; } shareLast = null; syncS.user = u; if (!canSkin()) { const sk = skinGet(); if (sk && sk !== 'light' && !(XMAS_ON && sk === 'xmas')) skinSet(''); if (fxvGet() !== 'diamond') fxvSet(''); } syncS.links = []; syncS.fmsg = ''; syncS.delAsk = ''; if (!u) { syncS.status = 'out'; pubS.on = false; pubS.loaded = false; pubS.ask = false; pubS.msg = ''; pubRender(); syncRender(''); return; } syncRun(); pubLoad(); try { if (bcAdminAll()) { bcBadge(); bcApply(); } } catch (e) {} });
   })();
   return syncLoading;
 }
@@ -5950,6 +5951,7 @@ async function syncAuto() {
    pub/{uid}/parts/{n} に置く。管理者がアプリを開いた時に、全員ぶんを集計して stats/ に書く。見る人は stats/ だけを読む */
 const SKINS = {
   base: { n: 'いつもの色', c: { bg: '#13151b', panel: '#1c1f28', line: '#2e3341', ink: '#e7e9f0', muted: '#9aa1b3', acc: '#ff8a3d', blue: '#7088ff', red: '#ff5d66', win: '#43c682', lose: '#ff6f80', ai: '#1a1206', st: 'rgba(255,255,255,.025)', gl1: 'rgba(255,255,255,.16)', gl2: 'rgba(255,255,255,.07)', gr: '255,138,61', ib: '#2a2f3c', bd: 'rgba(255,255,255,.04)' } },
+  light: { n: 'ライト', c: { bg: '#f2f2f4', panel: '#ffffff', line: '#dcdce2', ink: '#191b21', muted: '#686e7d', acc: '#f07d1e', blue: '#3b5bff', red: '#e5343e', win: '#18a058', lose: '#d92c38', ai: '#1a1206', st: 'rgba(25,27,33,.04)', gl1: 'rgba(25,27,33,.16)', gl2: 'rgba(25,27,33,.07)', gr: '240,125,30', ib: '#ececf0', bd: 'rgba(25,27,33,.05)' } },
   gold: { n: 'ゴールド', c: { bg: '#17130a', panel: '#221b0d', line: '#5a4719', ink: '#fbf1d2', muted: '#b9a672', acc: '#f5c542', ai: '#241a00', st: 'rgba(245,197,66,.05)', gl1: 'rgba(245,197,66,.2)', gl2: 'rgba(245,197,66,.09)', gr: '245,197,66', ib: '#3a2f14', bd: 'rgba(245,197,66,.06)' } },
   sakura: { n: 'サクラ', c: { bg: '#fbeef2', panel: '#fff8fa', line: '#efc3d0', ink: '#3a1f2b', muted: '#8d6676', acc: '#e0457b', blue: '#1f3fd1', red: '#d8232f', win: '#16814a', lose: '#b02a3c', ai: '#ffffff', st: 'rgba(224,69,123,.05)', gl1: 'rgba(58,31,43,.2)', gl2: 'rgba(58,31,43,.09)', gr: '224,69,123', ib: '#f3d6e0', bd: 'rgba(224,69,123,.07)' } },
   team: { n: 'ブルー×レッド', c: { bg: '#0f1430', panel: '#171d45', line: '#2f3a82', ink: '#eaf0ff', muted: '#98a4dc', acc: '#ff5d66', ai: '#ffffff', st: 'rgba(112,136,255,.07)', gl1: 'rgba(152,164,220,.25)', gl2: 'rgba(152,164,220,.1)', gr: '255,93,102', ib: '#222b63', bd: 'rgba(112,136,255,.08)' } },
@@ -5962,8 +5964,9 @@ const SKINS = {
 };
 // 期間限定のクリスマスの色を、全員に出す。終わらせる時は false にする（選んでいた人も、次に開いた時に「いつもの色」に戻る）
 const XMAS_ON = true;
-const skinKeys = () => Object.keys(SKINS).filter(k => k !== 'xmas' || XMAS_ON).filter(k => canSkin() || k === 'base' || k === 'xmas');
-const skinVisible = () => canSkin() || XMAS_ON;
+const skinKeys = () => Object.keys(SKINS).filter(k => k !== 'xmas' || XMAS_ON).filter(k => canSkin() || k === 'base' || k === 'light' || k === 'xmas');
+// テーマ選択は全員に開放する（選べるのは基本テーマと期間限定だけ。豪華テーマは従来どおり canSkin の人だけ）
+const skinVisible = () => true;
 const SKIN_KEY = 'senseki-skin';
 const skinGet = () => { try { return localStorage.getItem(SKIN_KEY) || ''; } catch (e) { return ''; } };
 const skinNow = () => document.documentElement.dataset.skin || '';
@@ -5981,7 +5984,7 @@ const FXV_KEY = 'senseki-fxv';
 const fxvGet = () => { try { const v = localStorage.getItem(FXV_KEY) || ''; return FXV[v] ? v : 'diamond'; } catch (e) { return 'diamond'; } };
 function fxvSet(v) { try { if (v && v !== 'diamond') localStorage.setItem(FXV_KEY, v); else localStorage.removeItem(FXV_KEY); } catch (e) {} if (window.__fxRefresh) window.__fxRefresh(); }
 // いまは管理者（開発者）だけが選べる。管理者でなくなったら元に戻す
-const skinThemeHTML = () => !skinVisible() ? '' : `<h3>デザインテーマ${isAdmin() ? '（開発者用）' : canSkin() ? '' : '（期間限定）'}</h3><p class="small muted" style="margin:0">色や飾りが変わります。この端末の見た目だけが変わり、シーズン総括の画像にも反映されます。背景は「背景コレクション」で別に選べます。</p>
+const skinThemeHTML = () => !skinVisible() ? '' : `<h3>デザインテーマ${isAdmin() ? '（開発者用）' : ''}</h3><p class="small muted" style="margin:0">色や飾りが変わります。この端末の見た目だけが変わり、シーズン総括の画像にも反映されます。背景は「背景コレクション」で別に選べます。</p>
   <div class="row segs" style="margin-top:8px;flex-wrap:wrap">${skinKeys().map(k => `<button class="seg${(skinNow() || 'base') === k ? ' on' : ''}" data-act="skin" data-skin="${k}">${SKINS[k].n}</button>`).join('')}</div>`;
 const fxHTML = () => `<h3 style="margin-top:${skinVisible() ? 14 : 0}px">◆ 動く背景</h3><p class="small muted" style="margin:0 0 8px">ロゴの◆が回って、薄い◆が浮かぶ飾りです。背景コレクションの背景を使っている間は止まります。</p><div id="fx-slot"></div>${!canSkin() ? '' : `
   <p class="small muted" style="margin:10px 0 0">動く背景の種類（「◆ 動く背景」がONの時に出ます）</p>
