@@ -281,7 +281,11 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .how{border:1px dashed var(--accent);border-radius:10px;padding:8px 12px;background:var(--soft);font-size:.86rem;display:flex;flex-direction:column;gap:2px}
 .how>b:first-child{color:var(--accent)}
 .rkprev{font-weight:700;margin-left:6px}
-.ptmodes{display:inline-flex;gap:4px;align-items:center}
+.ptmodes{display:flex;gap:4px;align-items:center}
+.ptmodes .seg{flex:1 1 0;white-space:nowrap}
+.ptbox.ptstack{display:inline-flex;flex-direction:column;align-items:stretch;gap:6px}
+.ptline{display:flex;gap:6px;align-items:center}
+.ptline .ptmodes{flex:1}
 .ptbox .ptrank{display:inline-flex;gap:4px;align-items:center}
 .ptbox .ptrank .rkin{width:2.4em;text-align:center}
 .ptbox .ptrank .restin{width:4.4em}
@@ -2787,13 +2791,17 @@ function ptBox(kind, id, sign, val, calc) {
 // pt入力の2方式（合計pt／ランク分割）。方式の選択は欄ごとに覚える。保存される値は今まで通り合計ptだけ
 const ptModeState = {};
 const ptModeOf = (key, val) => ptModeState[key] === 'rank' && Number.isFinite(+val) && val !== '' && val != null && +val >= 2000 ? 'rank' : 'total';
-function ptModeHTML(key, val, calc) {
+function ptModesHTML(key, val) {
   const mode = ptModeOf(key, val);
-  return `<span class="ptmodes" role="group" aria-label="ptの入力方式"><button type="button" class="seg${mode === 'total' ? ' on' : ''}" data-ptmode="total">合計pt</button><button type="button" class="seg${mode === 'rank' ? ' on' : ''}" data-ptmode="rank">S○ ○○○</button></span><span class="ptrank"${mode === 'rank' ? '' : ' hidden'}><span class="small muted">S</span><input type="text" inputmode="numeric" class="rkin${calc ? ' calc' : ''}" value="${mode === 'rank' ? rankOf(+val).slice(1) : ''}" aria-label="ランクの数字（1〜9）"><input type="text" inputmode="numeric" class="restin${calc ? ' calc' : ''}" value="${mode === 'rank' ? rankRest(+val) : ''}" placeholder="0〜499" aria-label="ランクの中のpt"><span class="small muted">pt</span></span>`;
+  return `<span class="ptmodes" role="group" aria-label="ptの入力方式"><button type="button" class="seg${mode === 'total' ? ' on' : ''}" data-ptmode="total">合計pt</button><button type="button" class="seg${mode === 'rank' ? ' on' : ''}" data-ptmode="rank">S○ ○○○</button></span>`;
+}
+function ptRankHTML(key, val, calc) {
+  const mode = ptModeOf(key, val);
+  return `<span class="ptrank"${mode === 'rank' ? '' : ' hidden'}><span class="small muted">S</span><input type="text" inputmode="numeric" class="rkin${calc ? ' calc' : ''}" value="${mode === 'rank' ? rankOf(+val).slice(1) : ''}" aria-label="ランクの数字（1〜9）"><input type="text" inputmode="numeric" class="restin${calc ? ' calc' : ''}" value="${mode === 'rank' ? rankRest(+val) : ''}" placeholder="0〜499" aria-label="ランクの中のpt"><span class="small muted">pt</span></span>`;
 }
 function afterBox(kind, id, val, calc) {
   const key = `${kind}:${id}`, mode = ptModeOf(key, val);
-  return `<span class="ptbox" data-ptwrap data-ptkey="${key}"><span class="small muted">試合後</span>${ptModeHTML(key, val, calc)}<input type="text" inputmode="numeric" class="after${calc ? ' calc' : ''}" id="${kind}-${id}" data-${kind}="${id}" data-ptcanon value="${val === '' || val == null ? '' : val}" placeholder="今のpt/S2 250" aria-label="試合後のpt（S2 250のようなランク表記でも入れられます）"${mode === 'rank' ? ' hidden' : ''}><span class="ptsfx"${mode === 'rank' ? ' hidden' : ''}>pt</span><span class="rkprev small" aria-live="polite">${mode === 'rank' ? `＝ ${+val}pt` : (Number.isFinite(+val) && val !== '' && val != null && +val >= 2000 ? `（${rankOf(+val)} ${rankRest(+val)}）` : '')}</span></span>`;
+  return `<span class="ptbox ptstack" data-ptwrap data-ptkey="${key}"><span class="ptline"><span class="small muted">試合後</span>${ptModesHTML(key, val)}</span><span class="ptline">${ptRankHTML(key, val, calc)}<input type="text" inputmode="numeric" class="after${calc ? ' calc' : ''}" id="${kind}-${id}" data-${kind}="${id}" data-ptcanon value="${val === '' || val == null ? '' : val}" placeholder="今のpt/S2 250" aria-label="試合後のpt（S2 250のようなランク表記でも入れられます）"${mode === 'rank' ? ' hidden' : ''}><span class="ptsfx"${mode === 'rank' ? ' hidden' : ''}>pt</span><span class="rkprev small" aria-live="polite">${mode === 'rank' ? `＝ ${+val}pt` : (Number.isFinite(+val) && val !== '' && val != null && +val >= 2000 ? `（${rankOf(+val)} ${rankRest(+val)}）` : '')}</span></span></span>`;
 }
 // シーズンごとに、試合後ptと増減ptをつないで計算する。{id: {d: 増減, after: 試合後pt, src: 'after'|'delta', gap: 前に未入力あり}}
 function ptCalc() {
@@ -4168,7 +4176,7 @@ function renderSeason() {
   const formHTML = `<div class="formgrid">
       <label class="fl"><span class="label">オリジナルヒーロー</span>${heroSelect('id="season-hero" data-newhero="1"', '')}</label>
       <label class="fl"><span class="label">シーズン名</span><input type="text" id="season-name" placeholder="例 ルチアーノシーズン"></label>
-      <label class="fl" data-ptwrap data-ptkey="season-new"><span class="label">シーズン開始時のpt（2750 でも、ゲーム内表示のまま S2 250 でもOK）</span><input type="text" id="season-pt" data-ptcanon placeholder="例 2750 / S2 250" autocomplete="off">${ptModeHTML('season-new', '')}<span class="rkprev small" aria-live="polite"></span></label>
+      <label class="fl" data-ptwrap data-ptkey="season-new"><span class="label">シーズン開始時のpt（2750 でも、ゲーム内表示のまま S2 250 でもOK）</span>${ptModesHTML('season-new', '')}<input type="text" id="season-pt" data-ptcanon placeholder="例 2750 / S2 250" autocomplete="off">${ptRankHTML('season-new', '', false)}<span class="rkprev small" aria-live="polite"></span></label>
       <label class="fl" style="grid-column:1/-1"><span class="label">開始日時（${SEASON_DAYS}日後の日いっぱいで自動終了。あとから直せます）</span><span class="row" style="gap:6px;flex-wrap:nowrap"><input type="date" id="season-date" value="${defDate}" style="flex:1;min-width:0"><input type="time" id="season-time" value="${defTime}" style="flex:0 0 7em"></span></label></div>
     <p class="small muted" style="margin:0">ptは頭の中で合計に直さなくて大丈夫です。「S3 250」と入れると、横に「＝ 3250pt」と出て、そのまま3250ptとして扱います。逆に「3250」と入れると、横に「＝ S3 250」と出ます。欄のボタンで、ランク（S○）と中のptを別々に入れる方式にも切り替えられます。</p>
     ${off != null && defAt === off ? '<p class="small muted" style="margin:0">開始日時は、今のシーズンの公式の開始日時を入れています。</p>' : ''}
@@ -4212,7 +4220,7 @@ function renderSeason() {
         <div class="formgrid">
           <label class="fl"><span class="label">オリジナルヒーロー</span>${heroSelect(`data-season-hero="${se.id}" id="sh-${se.id}"`, se.hero || '')}</label>
           <label class="fl"><span class="label">シーズン名</span><input type="text" data-season-name="${se.id}" id="sn-${se.id}" value="${esc(se.name || '')}"></label>
-          <label class="fl" data-ptwrap data-ptkey="season:${se.id}"><span class="label">開始時のpt（2750 でも、ゲーム内表示のまま S2 250 でもOK）</span><input type="text" data-season-pt="${se.id}" data-ptcanon id="sp-${se.id}" value="${se.pt}" autocomplete="off"${ptModeOf(`season:${se.id}`, se.pt) === 'rank' ? ' hidden' : ''}>${ptModeHTML(`season:${se.id}`, se.pt)}<span class="rkprev small" aria-live="polite">${ptModeOf(`season:${se.id}`, se.pt) === 'rank' ? `＝ ${se.pt}pt` : (se.pt >= 2000 ? `（${rankOf(se.pt)} ${rankRest(se.pt)}）` : '')}</span></label>
+          <label class="fl" data-ptwrap data-ptkey="season:${se.id}"><span class="label">開始時のpt（2750 でも、ゲーム内表示のまま S2 250 でもOK）</span>${ptModesHTML(`season:${se.id}`, se.pt)}<input type="text" data-season-pt="${se.id}" data-ptcanon id="sp-${se.id}" value="${se.pt}" autocomplete="off"${ptModeOf(`season:${se.id}`, se.pt) === 'rank' ? ' hidden' : ''}>${ptRankHTML(`season:${se.id}`, se.pt, false)}<span class="rkprev small" aria-live="polite">${ptModeOf(`season:${se.id}`, se.pt) === 'rank' ? `＝ ${se.pt}pt` : (se.pt >= 2000 ? `（${rankOf(se.pt)} ${rankRest(se.pt)}）` : '')}</span></label>
           <label class="fl" style="grid-column:1/-1"><span class="label">開始日時（直すと、入る試合が日時で入れ替わります）</span><span class="row" style="gap:6px;flex-wrap:nowrap"><input type="date" data-ssdate="${se.id}" id="ssd-${se.id}" value="${ymd(se.start)}" style="flex:1;min-width:0"><input type="time" data-ssdate="${se.id}" id="sst-${se.id}" value="${hmOf(se.start)}" style="flex:0 0 7em"></span><span class="small" id="sdmsg-${se.id}" role="status"></span></label></div>
         <div class="kpis" style="grid-template-columns:repeat(2,1fr)">
           <div class="kpi"><div class="label">${state === '開催終了' ? '最終pt' : '現在のpt'}</div><div class="v">${cur}<small>pt</small></div>${rankOf(cur) ? `<div class="small muted">${rankOf(cur)} ${rankRest(cur)}</div>` : ''}</div>
@@ -4706,7 +4714,7 @@ function mfOpen(id) {
       <div class="fl"><span class="label" id="mf-sclab">${mf.ns ? 'スコア（自分 - 相手）' : 'スコア（青 - 赤）'}</span><div class="mfnum"><input type="number" min="0" max="99" inputmode="numeric" id="mf-b" value="${m && m.b != null ? m.b : ''}"><span>-</span><input type="number" min="0" max="99" inputmode="numeric" id="mf-r" value="${m && m.r != null ? m.r : ''}"></div></div>
       <label class="fl"><span class="label">勝敗</span><select id="mf-res"><option value="">スコアから決める</option>${['w', 'l', 'd'].map(r => `<option value="${r}"${m && m.res === r ? ' selected' : ''}>${RES_LABEL[r]}</option>`).join('')}</select></label>
       <label class="fl"><span class="label">増減pt（バトルアリーナ）</span><input type="number" inputmode="numeric" id="mf-pt" value="${pv}" placeholder="例 40 / -30"></label>
-      ${mf.pb != null ? `<label class="fl" data-ptwrap data-ptkey="mf"><span class="label">試合後のpt（どちらか1つでOK）</span><input type="text" id="mf-after" data-ptcanon value="${pa}" placeholder="今のpt/S2 250" autocomplete="off"${ptModeOf('mf', pa) === 'rank' ? ' hidden' : ''}>${ptModeHTML('mf', pa)}<span class="rkprev small" id="mf-afprev" aria-live="polite">${ptModeOf('mf', pa) === 'rank' ? `＝ ${pa}pt` : ''}</span></label>` : ''}
+      ${mf.pb != null ? `<label class="fl" data-ptwrap data-ptkey="mf"><span class="label">試合後のpt（どちらか1つでOK）</span>${ptModesHTML('mf', pa)}<input type="text" id="mf-after" data-ptcanon value="${pa}" placeholder="今のpt/S2 250" autocomplete="off"${ptModeOf('mf', pa) === 'rank' ? ' hidden' : ''}>${ptRankHTML('mf', pa, false)}<span class="rkprev small" id="mf-afprev" aria-live="polite">${ptModeOf('mf', pa) === 'rank' ? `＝ ${pa}pt` : ''}</span></label>` : ''}
       <label class="row" style="grid-column:1/-1;gap:6px;align-items:center"><input type="checkbox" id="mf-nos"${m && m.noSeason ? ' checked' : ''}><span class="small">シーズンに入れない（バトルアリーナのみ）</span></label>
     </div>
     <h3>ヒーローとランク</h3>
