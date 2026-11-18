@@ -3313,6 +3313,19 @@ function statsPost(vid) {
   statsTocSync();
 }
 function statsTocTop(t) { const nav = document.querySelector('nav.tabs'); return (nav ? nav.getBoundingClientRect().bottom : 0) + (t ? t.offsetHeight : 0) + 8; }
+// 「詳しく表示」系の開閉で、押した欄の位置が飛ばないようにする。広げる時は欄の見出しの画面位置を保ち、畳む時は欄の一番上が画面の上に来るようにする
+function anchorPanel(t, collapse, render) {
+  const view = t.closest('.view'), panel = t.closest('.panel');
+  if (!view || !panel) { render(); return; }
+  const keyOf = p => { const x = p.querySelector('h2'); return x ? x.textContent.replace(/[0-9０-９（）()？▲▼\s]/g, '').slice(0, 30) : ''; };
+  const key = keyOf(panel), idx = [...view.querySelectorAll('.panel')].filter(p => keyOf(p) === key).indexOf(panel);
+  const y = panel.getBoundingClientRect().top;
+  render();
+  const np = [...view.querySelectorAll('.panel')].filter(p => keyOf(p) === key)[idx];
+  if (!np) return;
+  if (collapse) scrollTo({ top: np.getBoundingClientRect().top + scrollY - statsTocTop(view.querySelector('.stoc')) + 2, behavior: 'auto' });
+  else scrollBy(0, np.getBoundingClientRect().top - y);
+}
 // いま見ている欄の名前を、目次で目立たせる
 function statsTocSync() {
   document.querySelectorAll('.stoc').forEach(t => {
@@ -4928,20 +4941,20 @@ document.addEventListener('click', e => {
     alignResult(m, ns === '-' ? 'l' : 'w'); persist();
     renderSeason(); renderHist(); renderStats(); return;
   }
-  if (t.dataset.trendall) { sv.dataset.trendAll = sv.dataset.trendAll === '1' ? '' : '1'; renderStats(); return; }
-  if (t.dataset.trendn) { sv.dataset.trendN = t.dataset.trendn; renderStats(); return; }
+  if (t.dataset.trendall) { anchorPanel(t, sv.dataset.trendAll === '1', () => { sv.dataset.trendAll = sv.dataset.trendAll === '1' ? '' : '1'; renderStats(); }); return; }
+  if (t.dataset.trendn) { anchorPanel(t, false, () => { sv.dataset.trendN = t.dataset.trendn; renderStats(); }); return; }
   if (act === 'cmp-toggle') { statsUI.cmp = !statsUI.cmp; renderStats(); if (statsUI.cmp) cmpLoad(); return; }
-  if (act === 'recent-more') { sv.dataset.recent = Math.max(20, +(sv.dataset.recent || 20)) + 20; renderStats(); return; }
-  if (act === 'recent-reset') { sv.dataset.recent = 20; renderStats(); return; }
+  if (act === 'recent-more') { anchorPanel(t, false, () => { sv.dataset.recent = Math.max(20, +(sv.dataset.recent || 20)) + 20; renderStats(); }); return; }
+  if (act === 'recent-reset') { anchorPanel(t, true, () => { sv.dataset.recent = 20; renderStats(); }); return; }
   if (perAct(act, t) || pieAct(act, t)) return;
-  if (act === 'card-all') { sv.dataset.cardAll = sv.dataset.cardAll === '1' ? '' : '1'; renderStats(); return; }
+  if (act === 'card-all') { anchorPanel(t, sv.dataset.cardAll === '1', () => { sv.dataset.cardAll = sv.dataset.cardAll === '1' ? '' : '1'; renderStats(); }); return; }
   if (act === 'card-more') { const d = $('#view-data'); d.dataset.cardLim = String(+(d.dataset.cardLim || 60) + 60); renderData(); return; }
-  if (act === 'mdl-all') { sv.dataset.mAll = sv.dataset.mAll === '1' ? '' : '1'; renderStats(); return; }
-  if (act === 'mode-all') { sv.dataset.modeAll = sv.dataset.modeAll === '1' ? '' : '1'; renderStats(); return; }
-  if (act === 'stage-all') { sv.dataset.stageAll = sv.dataset.stageAll === '1' ? '' : '1'; renderStats(); return; }
-  if (act === 'hero-all') { sv.dataset.heroAll = sv.dataset.heroAll === '1' ? '' : '1'; renderStats(); return; }
-  if (act === 'map-all') { sv.dataset.mapAll = sv.dataset.mapAll === '1' ? '' : '1'; renderStats(); return; }
-  if (act === 'enemy-all') { sv.dataset.enemyAll = sv.dataset.enemyAll === '1' ? '' : '1'; renderStats(); return; }
+  if (act === 'mdl-all') { anchorPanel(t, sv.dataset.mAll === '1', () => { sv.dataset.mAll = sv.dataset.mAll === '1' ? '' : '1'; renderStats(); }); return; }
+  if (act === 'mode-all') { anchorPanel(t, sv.dataset.modeAll === '1', () => { sv.dataset.modeAll = sv.dataset.modeAll === '1' ? '' : '1'; renderStats(); }); return; }
+  if (act === 'stage-all') { anchorPanel(t, sv.dataset.stageAll === '1', () => { sv.dataset.stageAll = sv.dataset.stageAll === '1' ? '' : '1'; renderStats(); }); return; }
+  if (act === 'hero-all') { anchorPanel(t, sv.dataset.heroAll === '1', () => { sv.dataset.heroAll = sv.dataset.heroAll === '1' ? '' : '1'; renderStats(); }); return; }
+  if (act === 'map-all') { anchorPanel(t, sv.dataset.mapAll === '1', () => { sv.dataset.mapAll = sv.dataset.mapAll === '1' ? '' : '1'; renderStats(); }); return; }
+  if (act === 'enemy-all') { anchorPanel(t, sv.dataset.enemyAll === '1', () => { sv.dataset.enemyAll = sv.dataset.enemyAll === '1' ? '' : '1'; renderStats(); }); return; }
   if (t.dataset.seasonToggle) { const id = t.dataset.seasonToggle; if (openSeasons.has(id)) openSeasons.delete(id); else openSeasons.add(id); renderSeason(); return; }
   if (t.dataset.sgoal) { const se = seasonList().find(x => x.id === t.dataset.sgoal); if (se) { se.goal = +t.dataset.v; delete se.goalPt; persist(); renderSeason(); } return; }
   if (t.dataset.sgfold) { const se = seasonList().find(x => x.id === t.dataset.sgfold); if (se) { se.goalFold = !se.goalFold; persist(); renderSeason(); } return; }
@@ -6739,9 +6752,9 @@ document.addEventListener('click', e => {
   else if (a === 'cp-add') { const el = document.getElementById('view-stat'), l = (el.dataset.cs || '').split('\t').filter(Boolean); if (!l.includes(t.dataset.v) && l.length < 3) l.push(t.dataset.v); el.dataset.cs = l.join('\t'); statRender(); }
   else if (a === 'cp-del') { const el = document.getElementById('view-stat'); el.dataset.cs = (el.dataset.cs || '').split('\t').filter(x => x && x !== t.dataset.v).join('\t'); statRender(); }
   else if (a === 'cp-clr') { const el = document.getElementById('view-stat'); delete el.dataset.cn; delete el.dataset.cs; statRender(); }
-  else if (a === 'stat-less') { delete statS.more[t.dataset.k]; statRender(); }
+  else if (a === 'stat-less') { anchorPanel(t, true, () => { delete statS.more[t.dataset.k]; statRender(); }); }
   else if (a === 'stat-clear-filter') { const v = document.getElementById('view-stat'); delete v.dataset.season; delete v.dataset.band; delete v.dataset.mode; statS.more = {}; statRender(); statDocLoad(); }
-  else if (a === 'stat-more') { statS.more[t.dataset.k] = (statS.more[t.dataset.k] || 10) + 20; statRender(); }
+  else if (a === 'stat-more') { anchorPanel(t, false, () => { statS.more[t.dataset.k] = (statS.more[t.dataset.k] || 10) + 20; statRender(); }); }
 });
 // 検索欄は、入力のたびに全体を描き直さず（キーボードが閉じてしまうため）、リストの部分だけ差し替える
 function hqUpdate(closeSug) {
