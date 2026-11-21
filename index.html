@@ -4549,6 +4549,7 @@ function renderData0() {
     <p class="small muted" style="margin:0">名前を打ち間違えたときはここで直せます。すでにある名前に変えると、ふたつがまとまります。</p>
     <div class="hlist">${hs.length ? hs.map(x => `<div class="hero-item"><input type="text" id="rn-${x.id}" data-rename="${x.id}" value="${esc(x.name)}" aria-label="${esc(x.name)}の名前"><span class="small muted">${hcnt.get(x.id) || 0}試合</span></div>`).join('') : '<span class="small muted">まだ登録されたヒーローはいません。</span>'}</div>
   </div></div>
+  ${meNamesHTML(el)}
   ${cardNameHTML(el)}
   <div class="section"><div class="panel"><h2>全部消す</h2>
     <p class="small muted" style="margin:0">試合・ヒーロー名・自分の名前の学習をすべて消します。元に戻せません。${syncS.user ? 'ログイン中でも、クラウドの記録は自動では消えません（この端末が空のまま同期しようとすると、確認が出ます）。' : ''}</p>
@@ -4557,6 +4558,26 @@ function renderData0() {
 }
 
 
+// 覚えた自分の名前（名前の部分の白黒画像の縮小版として保存されているので、画像に描き戻して一覧にする）
+function meMaskURL(o) {
+  try {
+    const k = enc.unmask(o), W = 96, H = 24, nw = Math.max(1, Math.min(W, Math.round(k.r * H)));
+    const c = document.createElement('canvas'); c.width = nw + 8; c.height = H + 8;
+    const x = c.getContext('2d'); x.fillStyle = '#202124'; x.fillRect(0, 0, c.width, c.height);
+    const im = x.createImageData(nw, H);
+    for (let Y = 0; Y < H; Y++) for (let X = 0; X < nw; X++) { const v = Math.min(1, k.m[Y * W + X] || 0), g = Math.round(32 + 223 * v), q = (Y * nw + X) * 4; im.data[q] = im.data[q + 1] = im.data[q + 2] = g; im.data[q + 3] = 255; }
+    x.putImageData(im, 4, 4);
+    return { url: c.toDataURL('image/png'), w: c.width, h: c.height };
+  } catch (e) { return null; }
+}
+function meNamesHTML(el) {
+  const L = db.me || [];
+  const items = L.map((o, i) => { const u = meMaskURL(o); return `<div class="hero-item" style="gap:10px;align-items:center">${u ? `<img src="${u.url}" alt="覚えた名前${i + 1}" width="${u.w * 2}" height="${u.h * 2}" style="max-width:62%;height:auto;border-radius:6px">` : `<span class="muted small">名前${i + 1}</span>`}<button type="button" class="btn ghost small" data-act="me-del" data-i="${i}">消す</button></div>`; }).join('');
+  return `<div class="section"><div class="panel"><h2>覚えた自分の名前</h2>
+    <p class="small muted" style="margin:0">読み込みの時に「自分」を自動で選ぶため、保存した試合の自分の名前を、画像の形で覚えています（最大12個）。似た名前の別の人が自分になってしまう時は、ここで消してください。消したあとは、次の読み込みで自分を選んで保存すると、また覚えます。すでに保存した試合の「自分」は変わりません（直す時は、履歴の「編集」から）。</p>
+    ${L.length ? `<div class="hlist">${items}</div><div class="row">${el.dataset.meclr === '1' ? '<button class="btn danger" data-act="me-clr-yes">本当にすべて消す</button><button class="btn ghost" data-act="me-clr-no">やめる</button>' : '<button class="btn ghost small" data-act="me-clr">すべて消す</button>'}</div>` : '<p class="small muted" style="margin:8px 0 0">まだ覚えた名前はありません。</p>'}
+  </div></div>`;
+}
 function renderGuide() {
   const acc = (t, body, open) => `<details class="acc"${open ? ' open' : ''}><summary>${t}</summary><div class="accb">${body}</div></details>`;
   $('#view-guide').innerHTML = `<div class="section"><div class="panel"><h2>使い方</h2>
@@ -4585,7 +4606,7 @@ function renderGuide() {
       <li><b>シーズン外：</b>フリーバトルやカスタムバトル、シーズン期間外のバトルアリーナなど、シーズンptに入らない試合です。試合ごとにメモを書けます。</li>
       <li><b>統計：</b>提供に同意した人の試合をまとめた、みんなの統計です。「絞り込み」は最初は閉じていて、押すと開きます（条件を変えている時は「変更中」と出ます）。シーズン（「全期間」「シーズン外」「各シーズン」から選べます）・ランク（複数選べます）・対戦モードごとに、ヒーローの使用率と勝率、ヒーローごとのカードとメダルの使用率、ステージの勝率を見られます。ヒーローの欄は「使用率」と「勝率」を切り替えられ、使用率ではn回/全体の回数も出ます。上の「最終更新」と、カード・メダルの「何人中何人」で、集計の新しさと元の人数を確かめられます。同じ試合は1回だけ数え、自分とフレンド連携した固定の仲間のデッキが同じ時も1回にまとめます。「デッキの勝率」では、ヒーローを選ぶと、カード4枚の組み合わせごとの勝率・試合数・計人数が、勝率の高い順（1位から）に出ます。カード名は1枚ずつ縦に並びます（4枚とも名前が分かっていて、2試合以上あるデッキだけ。引き分けは数えません。「期間ごと」の指定中は出ません）。タブの下の「目次」で欄に飛べ、欄の名前の横の「▲」で閉じたり開いたりできます。カードの絵は、提供者から送られた小さな切り抜きも使います。絞り込みの「期間」で、「25日区切り」（毎月25日〜翌月24日を1期間として、1ヶ月・3ヶ月・6ヶ月・1年、または1ヶ月刻みで好きな長さ。◀▶で前後に移動）と、「日付を指定」（カレンダーで開始日を選び、終了日は開始日から31日以内。1日ごとの集計を足して見ます）を選べます。ヒーロー・カード・メダル・ステージの表が、その期間の数字になります。デッキと編成の勝率は、期間の指定中は出せません。期間の指定中は、シーズンの内外と対戦モードを、期間の下の欄で選びます。日ごとの集計は人数が少ない日があるので、細かい項目（カード・メダルのセット）は少なめに出ることがあります。メダルの使用率の下には、メダルのセット（3つの組み合わせ）の使用率も出ます（3つとも分かっている人のうち、2人以上が付けていたセットを、多い順に8つまで）。提供するかどうかは、統計タブかデータタブで選べます（最初は「提供しない」）。</li>
       <li><b>履歴：</b>登録した全試合を、新しい順に見られます。ヒーロー・ステージ・対戦モード・敵ヒーロー・自分のランクで絞り込めます。「除外するヒーロー」を選ぶと、そのヒーローを使った試合を外して見られます。試合の削除もここでできます（削除は元に戻せません）。</li>
-      <li><b>データ：</b>ログイン、フレンド連携、バックアップと復元、ヒーロー名の修正、カードの名前付け、（背景・色は、ヘッダーの「デザイン」から）、全データの削除があります。</li>
+      <li><b>データ：</b>ログイン、フレンド連携、バックアップと復元、ヒーロー名の修正、覚えた自分の名前の確認と削除、カードの名前付け、（背景・色は、ヘッダーの「デザイン」から）、全データの削除があります。</li>
     </ul>`)}
   ${acc('3. フレンド連携', `
     <p>連携すると、お互いの戦績を見られます（見るだけで、編集はできません）。メモは共有されません。どちらからでも、いつでも解除できます。</p>
@@ -4784,6 +4805,7 @@ function mfOpen(id) {
   d.innerHTML = `<div class="mfbox" role="dialog" aria-modal="true" aria-label="試合の入力">
     <h2>${m ? '試合を直す' : 'スクショなしで手入力'}</h2>
     <p class="small muted" style="margin:0">${m ? '読み取りの間違いを直せます。ここで直したランクは、同じスクショを入れ直しても上書きされません。' : '分かる所だけ入れれば保存できます。分からない所は空欄のままで大丈夫です。'}</p>
+    ${m && !m.noSide ? `<div class="row" style="margin:0"><button type="button" class="btn ghost small" data-act="own-open" data-oid="${m.id}">自分の位置が違う？ 自分を選び直す…</button><span class="small muted">いま直している内容は保存されません</span></div>` : ''}
     <div class="mfgrid">
       <label class="fl"><span class="label">試合日</span><input type="date" id="mf-date" value="${ymd(m ? m.at : Date.now())}"></label>
       <label class="fl"><span class="label">対戦モード</span><select id="mf-mode">${MODES.map(x => `<option${(m ? m.mode : 'バトルアリーナ') === x ? ' selected' : ''}>${x}</option>`).join('')}</select></label>
@@ -4832,6 +4854,41 @@ document.addEventListener('input', e => {
     dEl.value = v ? String(v.abs - mf.pb) : '';
   }
 });
+function ownOpen(id) {
+  const m = db.matches.find(x => x.id === id);
+  if (!m || view.on || m.noSide) return;
+  mfClose(); mf = { own: true, id };
+  const btn = (side, i) => {
+    const cur = side === m.side && i === m.idx, emp = m[side][i] === EMPTY;
+    return `<button type="button" class="btn${cur ? ' primary' : ' ghost'}" style="text-align:left"${emp ? ' disabled' : ''} data-ownpick="${m.id}" data-side="${side}" data-idx="${i}">${side === 'blue' ? '青' : '赤'}${i + 1}　${emp ? '空き' : esc(heroName(m[side][i]))}${cur ? '（いまの自分）' : ''}</button>`;
+  };
+  const d = document.createElement('div'); d.className = 'mfback'; d.id = 'mf';
+  d.innerHTML = `<div class="mfbox" role="dialog" aria-modal="true" aria-label="自分を選び直す">
+    <h2>自分を選び直す</h2>
+    <p class="small muted" style="margin:0">この試合の「自分」を、押した人に変えます。ヒーロー・ステージ・スコアは変わりません。</p>
+    <div class="label"><i class="dot" style="background:var(--blue)"></i>青チーム</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${[0, 1, 2].map(i => btn('blue', i)).join('')}</div>
+    <div class="label"><i class="dot" style="background:var(--red)"></i>赤チーム</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${[0, 1, 2].map(i => btn('red', i)).join('')}</div>
+    <p class="small muted" style="margin:0">自分のチームが変わると、勝敗が入れ替わります。「固定メンバー」のチェックは外れます。自分のランクは、その人のランクに変わります（ランクが読めていない時は空になります）。入れたptはそのまま残るので、必要なら「編集」で直してください。</p>
+    <div class="row"><button class="btn ghost" data-act="own-cancel">やめる</button></div>
+  </div>`;
+  document.body.appendChild(d);
+}
+function ownPick(id, side, idx) {
+  const m = db.matches.find(x => x.id === id);
+  if (!m || view.on || (side === m.side && idx === m.idx) || m[side][idx] === EMPTY) { mfClose(); return; }
+  const oldSide = m.side, oldIdx = m.idx;
+  if (!m.ranks && m.rank) { m.ranks = { blue: [null, null, null], red: [null, null, null] }; m.ranks[oldSide][oldIdx] = m.rank; }
+  m.side = side; m.idx = idx;
+  const rk = m.ranks && m.ranks[side] ? m.ranks[side][idx] : null;
+  if (rk) m.rank = rk; else delete m.rank;
+  if (side !== oldSide) { delete m.fxs; if (m.res === 'w') m.res = 'l'; else if (m.res === 'l') m.res = 'w'; }
+  else if (m.fxs) { m.fxs = m.fxs.filter(i => i !== idx); if (!m.fxs.length) delete m.fxs; }
+  m.ranksFix = true;
+  fxCache = null;
+  persist(); renderAll(); mfClose();
+}
 function mfClose() { const d = document.getElementById('mf'); if (d) d.remove(); mf = null; }
 function mfSave() {
   if (!mf || view.on) return;
@@ -4886,9 +4943,11 @@ function mfSave() {
   const pm = $('#prog-text'); if (!old && pm) { $('#prog-wrap').hidden = false; pm.textContent = '手入力の試合を1件登録しました。'; }
 }
 document.addEventListener('click', e => {
-  const t = e.target.closest && e.target.closest('[data-mfedit],[data-act="mf-new"],[data-act="mf-save"],[data-act="mf-cancel"]');
+  const t = e.target.closest && e.target.closest('[data-mfedit],[data-act="mf-new"],[data-act="mf-save"],[data-act="mf-cancel"],[data-act="own-open"],[data-ownpick],[data-act="own-cancel"]');
   if (!t || view.on) return;
   if (t.dataset.mfedit) mfOpen(t.dataset.mfedit);
+  else if (t.dataset.act === 'own-open') ownOpen(t.dataset.oid);
+  else if (t.dataset.ownpick) ownPick(t.dataset.ownpick, t.dataset.side, +t.dataset.idx);
   else if (t.dataset.act === 'mf-new') mfOpen(null);
   else if (t.dataset.act === 'mf-save') mfSave();
   else mfClose();
@@ -5154,6 +5213,10 @@ document.addEventListener('click', e => {
     const o = pendingRestore; pendingRestore = null;
     if (o) { db = Object.assign(emptyDB(), o); seedHeroes(); dbFix(); persist(); renderAll(); $('#restore-msg').textContent = `${db.matches.length}試合を復元しました` + (saveOK ? '' : '（ただし、このブラウザでは保存できませんでした）'); }
   }
+  else if (act === 'me-del') { if (!view.on) { const i = +t.dataset.i; if (db.me && db.me[i]) { db.me.splice(i, 1); persist(); renderAll(); } } }
+  else if (act === 'me-clr') { $('#view-data').dataset.meclr = '1'; renderData(); }
+  else if (act === 'me-clr-no') { $('#view-data').dataset.meclr = ''; renderData(); }
+  else if (act === 'me-clr-yes') { if (!view.on) { db.me = []; $('#view-data').dataset.meclr = ''; persist(); renderAll(); } }
   else if (act === 'reset') { $('#view-data').dataset.reset = '1'; renderData(); }
   else if (act === 'reset-no') { $('#view-data').dataset.reset = ''; renderData(); }
   else if (act === 'reset-yes') { db = emptyDB(); seedHeroes(); $('#view-data').dataset.reset = ''; persist(); renderAll(); }
@@ -5299,7 +5362,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-21-CI', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-21-CJ', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
