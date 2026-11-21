@@ -314,6 +314,7 @@ textarea{width:100%;min-height:120px;font-family:var(--f-num);font-size:.75rem}
 .ctip .pt2{font-family:var(--f-num);font-weight:700;margin-left:8px}
 .ptbox{display:inline-flex;align-items:center;gap:4px;font-size:.85rem}
 .ptbox input{width:5em;font:inherit;font-family:var(--f-num);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:5px 7px}
+.ptbox input.datein{width:auto;min-width:9.8em;max-width:100%}
 .sgn{font:inherit;font-family:var(--f-num);font-weight:900;width:2.2em;padding:5px 0;border-radius:7px;border:1px solid var(--line);cursor:pointer;background:var(--surface)}
 .sgn.plus{color:var(--win);border-color:var(--win)} .sgn.minus{color:var(--lose);border-color:var(--lose)}
 .ptv{font-family:var(--f-num);font-weight:700} .ptv.plus{color:var(--win)} .ptv.minus{color:var(--lose)}
@@ -3003,11 +3004,12 @@ function withDrill(fn, html) { const prev = curDrill; curDrill = fn; try { retur
 // 勝率は小数点第2位まで（例 54.32%）
 const pct2 = (w, n) => n ? Math.round(w / n * 10000) / 100 : null;
 const f2 = v => v == null ? '-' : v.toFixed(2);
+let curUse = null; // {N, t}：敵ヒーロー・ステージの「出た割合」を勝率の行に添える
 function statRow(r, nameOf, cls, rank) {
   const p = pct2(r.w, r.n), c = wilson(r.w, r.n), f = curDrill ? curDrill(r.k) : null;
   return `<div class="stat ${cls}${f ? ' drill' : ''}"${drillAttr(f, nameOf(r.k))}><span class="nm" title="${esc(nameOf(r.k))}">${rank ? `<span class="rank">${rank}</span>` : ''}${esc(nameOf(r.k))}</span>
     <span class="bar" role="img" aria-label="勝率${f2(p)}%（95%の範囲 ${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%）"><b class="ci" style="left:${c.lo}%;width:${c.hi - c.lo}%"></b><i class="${p >= 50 ? 'w' : 'l'}" style="width:${p}%"></i></span>
-    <span class="num">${f2(p)}% <span class="muted">${r.w}/${r.n}</span><span class="cir">${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%</span></span>${f ? '<span class="chev2" aria-hidden="true">›</span>' : ''}</div>`;
+    <span class="num">${f2(p)}% <span class="muted">${r.w}/${r.n}</span><span class="cir">${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%</span>${curUse && curUse.N ? `<span class="cir" style="white-space:nowrap">${curUse.t} ${f2(pct2(r.n, curUse.N))}%</span>` : ''}</span>${f ? '<span class="chev2" aria-hidden="true">›</span>' : ''}</div>`;
 }
 // 上位k件。dir=1で勝率が高い順、-1で低い順。5試合以上を優先し、足りなければ少ないものを薄く表示
 function pickTop(rows, dir, k, skip) {
@@ -3152,7 +3154,16 @@ const perD = (k, end) => { if (end) k++; return `${Math.floor(k / 12)}/${k % 12 
 function perHTML(el, minK, maxK, who) {
   el.dataset.pmin = minK; el.dataset.pmax = maxK;
   const on = perOn(el), a = `data-w="${who}"`;
-  const tg = `<button class="seg trall${on ? ' on' : ''}" data-act="per-toggle" ${a} aria-pressed="${on}">期間ごと ${on ? 'ON' : 'OFF'}</button>`;
+  const isD = el.dataset.pd === '1';
+  const tg = `<div class="row segs trseg" role="group" aria-label="期間の指定のしかた">${[['', '全期間', !on && !isD], ['p', '25日区切り', on], ['d', '日付を指定', isD]].map(([v, t, c]) => `<button class="seg${c ? ' on' : ''}" data-act="per-kind" ${a} data-v="${v}" aria-pressed="${c}">${t}</button>`).join('')}</div>`;
+  if (isD) {
+    const stt = who === 'stat', id1 = stt ? 'st-d1' : 'per-d1', id2 = stt ? 'st-d2' : 'per-d2';
+    const d1 = el.dataset.d1 || '', d2 = el.dataset.d2 || '', mnD = el.dataset.dmin || '', mxD = el.dataset.dmax || '', bad = d1 && d2 && d1 > d2;
+    // 統計は、終了日を開始日から31日以内にする（1日ごとの集計を読むため）
+    let max2 = mxD; if (stt && d1) { const q = new Date(d1 + 'T00:00:00'); q.setDate(q.getDate() + 30); const c = dstr(q.getTime()); if (!max2 || c < max2) max2 = c; }
+    const note = stt ? (bad ? '<b>開始日が終了日より後になっています。</b>' : `開始日はどこでも選べます。終了日は、開始日から31日以内（開始日を含めて最大31日分）です。${d1 && d2 ? '' : '開始日と終了日を選んでください。'}`) : (bad ? '<b>開始日が終了日より後になっています。</b>' : '開始日・終了日は、その日を含みます。片方を空にすると、その側は指定なしです。');
+    return tg + `<div class="row" style="flex-wrap:nowrap;gap:8px;align-items:flex-end;margin-top:6px"><label class="fl" style="flex:1 1 0;min-width:0"><span class="label">開始日</span><input type="date" id="${id1}" value="${esc(d1)}" min="${esc(mnD)}" max="${esc(mxD)}"></label><span class="muted" style="padding-bottom:10px">〜</span><label class="fl" style="flex:1 1 0;min-width:0"><span class="label">終了日</span><input type="date" id="${id2}" value="${esc(d2)}" min="${esc(d1 || mnD)}" max="${esc(max2)}"></label></div><p class="small muted" style="margin:4px 0 0">${note}${!stt && (d1 || d2) ? ` <button type="button" class="btn ghost" data-act="per-dclear" ${a}>日付を空にする</button>` : ''}</p>`;
+  }
   if (!on) return tg;
   const w = perWin(el, minK, maxK);
   const chips = `<div class="row segs trseg" role="group" aria-label="期間の長さ">${[[1, '1ヶ月'], [3, '3ヶ月'], [6, '6ヶ月'], [12, '1年']].map(([v, t]) => `<button class="seg${w.len === v ? ' on' : ''}" data-act="per-len" ${a} data-v="${v}">${t}</button>`).join('')}</div>`;
@@ -3165,28 +3176,41 @@ function perAct(a, t) {
   const st = t.dataset.w === 'stat', el = document.getElementById(st ? 'view-stat' : 'view-stats'); if (!el) return true;
   const mn = +el.dataset.pmin || 0, mx = +el.dataset.pmax || 0;
   if (a === 'per-toggle') el.dataset.pm = perOn(el) ? '' : '1';
+  else if (a === 'per-kind') {
+    el.dataset.pm = t.dataset.v === 'p' ? '1' : ''; el.dataset.pd = t.dataset.v === 'd' ? '1' : '';
+    // 統計は、最初は直近7日を入れておく
+    if (st && t.dataset.v === 'd' && (!el.dataset.d1 || !el.dataset.d2) && el.dataset.dmax) { const mx = el.dataset.dmax, mn = el.dataset.dmin || '', q = new Date(mx + 'T00:00:00'); q.setDate(q.getDate() - 6); let d1 = dstr(q.getTime()); if (mn && d1 < mn) d1 = mn; el.dataset.d2 = mx; el.dataset.d1 = d1; }
+  }
+  else if (a === 'per-dclear') { el.dataset.d1 = ''; el.dataset.d2 = ''; }
   else if (a === 'per-len') el.dataset.pl = t.dataset.v;
   else if (a === 'per-step') el.dataset.pl = String(Math.min(24, Math.max(1, (+el.dataset.pl || 1) + (+t.dataset.d))));
   else if (a === 'per-nav') { const w = perWin(el, mn, mx); let e = w.e + (+t.dataset.d) * w.len; e = Math.min(mx, Math.max(mn, e)); el.dataset.pe = e >= mx ? '' : String(e); }
   if (st) { statS.more = {}; statRender(); statDocLoad(); } else renderStats();
   return true;
 }
-// 分析：期間ONなら、その期間の試合だけに絞る
-function perApply(list, el) {
-  let mn = Infinity, mx = -Infinity;
-  for (const m of list) if (m.at) { const k = periodOf(m.at).key; if (k < mn) mn = k; if (k > mx) mx = k; }
-  if (mn > mx) mn = mx = periodOf(Date.now()).key;
+// 分析：期間（25日区切り／日付指定）の試合だけに絞る。分析タブ全体に効く
+const dstr = t => { const d = new Date(t), z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
+function perGlobal(list, el) {
+  let mn = Infinity, mx = -Infinity, t0 = Infinity, t1 = -Infinity;
+  for (const m of list) if (m.at) { const k = periodOf(m.at).key; if (k < mn) mn = k; if (k > mx) mx = k; if (m.at < t0) t0 = m.at; if (m.at > t1) t1 = m.at; }
+  if (mn > mx) { mn = mx = periodOf(Date.now()).key; t0 = t1 = Date.now(); }
+  el.dataset.dmin = dstr(t0); el.dataset.dmax = dstr(t1);
   const ui = perHTML(el, mn, mx, 'stats');
-  if (!perOn(el)) return { list, ui };
+  if (el.dataset.pd === '1') {
+    const d1 = el.dataset.d1, d2 = el.dataset.d2;
+    const a = d1 ? new Date(d1 + 'T00:00:00').getTime() : -Infinity, b = d2 ? new Date(d2 + 'T23:59:59.999').getTime() : Infinity;
+    return { list: list.filter(m => m.at && m.at >= a && m.at <= b), ui, on: !!(d1 || d2) };
+  }
+  if (!perOn(el)) return { list, ui, on: false };
   const w = perWin(el, mn, mx);
-  return { list: list.filter(m => { if (!m.at) return false; const k = periodOf(m.at).key; return k >= w.s && k <= w.e; }), ui };
+  return { list: list.filter(m => { if (!m.at) return false; const k = periodOf(m.at).key; return k >= w.s && k <= w.e; }), ui, on: true };
 }
 // 分析の「メダル/カード」：ヒーローを選ぶと、そのヒーローを使っていた人（自分・連携フレンド・固定メンバーを除く味方・敵）のメダル／カード使用率
 function medalHeroHTML(list) {
   const el = $('#view-stats'), mv = el.dataset.mv === 'h' ? 'm' : el.dataset.mv;
   if (mv === 'c') return cardPanelHTML(list, el);
   if (mv !== 'm') return '';
-  const P = perApply(list, el); list = P.list;
+  const P = { ui: '' };
   const recs = medalRecs(list), keys = Core.MEDAL_KEYS;
   if (!recs.length) return `<div class="section"><div class="panel"><h2>メダル</h2>${P.ui}<p class="small muted" style="margin:0">この条件では、メダルが記録された試合がまだありません。メダルは、新しく読み込んだ試合か、スクショを入れ直した試合から記録されます。</p></div></div>`;
   const THIN = 5, hn = id => heroName(id);
@@ -3206,7 +3230,7 @@ function medalHeroHTML(list) {
 }
 // カード：ヒーローを選ぶと、そのヒーローを使っていた人のカード使用率（同じカードは1人1回）。種類が多いので上位10枚から広げる
 function cardPanelHTML(list, el) {
-  const P = perApply(list, el); list = P.list;
+  const P = { ui: '' };
   const byHero = new Map();
   for (const m of list) {
     if (!m.cards) continue;
@@ -3222,16 +3246,17 @@ function cardPanelHTML(list, el) {
   if (!byHero.size) return `<div class="section"><div class="panel"><h2>カード</h2>${P.ui}<div class="nudge"><b>カードの記録が、この条件ではまだありません</b><p>カードは、新しく読み込んだ試合から記録されます。前に登録した試合は、同じスクショをもう一度「読み込み」に入れると書き足せます。</p><div class="row"><button class="btn ghost" data-act="go-add">読み込みへ移る</button></div></div><p class="small muted" style="margin:8px 0 0;display:none">この条件では、カードが記録された試合がまだありません。カードは、新しく読み込んだ試合から記録されます。前に読み込んだ試合は、同じスクショをもう一度「読み込み」に入れると書き足せます。</p></div></div>`;
   const heroes = [...byHero.values()].sort((a, b) => heroOrd(a.h) - heroOrd(b.h) || b.rs.length - a.rs.length);
   const top = [...heroes].sort((a, b) => b.rs.length - a.rs.length)[0];
-  const cur = byHero.has(String(el.dataset.ch)) ? String(el.dataset.ch) : String(top.h);
-  const o = byHero.get(cur), recs = o.rs, THIN = 5, N = recs.length;
+  const isAll = el.dataset.ch === '__all' && heroes.length > 1, allRs = heroes.flatMap(x => x.rs);
+  const cur = isAll ? '__all' : byHero.has(String(el.dataset.ch)) ? String(el.dataset.ch) : String(top.h);
+  const o = isAll ? { h: null, rs: allRs } : byHero.get(cur), recs = o.rs, THIN = 5, N = recs.length;
   const cnt = new Map(); for (const ks of recs) for (const k of ks) cnt.set(k, (cnt.get(k) || 0) + 1);
   const rows = [...cnt.entries()].sort((a, b) => b[1] - a[1]), all = el.dataset.cardAll === '1', shown = all ? rows : rows.slice(0, 10);
   const unnamed = rows.filter(([k]) => !k.startsWith('n:')).length;
   const bar = p => `<div class="mbar${N < THIN ? ' thin' : ''}"><i style="width:${p}%"></i></div>`;
   return `<div class="section"><div class="panel"><h2>カード</h2>${cardUnnamedN() ? `<div class="nudge"><b>名前のないカードが ${cardUnnamedN()}枚 あります</b><p>名前が付いていないカードは、下の表で「名前なし」になってしまい、どのカードか分かりません。名前を付けると、ここに名前が出ます。</p><div class="row"><button class="btn primary" data-act="go-cardnames">名前を付けに行く</button></div></div>` : ''}${P.ui}${pieToggle(el, 'stats', 'c')}
     <p class="small muted" style="margin:8px 0 8px">自分・連携フレンド・固定メンバーを除く、味方と敵の全員が対象です。同じカードは1人1回と数えます。</p>
-    <label class="fl"><span class="label">ヒーロー</span><select id="mdl-pick" data-kind="ch">${heroes.map(x => `<option value="${esc(String(x.h))}"${String(x.h) === cur ? ' selected' : ''}>${esc(heroName(x.h))}（${x.rs.length}人）</option>`).join('')}</select></label>
-    <p class="small muted" style="margin:8px 0 4px">「${esc(heroName(o.h))}」を使っていた${N}人のうち、そのカードを入れていた人の割合です。${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
+    <label class="fl"><span class="label">ヒーロー</span><select id="mdl-pick" data-kind="ch">${heroes.length > 1 ? `<option value="__all"${isAll ? ' selected' : ''}>全ヒーロー（延べ${allRs.length}人）</option>` : ''}${heroes.map(x => `<option value="${esc(String(x.h))}"${String(x.h) === cur ? ' selected' : ''}>${esc(heroName(x.h))}（${x.rs.length}人）</option>`).join('')}</select></label>
+    <p class="small muted" style="margin:8px 0 4px">${isAll ? `すべてのヒーローを使っていた延べ${N}人のうち、そのカードを入れていた人の割合です（同じ人が複数のヒーローを使っていれば、ヒーローごとに1人と数えます）。` : `「${esc(heroName(o.h))}」を使っていた${N}人のうち、そのカードを入れていた人の割合です。`}${N < THIN ? `<b>まだ${N}人なので参考程度です。</b>` : ''}</p>
     ${pieOn(el, 'c') ? pieHTML(el, 'stats', 'c', rows.map(([k, n]) => ({ k, n: cardLabel(k), v: n, th: cardThumb(k) || '' })), '枚') : ''}<div class="mlist"${pieOn(el, 'c') ? ' style="display:none"' : ''}>${shown.map(([k, n]) => { const p = pct2(n, N), u = cardThumb(k); return `<div class="mrow${N < THIN ? ' thin' : ''}"><span class="mh">${u ? `<img class="cthumb" src="${u}" alt="">` : '<span class="cthumb"></span>'}<span class="pn${k.startsWith('n:') ? '' : ' muted'}">${esc(cardLabel(k))}</span></span>${bar(p)}<span class="mnum"><b>${f2(p)}%</b><span class="small muted">${n}/${N}人</span></span></div>`; }).join('')}</div>
     ${rows.length > 10 && !pieOn(el, 'c') ? `<div class="row"><button class="btn ghost" data-act="card-all">${all ? '上位10枚だけにする' : `全${rows.length}枚を表示`}</button></div>` : ''}
     <p class="small muted" style="margin:6px 0 0">1人4枚なので、合計は100%になりません。${N < THIN ? `${THIN}人未満のヒーローは全体が薄く表示されます。` : ''}${unnamed && !view.on ? `名前のないカードが${unnamed}枚あります。名前は「データ」タブの「カードの名前」で付けられます。` : ''}</p></div></div>`;
@@ -3378,7 +3403,8 @@ function renderStats0() {
   const el = $('#view-stats');
   const real = db.matches.length > 0;
   // 固定／野良：味方に固定メンバー（読み込みで「固定」にチェックした人）か連携フレンドがいた試合が「固定」、いなければ「野良」
-  const ms0 = real ? poolMatches() : SAMPLE, pty = el.dataset.pty || '';
+  const PR = real ? perGlobal(poolMatches(), el) : { list: SAMPLE, ui: '', on: false };
+  const ms0 = PR.list, pty = el.dataset.pty || '';
   const isFx = m => fxSlots(m).length > 0, nFx = ms0.filter(isFx).length;
   const ms1 = pty ? ms0.filter(m => isFx(m) === (pty === 'fx')) : ms0;
   // シーズンの絞り込み：対戦モードがバトルアリーナの時だけ出す（''＝全期間、'in'＝シーズン内、'out'＝シーズン外、それ以外＝そのシーズンのid）
@@ -3422,7 +3448,7 @@ function renderStats0() {
   const allHero = rHero === '__all', allStage = rStage === '__all';
   const title = [heroKey != null ? nm(heroKey) : allHero ? (hxOn ? `すべてのヒーロー（${hxNames}を除く）` : 'すべてのヒーロー') : null, stageKey != null ? sn(stageKey) : allStage ? 'すべてのステージ' : null].filter(Boolean).join(' × ');
   const filtered = fMode !== 'all' || fHero !== 'all' || fStage !== 'all';
-  const anySel = rHero !== '__all' || rStage !== '__all' || rMode !== '__all' || !!el.dataset.mv || !!pty || !!seaV || hxSet.size > 0;
+  const anySel = rHero !== '__all' || rStage !== '__all' || rMode !== '__all' || !!el.dataset.mv || !!pty || !!seaV || hxSet.size > 0 || PR.on;
   // 「すべての○○」の試合数も、ほかの絞り込みを反映した数にする
   const head = (raw, allLabel, n) => `<option value=""${raw === '' ? ' selected' : ''}>未選択</option><option value="__all"${raw === '__all' ? ' selected' : ''}>${allLabel}（${n}）</option>`;
   const nAllHero = ms.filter(m => okMode(m) && okStage(m) && mineOf(m) != null).length, nAllStage = ms.filter(m => okMode(m) && okHero(m)).length, nAllMode = ms.filter(m => okHero(m) && okStage(m)).length;
@@ -3443,6 +3469,7 @@ function renderStats0() {
       <label class="fl"><span class="label">対戦モード</span><select id="mode-filter" data-filter="mode">${head(rMode, 'すべて', nAllMode)}${opt(modeOpts, fMode, x => x)}</select></label>
       ${seaSel}
       <label class="fl"><span class="label">固定／野良</span><select id="pty-filter" data-filter="pty"><option value="">すべて（${ms0.length}）</option><option value="fx"${pty === 'fx' ? ' selected' : ''}>固定（${nFx}）</option><option value="solo"${pty === 'solo' ? ' selected' : ''}>野良（${ms0.length - nFx}）</option></select></label>
+      ${real ? `<div class="fl wide"><span class="label">期間</span>${PR.ui}</div>` : ''}
       <label class="fl"><span class="label">メダル/カード</span><select id="mdl-mode"><option value="">未選択</option><option value="m"${el.dataset.mv === 'm' || el.dataset.mv === 'h' ? ' selected' : ''}>メダル</option><option value="c"${el.dataset.mv === 'c' ? ' selected' : ''}>カード</option></select></label>
       ${anySel ? '<button class="btn ghost" data-act="clear-filter">最初の状態に戻す</button>' : ''}
     </div>
@@ -3640,12 +3667,15 @@ function heroSections(ms, hk, nm, sn, el) {
   // 5. ステージ勝率
   const maps = tally(hm, m => [m.stage]);
   const mapAll = el.dataset.mapAll === '1';
+  const nUse = maps.reduce((x, r) => x + r.n, 0);
+  curUse = { N: nUse, t: '当たった率' };
   h += pnl('ステージ勝率', withDrill(D(k => mkF({ hero: hk, stage: k })), () => mapAll ? `<div class="statlist">${rankRows(maps, sn)}</div>` : `<div class="statlist">${topRows(pickTop(maps, 1, 3), sn)}</div>`)
     + (maps.length > 3 || mapAll ? `<div class="row"><button class="btn ghost" data-act="map-all">${mapAll ? 'Top3だけにする' : `詳しく表示（全${maps.length}ステージ）`}</button></div>` : ''),
-    mapAll ? '全ステージの勝率ランキングです。' : '勝率が高いステージTop3です。5試合未満のステージは薄く表示し、5試合以上のステージを優先します。');
+    mapAll ? '全ステージの勝率ランキングです。右の「当たった率」は、試合のうちそのステージだった割合です。' : '勝率が高いステージTop3です。右の「当たった率」は、試合のうちそのステージだった割合です。5試合未満のステージは薄く表示し、5試合以上のステージを優先します。');
   // 6. 敵ヒーロー勝率
   const ens = tally(hm, enemiesOf);
   const enAll = el.dataset.enemyAll === '1';
+  curUse = { N: nUse, t: '相手にいた率' };
   let eb;
   eb = withDrill(D(k => mkF({ hero: hk, enemy: k })), () => {
     if (enAll) return `<div class="statlist">${rankRows(ens, nm)}</div>`;
@@ -3653,7 +3683,8 @@ function heroSections(ms, hk, nm, sn, el) {
     return `<div class="subh">勝ちやすい相手 Top3</div><div class="statlist">${topRows(best, nm)}</div><div class="subh">負けやすい相手 ワースト3</div><div class="statlist">${topRows(worst, nm)}</div>`;
   });
   h += pnl('敵ヒーロー勝率', eb + (ens.length > 6 || enAll ? `<div class="row"><button class="btn ghost" data-act="enemy-all">${enAll ? 'Top3・ワースト3だけにする' : `詳しく表示（全${ens.length}ヒーロー）`}</button></div>` : ''),
-    (allMode ? '自分が使ったヒーローに関係なく、' : `${esc(hname)}を使ったとき、`) + (enAll ? '相手チームにいたヒーローの勝率ランキングです。上ほど勝ちやすい相手です。' : '相手チームにいたヒーローごとの勝率です。'));
+    (allMode ? '自分が使ったヒーローに関係なく、' : `${esc(hname)}を使ったとき、`) + (enAll ? '相手チームにいたヒーローの勝率ランキングです。上ほど勝ちやすい相手です。' : '相手チームにいたヒーローごとの勝率です。') + '右の「相手にいた率」は、試合のうち相手チームにそのヒーローがいた割合です（1試合に相手は3人いるので、合計は100%になりません）。');
+  curUse = null;
   h += withDrill(D(k => mkF({ hero: hk, rank: k })), () => rankPanel(hm, allMode ? '' : `${esc(hname)}を使った試合だけで計算しています。`));
   h += enemyRankPanel(hm);
   return h;
@@ -4250,18 +4281,46 @@ function renderSeason() {
         <div class="row"><button class="btn" data-sshare="${se.id}">X（Twitter）用の総括画像を作る</button></div>
         ${sm.done.length ? (() => {
           const win = seasonWin[se.id] || 0, n = sm.done.length;
-          const rg = seasonRange[se.id] || {}, a = Math.min(Math.max(1, rg.a || 1), n), b = Math.min(Math.max(a, rg.b || n), n);
-          // 伸び代：a試合目の直前のptからb試合目の試合後ptまでの増減を試合数で割る
-          const before = a === 1 ? se.pt : pts[a - 1].v, after = pts[b].v, cnt = b - a + 1, gain = after - before;
-          const rs = sm.done.slice(a - 1, b).map(matchResult), w = rs.filter(r => r === 'w').length, l = rs.filter(r => r === 'l').length;
-          const avg = gain / cnt, avgS = (avg > 0 ? '+' : avg < 0 ? '−' : '±') + Math.abs(avg).toFixed(1);
+          const rg = seasonRange[se.id] || {}, mode = rg.mode === 'd' ? 'd' : 'n';
+          // 範囲：試合数（○試合目〜○試合目）か、日付（開始日〜終了日）
+          let a = 1, b = n, idxs = [];
+          if (mode === 'd') {
+            const t0 = rg.d1 ? new Date(rg.d1 + 'T00:00:00').getTime() : -Infinity, t1 = rg.d2 ? new Date(rg.d2 + 'T23:59:59.999').getTime() : Infinity;
+            idxs = sm.done.map((m, i) => [m, i + 1]).filter(([m]) => m.at >= t0 && m.at <= t1).map(([, i]) => i);
+            if (idxs.length) { a = idxs[0]; b = idxs[idxs.length - 1]; }
+          } else { a = Math.min(Math.max(1, rg.a || 1), n); b = Math.min(Math.max(a, rg.b || n), n); for (let q = a; q <= b; q++) idxs.push(q); }
+          // 曜日・時間帯：スクショを撮った時刻で絞る（日本時間の端末の時刻）
+          const dyOf = m => new Date(m.at).getDay(), hrOf = m => new Date(m.at).getHours();
+          const TB = { night: [0, 6], morning: [6, 12], noon: [12, 18], eve: [18, 24] };
+          const th = rg.tb === 'c' ? [rg.h1 ?? 0, rg.h2 ?? 24] : (TB[rg.tb] || null);
+          const wdOk = m => !rg.wd || (rg.wd === 'we' ? (dyOf(m) === 0 || dyOf(m) === 6) : (dyOf(m) >= 1 && dyOf(m) <= 5));
+          const tbOk = m => { if (!th) return true; const h = hrOf(m), s0 = th[0], e0 = th[1]; if (s0 === e0) return true; return s0 < e0 ? (h >= s0 && h < e0) : (h >= s0 || h < e0); };
+          const extra = !!rg.wd || (!!th && th[0] !== th[1]);
+          const sel = idxs.filter(q => wdOk(sm.done[q - 1]) && tbOk(sm.done[q - 1]));
+          const cnt = extra ? sel.length : (idxs.length ? b - a + 1 : 0);
+          // 条件なし：a試合目の直前のptからb試合目の試合後ptまでの増減。曜日・時間帯あり：選んだ試合の増減を足す
+          const before = a === 1 ? se.pt : pts[a - 1].v, after = pts[b].v;
+          const gain = extra ? sel.reduce((x, q) => x + (pc[sm.done[q - 1].id].d || 0), 0) : (idxs.length ? after - before : 0);
+          const rs = (extra ? sel : idxs).map(q => matchResult(sm.done[q - 1])), w = rs.filter(r => r === 'w').length, l = rs.filter(r => r === 'l').length;
+          const avg = cnt ? gain / cnt : 0, avgS = cnt ? (avg > 0 ? '+' : avg < 0 ? '−' : '±') + Math.abs(avg).toFixed(1) : '−';
+          const sg = (act, v, lb, on) => `<button class="seg${on ? ' on' : ''}" ${act}="${se.id}" data-v="${v}">${lb}</button>`;
+          const hopt = (cur, from, to) => Array.from({ length: to - from + 1 }, (_, i) => from + i).map(x => `<option value="${x}"${x === cur ? ' selected' : ''}>${x}時</option>`).join('');
+          const changed = mode === 'd' || a !== 1 || b !== n || extra || !!rg.tb;
           return `<div class="row segs" role="group" aria-label="グラフの表示範囲">${[[0, '全試合'], [10, '10試合'], [20, '20試合'], [30, '30試合']].map(([v, lb]) => `<button class="seg${win === v ? ' on' : ''}" data-swin="${se.id}" data-v="${v}">${lb}</button>`).join('')}</div>
             ${seasonChart(pts, win, chartWidth())}
             <div class="gainbox"><div class="row" style="gap:6px;align-items:center"><b>平均の伸び代</b>
-              <input type="number" class="rng" min="1" max="${n}" value="${a}" data-srange="${se.id}" data-k="a" id="ra-${se.id}" aria-label="何試合目から">試合目〜<input type="number" class="rng" min="1" max="${n}" value="${b}" data-srange="${se.id}" data-k="b" id="rb-${se.id}" aria-label="何試合目まで">試合目
-              ${a !== 1 || b !== n ? `<button class="btn ghost small" data-srange-reset="${se.id}">全試合に戻す</button>` : ''}</div>
+              <span class="row segs" role="group" aria-label="範囲の指定のしかた">${sg('data-srmode', 'n', '試合数', mode === 'n')}${sg('data-srmode', 'd', '日付', mode === 'd')}</span></div>
+              <div class="row" style="gap:6px;align-items:center;margin-top:4px">${mode === 'n'
+                ? `<input type="number" class="rng" min="1" max="${n}" value="${a}" data-srange="${se.id}" data-k="a" id="ra-${se.id}" aria-label="何試合目から">試合目〜<input type="number" class="rng" min="1" max="${n}" value="${b}" data-srange="${se.id}" data-k="b" id="rb-${se.id}" aria-label="何試合目まで">試合目`
+                : `<input type="date" class="datein" data-srdate="${se.id}" data-k="d1" id="rd1-${se.id}" value="${esc(rg.d1 || '')}" aria-label="開始日">〜<input type="date" class="datein" data-srdate="${se.id}" data-k="d2" id="rd2-${se.id}" value="${esc(rg.d2 || '')}" aria-label="終了日">`}</div>
+              <div class="row" style="gap:6px;align-items:center;margin-top:6px"><span class="small muted" style="flex:0 0 3em">曜日</span><span class="row segs" role="group" aria-label="曜日で絞る">${[['', 'すべて'], ['wk', '平日'], ['we', '土日']].map(([v, lb]) => sg('data-srwd', v, lb, (rg.wd || '') === v)).join('')}</span></div>
+              <div class="row" style="gap:6px;align-items:center;margin-top:6px"><span class="small muted" style="flex:0 0 3em">時間帯</span><span class="row segs" role="group" aria-label="時間帯で絞る">${[['', 'すべて'], ['night', '深夜 0-6時'], ['morning', '朝 6-12時'], ['noon', '昼 12-18時'], ['eve', '夜 18-24時'], ['c', '時刻を指定']].map(([v, lb]) => sg('data-srtb', v, lb, (rg.tb || '') === v)).join('')}</span></div>
+              ${rg.tb === 'c' ? `<div class="row" style="gap:6px;align-items:center;margin-top:6px"><select class="rng" style="width:auto" data-srh="${se.id}" data-k="h1" aria-label="開始の時刻">${hopt(rg.h1 ?? 0, 0, 23)}</select>から<select class="rng" style="width:auto" data-srh="${se.id}" data-k="h2" aria-label="終了の時刻">${hopt(rg.h2 ?? 24, 0, 24).replace(/<option value="24"/, '<option value="24"')}</select>まで（終了の時刻は含みません。終了が開始より前なら、日をまたぎます）</div>` : ''}
+              ${changed ? `<div class="row" style="margin-top:6px"><button class="btn ghost small" data-srange-reset="${se.id}">全試合に戻す</button></div>` : ''}
               <div class="gainv"><span class="ptv ${avg > 0 ? 'plus' : avg < 0 ? 'minus' : ''}">${avgS}</span><small>pt / 試合</small></div>
-              <div class="small muted">${cnt}試合で ${fmtPt(gain)}pt（${before}→${after}pt）・${w}勝${l}敗${cnt ? `・勝率${f2(pct2(w, w + l) ?? 0)}%` : ''}</div></div>
+              ${cnt ? `<div class="small muted">${cnt}試合で ${extra ? `増減の合計 ${fmtPt(gain)}pt` : `${fmtPt(gain)}pt（${before}→${after}pt）`}・${w}勝${l}敗${`・勝率${f2(pct2(w, w + l) ?? 0)}%`}</div>` : '<div class="small muted">この条件に当てはまる試合はありません。</div>'}
+              ${extra ? '<div class="small muted">曜日・時間帯で絞った時は、当てはまる試合の増減ptだけを足して、試合数で割っています。</div>' : ''}
+              ${th && th[0] !== th[1] || rg.wd ? '<div class="small muted">曜日・時間は、スクショを撮った日時です。日付を直した試合は、昼の12時として扱われます。登録するのが遅かったり、まとめて登録したりした試合は、実際に遊んだ時間とずれます。</div>' : ''}</div>
             ${(() => {
               // k試合ごとの平均pt（1〜k試合目、k+1〜2k試合目…）。数百試合でも見やすいように
               const k = seasonChunk[se.id] || 10, chunks = [];
@@ -4521,10 +4580,10 @@ function renderGuide() {
   ${acc('2. 各タブでできること', `
     <ul>
       <li><b>登録：</b>スクショから試合を登録します。</li>
-      <li><b>分析：</b>画面の上の「絞り込み」は、最初は閉じています。押すと開き、「使ったヒーロー」「ステージ」「対戦モード」「メダル/カード」で絞り込んで、「除外するヒーロー」で特定のヒーローを使った試合を外して（何体でも）、勝率・使用率・直近の勝率などを見ます。対戦モードを「バトルアリーナ」にすると、右に「シーズン」の欄が出ます。「全期間」（最初の状態）・「全シーズン」（シーズン中の試合すべて）・「エンジョイ期間」（シーズンの外の試合）・各シーズンから選ぶと、その期間の試合だけで分析します。シーズンは、「シーズンpt」タブで登録した日付で分けます。「この条件の履歴を見る」で、その条件の試合の一覧に移れます（シーズンの絞り込みは引き継ぎません）。「全体勝率推移（試合数）」は、10・20・50・100試合ごとに切り替えられます。区切りが20個より多い時は横にスライドして見られ、「全試合表示」を押すと全部を1画面で見られます。タブの下の「目次」を押すと、その欄に飛べます（欄の名前の横の「▲」で、その欄を閉じたり開いたりもできます）。欄の説明は、名前の横の「？」で開きます。「連勝・連敗の流れ」では、今の連勝・連敗、最長の記録、連勝・連敗のあとに次の試合で勝った割合を、連敗・連勝に分けて、1連〜9連と10連以上まで見られます（記録がない連の数は出ません）。ヒーローを選ぶと出る「みんなと比べる」を押すと、あなたの勝率と、みんなの統計（同じランクの人。少ない時は全ランク）の勝率を並べて見られます。最初は閉じていて、押した時だけ出ます。あなたのランクは、いちばん新しくランクを読み取った試合のランクです。</li>
+      <li><b>分析：</b>画面の上の「絞り込み」は、最初は閉じています。押すと開き、「使ったヒーロー」「ステージ」「対戦モード」「メダル/カード」で絞り込んで、「除外するヒーロー」で特定のヒーローを使った試合を外して（何体でも）、勝率・使用率・直近の勝率などを見ます。対戦モードを「バトルアリーナ」にすると、右に「シーズン」の欄が出ます。「全期間」（最初の状態）・「全シーズン」（シーズン中の試合すべて）・「エンジョイ期間」（シーズンの外の試合）・各シーズンから選ぶと、その期間の試合だけで分析します。シーズンは、「シーズンpt」タブで登録した日付で分けます。「この条件の履歴を見る」で、その条件の試合の一覧に移れます（シーズンの絞り込みは引き継ぎません）。「全体勝率推移（試合数）」は、10・20・50・100試合ごとに切り替えられます。区切りが20個より多い時は横にスライドして見られ、「全試合表示」を押すと全部を1画面で見られます。「期間」で、分析する試合の期間を絞れます。「25日区切り」は毎月25日〜翌月24日を1期間として（1ヶ月〜2年、◀▶で前後に移動）、「日付を指定」はカレンダーで開始日と終了日を選びます（1日ごとに指定できます）。この期間は、分析の画面全体に効きます。「ステージ勝率」と「敵ヒーロー勝率」には、勝率のほかに、試合のうちそのステージに当たった割合・相手チームにそのヒーローがいた割合も出ます。「メダル/カード」の「カード」では、ヒーローを選ぶほか「全ヒーロー」も選べます。タブの下の「目次」を押すと、その欄に飛べます（欄の名前の横の「▲」で、その欄を閉じたり開いたりもできます）。欄の説明は、名前の横の「？」で開きます。「連勝・連敗の流れ」では、今の連勝・連敗、最長の記録、連勝・連敗のあとに次の試合で勝った割合を、連敗・連勝に分けて、1連〜9連と10連以上まで見られます（記録がない連の数は出ません）。ヒーローを選ぶと出る「みんなと比べる」を押すと、あなたの勝率と、みんなの統計（同じランクの人。少ない時は全ランク）の勝率を並べて見られます。最初は閉じていて、押した時だけ出ます。あなたのランクは、いちばん新しくランクを読み取った試合のランクです。</li>
       <li><b>シーズンpt：</b>バトルアリーナの増減ptを入れると、シーズンptの推移をグラフにします。最初に、シーズン名・開始時のpt・開始日を入れてください。開始時のptと試合後のptは、合計pt（例：2750）でも、ゲーム内の表示のままのランク表記（例：S2 250）でも入れられます。ランク表記で入れると横に合計ptが、合計ptで入れると横にランク表記が出るので、頭の中で換算しなくて大丈夫です。欄のボタンで、ランク（S○）と中のptを別々の欄に入れる方式にも切り替えられます。開催中のシーズンを開くと「シーズンの目標」が出ます。目標のランク（最初は次のランク）を選ぶか、「ptで指定」に目標のptを入れると、あと何ptか、そこまでの1試合あたりの平均の増え方、今のペースであと何試合か、残りの日数での1日あたりの試合数が出ます（ptを入れた試合が5試合になってから）。。右上の「▼」を押すと、目標があとptと試合数が大きい文字で出ます。目標に届くと「S5 300 達成🎉」と出て、総括画像にも載ります。シーズンの開始日を間違えたときは、シーズンを開いた中の「開始日を直す」で直せます（試合は消えず、期間に入る試合が日付で入れ替わります）</li>
       <li><b>シーズン外：</b>フリーバトルやカスタムバトル、シーズン期間外のバトルアリーナなど、シーズンptに入らない試合です。試合ごとにメモを書けます。</li>
-      <li><b>統計：</b>提供に同意した人の試合をまとめた、みんなの統計です。「絞り込み」は最初は閉じていて、押すと開きます（条件を変えている時は「変更中」と出ます）。シーズン（「全期間」「シーズン外」「各シーズン」から選べます）・ランク（複数選べます）・対戦モードごとに、ヒーローの使用率と勝率、ヒーローごとのカードとメダルの使用率、ステージの勝率を見られます。ヒーローの欄は「使用率」と「勝率」を切り替えられ、使用率ではn回/全体の回数も出ます。上の「最終更新」と、カード・メダルの「何人中何人」で、集計の新しさと元の人数を確かめられます。同じ試合は1回だけ数え、自分とフレンド連携した固定の仲間のデッキが同じ時も1回にまとめます。「デッキの勝率」では、ヒーローを選ぶと、カード4枚の組み合わせごとの勝率・試合数・計人数が、勝率の高い順（1位から）に出ます。カード名は1枚ずつ縦に並びます（4枚とも名前が分かっていて、2試合以上あるデッキだけ。引き分けは数えません。「期間ごと」の指定中は出ません）。タブの下の「目次」で欄に飛べ、欄の名前の横の「▲」で閉じたり開いたりできます。カードの絵は、提供者から送られた小さな切り抜きも使います。カードとメダルの使用率には「期間ごと」のボタンがあり、ONにすると、毎月25日〜翌月24日を1期間として、1ヶ月・3ヶ月・6ヶ月・1年（または1ヶ月刻みで好きな長さ）でまとめて見られます。◀▶で前後の期間に動けます。この表では、シーズンの内外と対戦モードを、ボタンの下の欄で別に選べます。提供するかどうかは、統計タブかデータタブで選べます（最初は「提供しない」）。</li>
+      <li><b>統計：</b>提供に同意した人の試合をまとめた、みんなの統計です。「絞り込み」は最初は閉じていて、押すと開きます（条件を変えている時は「変更中」と出ます）。シーズン（「全期間」「シーズン外」「各シーズン」から選べます）・ランク（複数選べます）・対戦モードごとに、ヒーローの使用率と勝率、ヒーローごとのカードとメダルの使用率、ステージの勝率を見られます。ヒーローの欄は「使用率」と「勝率」を切り替えられ、使用率ではn回/全体の回数も出ます。上の「最終更新」と、カード・メダルの「何人中何人」で、集計の新しさと元の人数を確かめられます。同じ試合は1回だけ数え、自分とフレンド連携した固定の仲間のデッキが同じ時も1回にまとめます。「デッキの勝率」では、ヒーローを選ぶと、カード4枚の組み合わせごとの勝率・試合数・計人数が、勝率の高い順（1位から）に出ます。カード名は1枚ずつ縦に並びます（4枚とも名前が分かっていて、2試合以上あるデッキだけ。引き分けは数えません。「期間ごと」の指定中は出ません）。タブの下の「目次」で欄に飛べ、欄の名前の横の「▲」で閉じたり開いたりできます。カードの絵は、提供者から送られた小さな切り抜きも使います。絞り込みの「期間」で、「25日区切り」（毎月25日〜翌月24日を1期間として、1ヶ月・3ヶ月・6ヶ月・1年、または1ヶ月刻みで好きな長さ。◀▶で前後に移動）と、「日付を指定」（カレンダーで開始日を選び、終了日は開始日から31日以内。1日ごとの集計を足して見ます）を選べます。ヒーロー・カード・メダル・ステージの表が、その期間の数字になります。デッキと編成の勝率は、期間の指定中は出せません。期間の指定中は、シーズンの内外と対戦モードを、期間の下の欄で選びます。日ごとの集計は人数が少ない日があるので、細かい項目（カード・メダルのセット）は少なめに出ることがあります。メダルの使用率の下には、メダルのセット（3つの組み合わせ）の使用率も出ます（3つとも分かっている人のうち、2人以上が付けていたセットを、多い順に8つまで）。提供するかどうかは、統計タブかデータタブで選べます（最初は「提供しない」）。</li>
       <li><b>履歴：</b>登録した全試合を、新しい順に見られます。ヒーロー・ステージ・対戦モード・敵ヒーロー・自分のランクで絞り込めます。「除外するヒーロー」を選ぶと、そのヒーローを使った試合を外して見られます。試合の削除もここでできます（削除は元に戻せません）。</li>
       <li><b>データ：</b>ログイン、フレンド連携、バックアップと復元、ヒーロー名の修正、カードの名前付け、（背景・色は、ヘッダーの「デザイン」から）、全データの削除があります。</li>
     </ul>`)}
@@ -4560,7 +4619,7 @@ function renderGuide() {
   ${acc('5. カード分析', `
     <p>試合を読み込むと、6人が入れていた4枚のカードも、絵柄で見分けて記録します。</p>
     <ul>
-      <li><b>カードの使用率：</b>分析タブの「メダル/カード」で「カード」を選び、ヒーローを選びます。そのヒーローを使っていた人のうち、各カードを入れていた人の割合が、上位10枚まで出ます。「全○枚を表示」で全部見られます。名前のないカードが残っている時は、この表の上に案内が出て、ボタンで名前を付ける画面（データタブ）に移れます。「期間ごと」をONにすると、毎月25日〜翌月24日の期間（1ヶ月・3ヶ月・6ヶ月・1年、または1ヶ月刻みの長さ）に絞れます。メダルの表も同じです。◀▶で前後の期間に動けます。</li>
+      <li><b>カードの使用率：</b>分析タブの「メダル/カード」で「カード」を選び、ヒーローを選びます。そのヒーローを使っていた人のうち、各カードを入れていた人の割合が、上位10枚まで出ます。「全○枚を表示」で全部見られます。名前のないカードが残っている時は、この表の上に案内が出て、ボタンで名前を付ける画面（データタブ）に移れます。絞り込みの「期間」で、25日区切りや日付で絞れます。メダルの表も同じです。</li>
       <li><b>カードの名前：</b>カード一覧の絵と照らし合わせて、自信がある時だけ自動で名前を付けます（「自動」と表示）。自信がないカードは「名前なし」のままになり、データタブの「カードの名前」に絵が近い順の候補が出るので、合っているものをタップするか、自分で入力してください。自動の名前が違っていたら、そこで直せます。同じカードが2つに分かれて並んでいたら、同じ名前を付けると1つにまとまります。</li>
     </ul>
     <h4>数え方</h4>
@@ -4892,7 +4951,7 @@ document.addEventListener('click', e => {
   tip.style.left = x + 'px'; tip.style.top = cy + 'px'; tip.style.setProperty('--ax', (half + cx - x) + 'px');
 }, true);
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-act],[data-own],[data-shmv],[data-shdrop],[data-ask],[data-del],[data-pick],[data-ptsign],[data-mptsign],[data-copy],[data-dup],[data-fillno],[data-unseason],[data-reseason],[data-outmode],[data-drill],[data-pickopen],[data-pickstage],[data-pickhero],[data-pickhx],[data-season-toggle],[data-swin],[data-schunk],[data-sgoal],[data-sgoalptx],[data-sgfold],[data-srange-reset],[data-trendn],[data-trendall]');
+  const t = e.target.closest('[data-act],[data-own],[data-shmv],[data-shdrop],[data-ask],[data-del],[data-pick],[data-ptsign],[data-mptsign],[data-copy],[data-dup],[data-fillno],[data-unseason],[data-reseason],[data-outmode],[data-drill],[data-pickopen],[data-pickstage],[data-pickhero],[data-pickhx],[data-season-toggle],[data-swin],[data-schunk],[data-sgoal],[data-sgoalptx],[data-sgfold],[data-srange-reset],[data-srmode],[data-srwd],[data-srtb],[data-trendn],[data-trendall]');
   if (!t) return;
   if (t.dataset.pickopen) { const v = $('#view-stats'); v.dataset.pick = v.dataset.pick === t.dataset.pickopen ? '' : t.dataset.pickopen; renderStats(); return; }
   if (t.dataset.pickhx !== undefined) {
@@ -4968,6 +5027,9 @@ document.addEventListener('click', e => {
   if (t.dataset.schunk) { seasonChunk[t.dataset.schunk] = +t.dataset.v; renderSeason(); return; }
   if (t.dataset.swin) { seasonWin[t.dataset.swin] = +t.dataset.v; renderSeason(); return; }
   if (t.dataset.srangeReset) { delete seasonRange[t.dataset.srangeReset]; renderSeason(); return; }
+  if (t.dataset.srmode) { const r = seasonRange[t.dataset.srmode] = seasonRange[t.dataset.srmode] || {}; r.mode = t.dataset.v === 'd' ? 'd' : 'n'; renderSeason(); return; }
+  if (t.dataset.srwd !== undefined) { const r = seasonRange[t.dataset.srwd] = seasonRange[t.dataset.srwd] || {}; r.wd = t.dataset.v || ''; renderSeason(); return; }
+  if (t.dataset.srtb !== undefined) { const r = seasonRange[t.dataset.srtb] = seasonRange[t.dataset.srtb] || {}; r.tb = t.dataset.v || ''; if (r.tb === 'c') { if (r.h1 == null) r.h1 = 18; if (r.h2 == null) r.h2 = 24; } renderSeason(); return; }
   if (act === 'sf-set') { seasonFilter[t.dataset.sid] = t.dataset.v; seasonShown[t.dataset.sid] = SEASON_PAGE; renderSeason(); return; }
   if (act === 'sf-more') { seasonShown[t.dataset.sid] = (seasonShown[t.dataset.sid] || SEASON_PAGE) + SEASON_PAGE; renderSeason(); return; }
   if (act === 'sf-jump') {
@@ -5045,7 +5107,7 @@ document.addEventListener('click', e => {
       if (!o || !Array.isArray(o.matches) || !Array.isArray(o.heroes)) throw 0;
       pendingRestore = o; renderData();
     } catch (_) { $('#restore-msg').textContent = '読み込めませんでした。コピーした文字列を最初から最後まで貼り付けてください。'; }
-  } else if (act === 'clear-filter') { const v = $('#view-stats'); delete v.dataset.mode; delete v.dataset.hero; delete v.dataset.hx; delete v.dataset.stage; delete v.dataset.mv; delete v.dataset.pty; delete v.dataset.sea; renderStats(); }
+  } else if (act === 'clear-filter') { const v = $('#view-stats'); delete v.dataset.mode; delete v.dataset.hero; delete v.dataset.hx; delete v.dataset.stage; delete v.dataset.mv; delete v.dataset.pty; delete v.dataset.sea; delete v.dataset.pm; delete v.dataset.pd; delete v.dataset.d1; delete v.dataset.d2; renderStats(); }
   else if (act === 'sync-login') syncLogin();
   else if (act === 'iab-copy') { const u = 'https://' + SITE_URL, m = document.getElementById('iab-msg'), ok = () => { if (m) m.textContent = 'コピーしました'; }, ng = () => { if (m) m.textContent = u; };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(ok, ng); else ng(); }
@@ -5176,6 +5238,8 @@ document.addEventListener('change', e => {
     const sum = t.closest('.pdetail') && t.closest('.pdetail').querySelector(':scope > summary');
     if (sum) { const mk = sum.querySelector('.memo-mark'); if (v && !mk) sum.insertAdjacentHTML('beforeend', ' <span class="memo-mark">💬 コメントあり</span>'); if (!v && mk) mk.remove(); }
   }
+  else if (t.dataset.srdate) { const r = seasonRange[t.dataset.srdate] = seasonRange[t.dataset.srdate] || {}; r[t.dataset.k] = t.value || ''; if (r.d1 && r.d2 && r.d1 > r.d2) { const x = r.d1; r.d1 = r.d2; r.d2 = x; } renderSeason(); }
+  else if (t.dataset.srh) { const r = seasonRange[t.dataset.srh] = seasonRange[t.dataset.srh] || {}; r[t.dataset.k] = Math.round(+t.value); renderSeason(); }
   else if (t.dataset.srange) {
     const r = seasonRange[t.dataset.srange] = seasonRange[t.dataset.srange] || {}, v = Math.round(+t.value);
     if (v > 0) { r[t.dataset.k] = v; if (r.a && r.b && r.a > r.b) { const x = r.a; r.a = r.b; r.b = x; } }
@@ -5220,6 +5284,7 @@ function viewLock() {
 const VIEW_BLOCK = '[data-ptmode],[data-cardpick],[data-cardsug],[data-sshare],[data-mfedit],[data-act="mf-new"],[data-del],[data-ask],[data-unseason],[data-reseason],[data-mptsign],[data-act="season-new"],[data-act="season-start"],[data-act="season-del"],[data-act="season-del-yes"],[data-act="season-del-no"],[data-act="season-cancel"],[data-memo],[data-mdate],[data-season-pt],[data-season-name],[data-season-hero],[data-newhero],[id^="mpt-"]';
 document.addEventListener('click', e => { if (view.on && e.target.closest && e.target.closest(VIEW_BLOCK)) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => { if (view.on && e.target.closest && e.target.closest(VIEW_BLOCK)) e.stopImmediatePropagation(); }, true));
+document.addEventListener('change', e => { const t = e.target; if (t && (t.id === 'per-d1' || t.id === 'per-d2')) { const v = $('#view-stats'); v.dataset[t.id === 'per-d1' ? 'd1' : 'd2'] = t.value; renderStats(); } });
 document.addEventListener('change', e => { if (e.target && e.target.id === 'mdl-mode') { const v = $('#view-stats'); v.dataset.mv = e.target.value; renderStats(); } });
 document.addEventListener('change', e => { if (e.target && e.target.id === 'mdl-pick') { const v = $('#view-stats'); v.dataset[e.target.dataset.kind] = e.target.value; if (e.target.dataset.kind === 'ch') v.dataset.cardAll = ''; renderStats(); } });
 document.addEventListener('change', e => { if (e.target && e.target.id === 'tog') togSelect(e.target.value); });
@@ -5235,7 +5300,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-17-CB', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-21-CF', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -6190,7 +6255,7 @@ function statAgg(parts, cfg, now, fix, hfix, cfix) {
     for (let k = 0; k < 6; k++) {
       const p = r[8 + k]; if (!Array.isArray(p)) continue; const h = heroCanon(name(p[0])); if (!h) continue;
       const band = Number.isFinite(p[1]) ? Math.min(10, Math.max(0, p[1] | 0)) : 10;
-      const x = bucket(d.h, band); let e = x.get(h); if (!e) { e = { n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map(), seen: new Set(), dk: new Map() }; x.set(h, e); }
+      const x = bucket(d.h, band); let e = x.get(h); if (!e) { e = { n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map(), seen: new Set(), dk: new Map(), ms: new Map(), sn: 0 }; x.set(h, e); }
       const pw = w !== 2 && (k < 3 ? 0 : 1) === side ? w === 1 : (w === 0);
       e.n++; if (pw) e.w++;
       // ステージ×ヒーロー（その試合の全員ぶん。引き分けは数えない）
@@ -6201,6 +6266,8 @@ function statAgg(parts, cfg, now, fix, hfix, cfix) {
       const once = (tag, list) => { if (!mine) return true; const key = u + '|' + tag + '|' + [...new Set(list)].sort().join(','); if (e.seen.has(key)) return false; e.seen.add(key); return true; };
       if (cs.length && once('c', cs)) { e.cn++; for (const c of new Set(cs)) e.cards.set(c, (e.cards.get(c) || 0) + 1); }
       if (ms.length && once('m', ms)) { e.mn++; for (const i of new Set(ms)) e.med.set(i, (e.med.get(i) || 0) + 1); }
+      // メダルのセット（3枠とも分かっている人だけ。同じ絵柄を重ねて付けた場合も区別する）
+      if (ms.length === 3 && once('s', ms)) { e.sn++; const sk2 = [...ms].sort((a, b) => a - b).join(','); e.ms.set(sk2, (e.ms.get(sk2) || 0) + 1); }
       // デッキ（カード4枚の組み合わせ）の勝率：4枚とも名前が分かっている枠だけ。引き分けは数えない。人数は、その試合を提供した人の数
       if (w !== 2 && Array.isArray(p[2]) && p[2].length === 4 && cs.length === 4 && new Set(cs).size === 4) { const dk0 = [...cs].sort().join('\t'); let q = e.dk.get(dk0); if (!q) { q = { n: 0, w: 0, us: new Set() }; e.dk.set(dk0, q); } q.n++; if (pw) q.w++; q.us.add(u); }
     }
@@ -6218,7 +6285,7 @@ function statAgg(parts, cfg, now, fix, hfix, cfix) {
   for (const [k, d] of docs) {
     const ct = [], ci = new Map(), cidx = c => { let i = ci.get(c); if (i == null) { i = ct.length; ct.push(c); ci.set(c, i); } return i; };
     const h = {}, g = {};
-    for (const [b, hm] of d.h) { h[b] = {}; for (const [n, e] of hm) h[b][n] = [e.n, e.w, e.cn, [...e.cards].sort((a, b) => b[1] - a[1]).slice(0, 40).flatMap(([c, v]) => [cidx(c), v]), e.mn, [...e.med].flatMap(([i, v]) => [i, v]), [...e.dk].filter(([, q]) => q.n >= 2).sort((a, b) => b[1].n - a[1].n).slice(0, 8).map(([k, q]) => [...k.split('\t').map(cidx), q.n, q.w, q.us.size])]; }
+    for (const [b, hm] of d.h) { h[b] = {}; for (const [n, e] of hm) h[b][n] = [e.n, e.w, e.cn, [...e.cards].sort((a, b) => b[1] - a[1]).slice(0, 40).flatMap(([c, v]) => [cidx(c), v]), e.mn, [...e.med].flatMap(([i, v]) => [i, v]), [...e.dk].filter(([, q]) => q.n >= 2).sort((a, b) => b[1].n - a[1].n).slice(0, 8).map(([k, q]) => [...k.split('\t').map(cidx), q.n, q.w, q.us.size]), [...e.ms].filter(([, v]) => v >= 2).sort((a, b) => b[1] - a[1]).slice(0, 8).flatMap(([k, v]) => [...k.split(',').map(Number), v]), e.sn]; }
     for (const [b, gm] of d.g) { g[b] = {}; for (const [n, a] of gm) g[b][n] = a; }
     const gt = [], gi = new Map(), gidx = n => { let i = gi.get(n); if (i == null) { i = gt.length; gt.push(n); gi.set(n, i); } return i; }, gh = {};
     for (const [b, hm] of d.gh) { gh[b] = {}; for (const [h, sm] of hm) gh[b][h] = [...sm].flatMap(([n, a]) => [gidx(n), a[0], a[1]]); }
@@ -6226,44 +6293,62 @@ function statAgg(parts, cfg, now, fix, hfix, cfix) {
     for (const [b, m] of d.tc) { const arr = [...m].filter(([, a]) => a[0] >= 2).sort((x, y) => y[1][0] - x[1][0]).slice(0, b === 'x' ? 800 : 300); if (arr.length) tc[b] = arr.flatMap(([key, a]) => [...key.split('\t').map(tix), a[0], a[1]]); }
     out.set(k, { t: now, n: d.fps.size, p: d.us.size, d: JSON.stringify({ c: ct, h, g, gt, gh, tt, tc }) });
   }
-  // 期間ごと（毎月25日〜翌月24日）：カードとメダルだけ。シーズン外・全対戦モードをまとめる。1期間1つ（p_<期間>）
-  const pd = new Map(), pseen = new Map(), pks = new Set();
+  // 期間ごと：25日区切り（p_<月>）と、日ごと（p_d<年月日>）。ヒーロー（使用率・勝率）・カード・メダル・ステージ（勝率）。デッキと編成は入れない。シーズン外・全対戦モードをまとめる
+  const pd = new Map(), pseen = new Map(), pks = new Set(), dks = new Set(); let mxSize = 0;
+  const jday = t => { const q = new Date(t + 9 * 3600000); return q.getUTCFullYear() * 10000 + (q.getUTCMonth() + 1) * 100 + q.getUTCDate(); };
   for (const rec of recs) {
     const { u, nm, r } = rec;
-    const t = r[1] * 60000, key = periodOf(t).key, sk = String(r[0]) + '|' + key;
-    if ((pseen.has(sk) && pseen.get(sk) !== u) || D2.has(rec)) continue; pseen.set(sk, u); pks.add(key);
+    const t = r[1] * 60000, name = i => (i >= 0 && i < nm.length ? String(nm[i]) : ''), w = r[4], side = r[5] === 1 ? 1 : 0;
+    const stage = stCan(name(r[3])), own = r[8 + side * 3 + (r[7] | 0)];
     // 置き場所：a_a（すべて）、a_<モード>、i_a（シーズン内）、o_a／o_<モード>（シーズン外）
     const inS = !(r[2] !== AR || r[6] === 1) && seasonOf(t);
     const bks = inS ? ['a_a', 'a_' + r[2], 'i_a'] : ['a_a', 'a_' + r[2], 'o_a', 'o_' + r[2]];
-    const name = i => (i >= 0 && i < nm.length ? String(nm[i]) : ''), side = r[5] === 1 ? 1 : 0;
-    for (const bk of bks) {
-      const dk = key + '_' + bk; let d = pd.get(dk); if (!d) { d = { key, bk, fps: new Set(), us: new Set(), h: new Map() }; pd.set(dk, d); }
-      d.us.add(u); d.fps.add(String(r[0]) + u);
-      for (let k = 0; k < 6; k++) {
-        const p = r[8 + k]; if (!Array.isArray(p)) continue; const h = heroCanon(name(p[0])); if (!h) continue;
-        const band = Number.isFinite(p[1]) ? Math.min(10, Math.max(0, p[1] | 0)) : 10;
-        let x = d.h.get(band); if (!x) { x = new Map(); d.h.set(band, x); }
-        let e = x.get(h); if (!e) { e = { n: 0, cn: 0, cards: new Map(), mn: 0, med: new Map(), seen: new Set() }; x.set(h, e); }
-        e.n++;
-        const cs = Array.isArray(p[2]) ? p[2].map(name).map(cardCanon).filter(Boolean) : [], ms = Array.isArray(p[3]) ? p[3].filter(i => i >= 0 && i < 13) : [];
-        const mine = (k < 3 ? 0 : 1) === side && ((k % 3) === (r[7] | 0) || ((r[14] | 0) >> (k % 3)) & 1);
-        const once = (tag, list) => { if (!mine) return true; const kk = u + '|' + tag + '|' + [...new Set(list)].sort().join(','); if (e.seen.has(kk)) return false; e.seen.add(kk); return true; };
-        if (cs.length && once('c', cs)) { e.cn++; for (const c of new Set(cs)) e.cards.set(c, (e.cards.get(c) || 0) + 1); }
-        if (ms.length && once('m', ms)) { e.mn++; for (const i of new Set(ms)) e.med.set(i, (e.med.get(i) || 0) + 1); }
+    for (const [pre, key] of [['', periodOf(t).key], ['d', jday(t)]]) {
+      const sk = pre + '|' + String(r[0]) + '|' + key, dup = (pseen.has(sk) && pseen.get(sk) !== u) || D2.has(rec);
+      if (!dup) { pseen.set(sk, u); (pre ? dks : pks).add(key); }
+      for (const bk of bks) {
+        const dk = pre + key + '_' + bk; let d = pd.get(dk); if (!d) { d = { pre, key, bk, fps: new Set(), us: new Set(), h: new Map(), g: new Map(), gh: new Map() }; pd.set(dk, d); }
+        // ステージの勝率（提供した人自身）：同じ試合を複数人が提供していても、それぞれの記録を数える（シーズンごとの集計と同じ）
+        if (stage && (w === 0 || w === 1)) { const x = bucket(d.g, own && Number.isFinite(own[1]) ? own[1] : 10); const a = x.get(stage) || [0, 0]; a[0]++; a[1] += w; x.set(stage, a); }
+        if (dup) continue;
+        d.us.add(u); d.fps.add(String(r[0]) + u);
+        for (let k = 0; k < 6; k++) {
+          const p = r[8 + k]; if (!Array.isArray(p)) continue; const h = heroCanon(name(p[0])); if (!h) continue;
+          const band = Number.isFinite(p[1]) ? Math.min(10, Math.max(0, p[1] | 0)) : 10;
+          const x = bucket(d.h, band); let e = x.get(h); if (!e) { e = { n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map(), seen: new Set(), ms: new Map(), sn: 0 }; x.set(h, e); }
+          const pw = w !== 2 && (k < 3 ? 0 : 1) === side ? w === 1 : (w === 0);
+          e.n++; if (pw) e.w++;
+          if (stage && w !== 2) { const x2 = bucket(d.gh, band); let hm = x2.get(h); if (!hm) { hm = new Map(); x2.set(h, hm); } const a = hm.get(stage) || [0, 0]; a[0]++; if (pw) a[1]++; hm.set(stage, a); }
+          const cs = Array.isArray(p[2]) ? p[2].map(name).map(cardCanon).filter(Boolean) : [], ms = Array.isArray(p[3]) ? p[3].filter(i => i >= 0 && i < 13) : [];
+          const mine = (k < 3 ? 0 : 1) === side && ((k % 3) === (r[7] | 0) || ((r[14] | 0) >> (k % 3)) & 1);
+          const once = (tag, list) => { if (!mine) return true; const kk = u + '|' + tag + '|' + [...new Set(list)].sort().join(','); if (e.seen.has(kk)) return false; e.seen.add(kk); return true; };
+          if (cs.length && once('c', cs)) { e.cn++; for (const c of new Set(cs)) e.cards.set(c, (e.cards.get(c) || 0) + 1); }
+          if (ms.length && once('m', ms)) { e.mn++; for (const i of new Set(ms)) e.med.set(i, (e.med.get(i) || 0) + 1); }
+          // メダルのセット（3枠とも分かっている人だけ。同じ絵柄を重ねて付けた場合も区別する）
+          if (ms.length === 3 && once('s', ms)) { e.sn++; const sk2 = [...ms].sort((a, b) => a - b).join(','); e.ms.set(sk2, (e.ms.get(sk2) || 0) + 1); }
+        }
       }
     }
   }
   for (const [dk, d] of pd) {
     const ct = [], ci = new Map(), cidx = c => { let i = ci.get(c); if (i == null) { i = ct.length; ct.push(c); ci.set(c, i); } return i; }, h = {};
-    for (const [b, hm] of d.h) { h[b] = {}; for (const [n, e] of hm) h[b][n] = [e.n, 0, e.cn, [...e.cards].sort((a, b) => b[1] - a[1]).slice(0, 40).flatMap(([c, v]) => [cidx(c), v]), e.mn, [...e.med].flatMap(([i, v]) => [i, v])]; }
-    out.set('p_' + dk, { t: now, n: d.fps.size, p: d.us.size, d: JSON.stringify({ c: ct, h }) });
+    const minSet = d.pre ? 1 : 2;   // 日ごとは1日分の人数が少ないので、1人だけのセットも残す
+    for (const [b, hm] of d.h) { h[b] = {}; for (const [n, e] of hm) h[b][n] = [e.n, e.w, e.cn, [...e.cards].sort((a, b) => b[1] - a[1]).slice(0, 40).flatMap(([c, v]) => [cidx(c), v]), e.mn, [...e.med].flatMap(([i, v]) => [i, v]), [], [...e.ms].filter(([, v]) => v >= minSet).sort((a, b) => b[1] - a[1]).slice(0, 8).flatMap(([k, v]) => [...k.split(',').map(Number), v]), e.sn]; }
+    const g = {}; for (const [b, gm] of d.g) { g[b] = {}; for (const [n, a] of gm) g[b][n] = a; }
+    const gt = [], gi = new Map(), gidx = n => { let i = gi.get(n); if (i == null) { i = gt.length; gt.push(n); gi.set(n, i); } return i; }, gh = {};
+    for (const [b, hm] of d.gh) { gh[b] = {}; for (const [hh, sm] of hm) gh[b][hh] = [...sm].flatMap(([n, a]) => [gidx(n), a[0], a[1]]); }
+    let js = JSON.stringify({ c: ct, h, g, gt, gh });
+    // 1件が大きすぎると保存できないので、ヒーローごとのステージ勝率は、大きすぎる時だけ外す（ng:1）
+    if (js.length > 850000) js = JSON.stringify({ c: ct, h, g, gt, gh: {}, ng: 1 });
+    if (js.length > mxSize) mxSize = js.length;
+    out.set('p_' + dk, { t: now, n: d.fps.size, p: d.us.size, d: js });
   }
   const persons = new Set(recs.map(x => x.u));
   // 試合数は、統計タブの「全期間・全対戦モード」に出る数と同じ数え方にする（シーズンごとの全対戦モードの試合数を足す）
   total = 0; for (const [k, d] of docs) if (k.endsWith('_a')) total += d.fps.size;
   const usedIds = [...out.keys()];
   // 1試合は「その対戦モード」と「全対戦モード」の2か所に入るので、足し合わせずに数える
-  const meta = { t: now, n: total, p: persons.size, d: JSON.stringify({ docs: usedIds, pk: [...pks].sort((a, b) => a - b), ss: ss.map(s => ({ id: s.id, start: s.start, name: s.name, custom: s.custom })), un: [...unk].sort((a, b) => b[1] - a[1]).slice(0, 40), am: [...am].map(([k, n]) => [...k.split('\t'), n]).sort((a, b) => b[2] - a[2]).slice(0, 40), sf: fix || {}, uh: [...uh].sort((a, b) => b[1] - a[1]).slice(0, 40), hf: hfix || {}, uc: [...uc].sort((a, b) => b[1] - a[1]).slice(0, 60), cf: cfix || {}, m2: merged }) };
+  const meta = { t: now, n: total, p: persons.size, d: JSON.stringify({ docs: usedIds, pk: [...pks].sort((a, b) => a - b), dk: [...dks].sort((a, b) => a - b), mx: mxSize, ss: ss.map(s => ({ id: s.id, start: s.start, name: s.name, custom: s.custom })), un: [...unk].sort((a, b) => b[1] - a[1]).slice(0, 40), am: [...am].map(([k, n]) => [...k.split('\t'), n]).sort((a, b) => b[2] - a[2]).slice(0, 40), sf: fix || {}, uh: [...uh].sort((a, b) => b[1] - a[1]).slice(0, 40), hf: hfix || {}, uc: [...uc].sort((a, b) => b[1] - a[1]).slice(0, 60), cf: cfix || {}, m2: merged }) };
   return { docs: out, meta };
 }
 async function statRun(manual) {
@@ -6306,7 +6391,7 @@ async function statRun(manual) {
     statS.cimg = imgs; statS.cimgV = md.cv | 0;
     await FBA.pubOutClear(outs);
     statS.docs.clear(); statS.meta = res.meta; statS.cfg = cfg;
-    statS.msg = `集計しました（${res.meta.p}人／${res.meta.n}試合）。`;
+    statS.msg = `集計しました（${res.meta.p}人／${res.meta.n}試合）。期間・日ごとの集計は${[...res.docs.keys()].filter(k => /^p_/.test(k)).length}件、いちばん大きい1件は約${Math.round((md.mx || 0) / 1024)}KB（保存できる上限は約1000KB）。`;
   } catch (e) { statS.msg = '集計できませんでした：' + ((e && (e.code || e.message)) || ''); statS.merr = true; }
   statS.run = false; statRender();
 }
@@ -6487,7 +6572,7 @@ function statSel() {
 async function statDocLoad() {
   const s = statSel(); if (!s.ids.length || s.mode == null) return;
   const pel = document.getElementById('view-stat'), pk = statMetaD().pk || [];
-  if (perOn(pel) && pk.length) {
+  if ((pel.dataset.pd === '1' || (perOn(pel) && pk.length))) {
     const need = statPerIds(pel, pk, statMetaD().docs || []).filter(i => !statS.docs.has(i));
     if (need.length) { await Promise.all(need.map(async i => { try { statS.docs.set(i, await FBA.statGet(i)); } catch (e) { statS.err = '読み込めませんでした。'; } })); statRender(); }
   }
@@ -6507,8 +6592,9 @@ function statData(doc, band) {
   for (const b of (band === 'all' ? ['x'] : new Set(String(band).split(',')))) { const a = (o.tc || {})[b] || []; for (let i = 0; i + 4 < a.length; i += 5) { const hs = [tt[a[i]], tt[a[i + 1]], tt[a[i + 2]]]; if (hs.some(x => !x)) continue; const k = hs.join('\t'), e = TC.get(k) || { h: hs, n: 0, w: 0 }; e.n += a[i + 3]; e.w += a[i + 4]; TC.set(k, e); } }
   for (const b of new Set(bands)) {
     for (const [n, a] of Object.entries((o.h || {})[b] || {})) {
-      let e = H.get(n); if (!e) { e = { k: n, n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map() }; H.set(n, e); }
-      e.n += a[0]; e.w += a[1]; e.cn += a[2]; e.mn += a[4];
+      let e = H.get(n); if (!e) { e = { k: n, n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map(), ms: new Map(), sn: 0 }; H.set(n, e); }
+      e.n += a[0]; e.w += a[1]; e.cn += a[2]; e.mn += a[4]; e.sn += a[8] || 0;
+      for (let i = 0; i + 3 < (a[7] || []).length; i += 4) { const k = a[7].slice(i, i + 3).join(','); e.ms.set(k, (e.ms.get(k) || 0) + a[7][i + 3]); }
       if (!e.dk) e.dk = new Map();
       for (const q of (a[6] || [])) { const cs = q.slice(0, 4).map(i => ct[i]); if (cs.some(x => !x)) continue; const k = cs.join('\t'), x = e.dk.get(k) || { c: cs, n: 0, w: 0, u: 0 }; x.n += q[4]; x.w += q[5]; x.u += q[6]; e.dk.set(k, x); }
       for (let i = 0; i < a[3].length; i += 2) { const c = ct[a[3][i]]; if (c) e.cards.set(c, (e.cards.get(c) || 0) + a[3][i + 1]); }
@@ -6525,6 +6611,13 @@ function statData(doc, band) {
 }
 // 期間ごと：選んだ「シーズン内外」「対戦モード」と期間から、読むドキュメントの名前を決める（実際にあるものだけ）
 function statPerIds(el, pk, docsAll) {
+  const ss0 = el.dataset.pss || 'a'; let m0 = el.dataset.pmd || 'a'; if (ss0 === 'i') m0 = 'a';
+  if (el.dataset.pd === '1') {
+    const a = el.dataset.d1, b = el.dataset.d2; if (!a || !b || a > b) return [];
+    const ids = [], q = new Date(a + 'T00:00:00'), z = new Date(b + 'T00:00:00');
+    for (let n = 0; q <= z && n < 31; n++, q.setDate(q.getDate() + 1)) ids.push(`p_d${dstr(q.getTime()).replace(/-/g, '')}_${ss0}_${m0}`);
+    return ids.filter(i => docsAll.includes(i));
+  }
   const w = perWin(el, pk[0], pk[pk.length - 1]), ss = el.dataset.pss || 'a'; let m = el.dataset.pmd || 'a'; if (ss === 'i') m = 'a';
   return pk.filter(k => k >= w.s && k <= w.e).map(k => `p_${k}_${ss}_${m}`).filter(i => docsAll.includes(i));
 }
@@ -6540,7 +6633,7 @@ function statMerge(docs, band) {
   for (const d of docs) {
     n += d.n || 0; const D = statData(d, band);
     for (const e of D.TC) { const k = e.h.join('\t'), x = TC.get(k) || { h: e.h, n: 0, w: 0 }; x.n += e.n; x.w += e.w; TC.set(k, x); }
-    for (const e of D.H) { let x = H.get(e.k); if (!x) { x = { k: e.k, n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map(), dk: new Map() }; H.set(e.k, x); } x.n += e.n; x.w += e.w; x.cn += e.cn; x.mn += e.mn; for (const [k, q] of (e.dk || [])) { const y = x.dk.get(k) || { c: q.c, n: 0, w: 0, u: 0 }; y.n += q.n; y.w += q.w; y.u += q.u; x.dk.set(k, y); } for (const [c, v] of e.cards) x.cards.set(c, (x.cards.get(c) || 0) + v); for (const [i, v] of e.med) x.med.set(i, (x.med.get(i) || 0) + v); }
+    for (const e of D.H) { let x = H.get(e.k); if (!x) { x = { k: e.k, n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map(), dk: new Map(), ms: new Map(), sn: 0 }; H.set(e.k, x); } x.n += e.n; x.w += e.w; x.cn += e.cn; x.mn += e.mn; x.sn += e.sn || 0; for (const [k, v] of (e.ms || [])) x.ms.set(k, (x.ms.get(k) || 0) + v); for (const [k, q] of (e.dk || [])) { const y = x.dk.get(k) || { c: q.c, n: 0, w: 0, u: 0 }; y.n += q.n; y.w += q.w; y.u += q.u; x.dk.set(k, y); } for (const [c, v] of e.cards) x.cards.set(c, (x.cards.get(c) || 0) + v); for (const [i, v] of e.med) x.med.set(i, (x.med.get(i) || 0) + v); }
     for (const e of D.G) { const x = G.get(e.k) || { k: e.k, n: 0, w: 0 }; x.n += e.n; x.w += e.w; G.set(e.k, x); }
     for (const [h, l] of D.GH) { let m = GH.get(h); if (!m) { m = new Map(); GH.set(h, m); } for (const e of l) { const x = m.get(e.k) || { k: e.k, n: 0, w: 0 }; x.n += e.n; x.w += e.w; m.set(e.k, x); } }
   }
@@ -6549,7 +6642,7 @@ function statMerge(docs, band) {
 }
 function statDataP(docs, band) {
   const H = new Map(); let n = 0;
-  for (const d of docs) { if (!d) continue; n += d.n || 0; for (const e of statData(d, band).H) { let x = H.get(e.k); if (!x) { x = { k: e.k, n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map() }; H.set(e.k, x); } x.n += e.n; x.cn += e.cn; x.mn += e.mn; for (const [c, v] of e.cards) x.cards.set(c, (x.cards.get(c) || 0) + v); for (const [i, v] of e.med) x.med.set(i, (x.med.get(i) || 0) + v); } }
+  for (const d of docs) { if (!d) continue; n += d.n || 0; for (const e of statData(d, band).H) { let x = H.get(e.k); if (!x) { x = { k: e.k, n: 0, w: 0, cn: 0, cards: new Map(), mn: 0, med: new Map(), ms: new Map(), sn: 0 }; H.set(e.k, x); } x.n += e.n; x.cn += e.cn; x.mn += e.mn; x.sn += e.sn || 0; for (const [k, v] of (e.ms || [])) x.ms.set(k, (x.ms.get(k) || 0) + v); for (const [c, v] of e.cards) x.cards.set(c, (x.cards.get(c) || 0) + v); for (const [i, v] of e.med) x.med.set(i, (x.med.get(i) || 0) + v); } }
   return { H: [...H.values()], n };
 }
 function statRender() { statRender0(); try { statsPost('view-stat'); } catch (e) {} }
@@ -6567,25 +6660,41 @@ function statRender0() {
   const names = new Map((s.md.ss || []).map(x => [x.id, x.name]));
   const opt = (v, t, cur) => `<option value="${esc(String(v))}"${String(v) === String(cur) ? ' selected' : ''}>${esc(t)}</option>`;
   const fl = (label, idv, opts) => `<label class="fl"><span class="label">${label}</span><select id="${idv}">${opts}</select></label>`;
+  const kD = k => `${Math.floor(k / 10000)}-${String(Math.floor(k / 100) % 100).padStart(2, '0')}-${String(k % 100).padStart(2, '0')}`;
+  const pkL = s.md.pk || [], dkL = s.md.dk || [], PMon = el.dataset.pd === '1' || perOn(el);
+  if (dkL.length) { el.dataset.dmin = kD(dkL[0]); el.dataset.dmax = kD(dkL[dkL.length - 1]); }
+  const perBlock = (pkL.length || dkL.length) ? `<div class="fl wide"><span class="label">期間（ヒーロー・カード・メダル・ステージの表に効きます）</span>${perHTML(el, pkL.length ? pkL[0] : 0, pkL.length ? pkL[pkL.length - 1] : 0, 'stat')}${PMon ? perSelHTML(el, '') : ''}${dkL.length ? '' : '<p class="small muted" style="margin:6px 0 0">日付の指定は、管理者が「今すぐ集計」をしたあとに使えます。</p>'}</div>` : '';
   const filters = `<div style="display:grid;gap:8px;margin-top:10px">${
-    fl('シーズン', 'st-season', opt('all', '全期間（シーズン＋シーズン外）', s.season) + s.ids.map(i => opt(i, statSeasonLabel(i, names.get(i)), s.season)).join(''))}${
+    PMon ? '' : fl('シーズン', 'st-season', opt('all', '全期間（シーズン＋シーズン外）', s.season) + s.ids.map(i => opt(i, statSeasonLabel(i, names.get(i)), s.season)).join(''))}${
     `<div class="fl"><span class="label">ランク（複数選べます）</span><div class="chips">${[['all', '全ランク']].concat(STAT_BANDS.map((b, i) => [String(i), b])).map(([v, t]) => `<button type="button" class="chip${(v === 'all' ? s.band === 'all' : s.band !== 'all' && s.band.split(',').includes(v)) ? ' on' : ''}" data-act="st-band" data-b="${v}">${esc(t)}</button>`).join('')}</div></div>`}${
-    (s.season !== 'out' && s.season !== 'all' ? fl('対戦モード', 'st-mode" disabled title="シーズンはバトルアリーナだけです', opt(s.mode, ARENA, s.mode)) : fl('対戦モード', 'st-mode', s.modes.map(i => opt(i, i === 'a' ? '全対戦モード' : MODES[+i], s.mode)).join('')))}</div>`;
+    (PMon ? '' : s.season !== 'out' && s.season !== 'all' ? fl('対戦モード', 'st-mode" disabled title="シーズンはバトルアリーナだけです', opt(s.mode, ARENA, s.mode)) : fl('対戦モード', 'st-mode', s.modes.map(i => opt(i, i === 'a' ? '全対戦モード' : MODES[+i], s.mode)).join('')))}${perBlock}</div>`;
   let body = '';
   if (!doc) body = `<p class="small muted" style="margin:10px 0 0">読み込んでいます…</p>`;
   else {
-    const D = Dm || statData(doc, s.band), slots = D.H.reduce((a, e) => a + e.n, 0);
+    const D = Dm || statData(doc, s.band);
+    const PM = perOn(s.el) || s.el.dataset.pd === '1', pk = s.md.pk || [], PD = s.el.dataset.pd === '1';
+    let DP = D, perNote = '';
+    if (PM) {
+      const ids = statPerIds(s.el, pk, s.md.docs || []), ok = PD ? !!(s.el.dataset.d1 && s.el.dataset.d2 && s.el.dataset.d1 <= s.el.dataset.d2) : pk.length > 0;
+      if (!ok) { DP = { H: [], G: [], GH: new Map(), TC: [], n: 0 }; perNote = `<p class="small muted" style="margin:8px 0 0">${PD ? '開始日と終了日を選ぶと、その期間の集計が出ます（絞り込みの「期間」）。' : '期間の集計がまだありません。'}</p>`; }
+      else if (ids.every(i => statS.docs.has(i))) {
+        DP = statMerge(ids.map(i => statS.docs.get(i)).filter(Boolean), s.band);
+        const lab = PD ? `${s.el.dataset.d1.replace(/-/g, '/')}〜${s.el.dataset.d2.replace(/-/g, '/')}（${ids.length}日分の集計）` : (() => { const w = perWin(s.el, pk[0], pk[pk.length - 1]); return `${perD(w.s)}〜${perD(w.e, 1)}`; })();
+        perNote = `<p class="small muted" style="margin:8px 0 0"><b>${lab}の${DP.n}試合が元です。</b>ヒーロー・カード・メダル・ステージの表が、この期間の数字になります。デッキと編成の勝率は、期間の指定中は出せません。シーズン・対戦モードの指定は、絞り込みの「シーズンの内外」「対戦モード」を使います。ランクの指定は効きます。${PD ? '1日ごとの集計を足しているので、人数の少ない日の細かい項目（カード・メダルのセット）は、少なめに出ることがあります。' : ''}</p>`;
+      } else { DP = { H: [], G: [], GH: new Map(), TC: [], n: 0 }; perNote = '<p class="small muted" style="margin:8px 0 0">読み込んでいます…</p>'; }
+    }
+    const slots = DP.H.reduce((a, e) => a + e.n, 0);
     const nmRow = (k, n, w, extra, thin, sub) => { const p = n ? w / n * 100 : 0, c = wilson(w, n); return `<div class="stat${sub != null ? ' hh' : ''}" style="margin:${sub != null ? 13 : 9}px 0${thin ? ';opacity:.55' : ''}"><span class="nm" style="display:flex;align-items:center;gap:6px">${extra}</span>${sub != null ? `<span class="sub muted">${sub}</span>` : ''}<span class="bar" role="img" aria-label="勝率${f2(p)}%（95%の範囲 ${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%）"><b class="ci" style="left:${c.lo}%;width:${c.hi - c.lo}%"></b><i class="${p >= 50 ? 'w' : 'l'}" style="width:${p}%"></i></span><span class="num">${f2(p)}% <span class="muted">${w}/${n}</span><span class="cir">${c.lo.toFixed(2)}〜${c.hi.toFixed(2)}%</span></span></div>`; };
     // 勝率の高い順。ただし件数が少ない項目（STAT_THIN未満）は、あとにまとめる
     const byWr = l => [...l].sort((a, b) => ((b.n >= STAT_THIN) - (a.n >= STAT_THIN)) || (b.w / b.n - a.w / a.n) || b.n - a.n);
     const more = (key, total, lim) => (total > lim ? `<div class="row"><button class="btn ghost" data-act="stat-more" data-k="${key}">もっと見る（残り${total - lim}件）</button></div>` : '') + (lim > 10 ? `<div class="row"><button class="btn ghost" data-act="stat-less" data-k="${key}">閉じる（10件に戻す）</button></div>` : '');
     const lim = k => statS.more[k] || 10;
     const hv = s.el.dataset.hv === 'use' ? 'use' : 'wr';
-    const useMax = D.H.reduce((a, e) => Math.max(a, e.n), 0) || 1;
+    const useMax = DP.H.reduce((a, e) => Math.max(a, e.n), 0) || 1;
     // ヒーロー名の検索（ひらがな・カタカナ・全角半角・伸ばす棒の違いを無視して、部分一致）
     const hq0 = s.el.dataset.hq || '';
-    const hrUseAll = [...D.H].sort((a, b) => b.n - a.n || (b.w / b.n - a.w / a.n));
-    const hrWrAll = byWr(D.H);
+    const hrUseAll = [...DP.H].sort((a, b) => b.n - a.n || (b.w / b.n - a.w / a.n));
+    const hrWrAll = byWr(DP.H);
     const hList = q => {
       const nq = heroNorm(q), src = hv === 'use' ? hrUseAll : hrWrAll;
       const rk = src.map((e, i) => ({ e, r: i + 1 }));
@@ -6601,20 +6710,10 @@ function statRender0() {
     const HL = hList(hq0);
     const hr = HL.rows;
     const byIx = l => l.slice().sort((x, y) => heroOrd(x.k) - heroOrd(y.k));
-    const hgList = byIx(D.H.filter(e => D.GH.has(e.k))), hg = hgList.find(e => e.k === s.el.dataset.hg) ? s.el.dataset.hg : '';
+    const hgList = byIx(DP.H.filter(e => DP.GH.has(e.k))), hg = hgList.find(e => e.k === s.el.dataset.hg) ? s.el.dataset.hg : '';
     // カスタムバトル専用ステージ・【ストヘス区】急襲戦闘区域・公式にない名前は、すでに集計に入っていても表示しない（集計のデータ自体は変えない）
-    const GL = (hg ? D.GH.get(hg) : D.G).filter(e => !STAGE_NOSTAT.has(String(e.k).trim()) && !String(e.k).includes('急襲戦闘区域') && Object.prototype.hasOwnProperty.call(STAGE_IMG, String(e.k).trim()));   // 公式にない名前（「不明」など）は、管理者が名前を訂正するまで出さない
+    const GL = (hg ? DP.GH.get(hg) : DP.G).filter(e => !STAGE_NOSTAT.has(String(e.k).trim()) && !String(e.k).includes('急襲戦闘区域') && Object.prototype.hasOwnProperty.call(STAGE_IMG, String(e.k).trim()));   // 公式にない名前（「不明」など）は、管理者が名前を訂正するまで出さない
     const gr = byWr(GL).slice(0, lim('g')).map(e => nmRow(e.k, e.n, e.w, esc(e.k), e.n < STAT_THIN)).join('');
-    const PM = perOn(s.el), pk = s.md.pk || [];
-    let DP = D, perUI = '', perNote = '';
-    if (PM || pk.length) {
-      perUI = pk.length ? perHTML(s.el, pk[0], pk[pk.length - 1], 'stat') : '';
-      if (PM && pk.length) {
-        const w = perWin(s.el, pk[0], pk[pk.length - 1]), ids = statPerIds(s.el, pk, s.md.docs || []);
-        if (ids.every(i => statS.docs.has(i))) { DP = statDataP(ids.map(i => statS.docs.get(i)), s.band); perNote = `<p class="small muted" style="margin:8px 0 0">${perD(w.s)}〜${perD(w.e, 1)}の${DP.n}試合が元です。この表では、上のシーズン・対戦モードの指定は効きません（下の「シーズンの内外」「対戦モード」を使います）。ランクの指定は効きます。</p>`; }
-        else { DP = { H: [] }; perNote = '<p class="small muted" style="margin:8px 0 0">読み込んでいます…</p>'; }
-      }
-    }
     const withC = byIx(DP.H.filter(e => e.cn > 0)), withM = byIx(DP.H.filter(e => e.mn > 0));
     // カードの使用率の「全ヒーロー」：ヒーローごとの人数・カードを入れていた人数を、全部足したもの（同じ人が複数のヒーローを使えば、ヒーローごとに1人と数える）
     const allC = (() => { const cards = new Map(); let cn = 0; for (const e of withC) { cn += e.cn; for (const [c, v] of e.cards) cards.set(c, (cards.get(c) || 0) + v); } return { k: '__all', all: true, cn, cards }; })();
@@ -6633,6 +6732,10 @@ function statRender0() {
       : `<div class="section"><div class="panel"><h2>デッキの勝率</h2>${hd ? `${hpick('st-hd', withD.map(e => ({ k: e.k, t: `${dispName(e.k)}（${[...e.dk.values()].reduce((a, q) => a + q.n, 0)}試合）` })), hd.k)}<p class="small muted" style="margin:8px 0 4px">「${esc(dispName(hd.k))}」の、カード4枚の組み合わせごとの勝率です。4枚とも名前が分かっていて、2試合以上あるデッキだけを、勝率が高い順に並べています（10試合未満のデッキは、あとにまとめて薄く表示します）。引き分けは数えません。「計○人」は、そのデッキの試合を提供した人の数です（1人が何度も出したデッキは、人数が少なくなります）。</p><div class="dklist">${dkh}</div>${more('d', dkRows.length, lim('d'))}` : '<p class="small muted" style="margin:0">デッキの記録が集まるまで出ません（次の集計から入ります）。</p>'}</div></div>`;
     const medRows = hm ? [...hm.med].sort((a, b) => b[1] - a[1]) : [];
     const mr = medRows.map(([i, v]) => { const k = Core.MEDAL_KEYS[i], p = v / hm.mn * 100; return `<div class="mrow${hm.mn < STAT_THIN ? ' thin' : ''}"><span class="mh"><img src="${MEDAL_IMG[k] || ''}" alt="" width="26" height="26"><span class="pn">${esc(MEDAL_NAME[k] || k)}</span></span>${bar(p, hm.mn < STAT_THIN)}<span class="mn">${f2(p)}%<span class="cir">${v}/${hm.mn}人</span></span></div>`; }).join('');
+    // メダルのセット（3枠の組み合わせ）。3枠とも分かっていて、2人以上が付けていたセットだけ。多い順
+    const msRows = hm ? [...(hm.ms || [])].sort((a, b) => b[1] - a[1]) : [], msN = hm ? (hm.sn || 0) : 0;
+    const msh = msRows.slice(0, 8).map(([k, v]) => { const ix = k.split(',').map(Number), ks = ix.map(i => Core.MEDAL_KEYS[i]), pc = v / msN * 100, cnt = {}; ks.forEach(q => { cnt[q] = (cnt[q] || 0) + 1; }); const nm2 = Object.entries(cnt).map(([q, c]) => (MEDAL_NAME[q] || q) + (c > 1 ? '×' + c : '')).join('・'); return `<div class="mrow${msN < STAT_THIN ? ' thin' : ''}"><span class="mh" style="flex-direction:column;align-items:flex-start;gap:2px"><span style="display:flex;gap:4px">${ks.map(q => `<img src="${MEDAL_IMG[q] || ''}" alt="" width="26" height="26">`).join('')}</span><span class="cir" style="text-align:left;white-space:normal">${esc(nm2)}</span></span>${bar(pc, msN < STAT_THIN)}<span class="mn" style="min-width:4.6em">${f2(pc)}%<span class="cir">${v}/${msN}人</span></span></div>`; }).join('');
+    const msBox = hm ? `<h3 style="margin:14px 0 4px;font-size:.95rem">メダルのセット（3つの組み合わせ）</h3><p class="small muted" style="margin:0 0 4px">「${esc(dispName(hm.k))}」が実際に付けていた、3つのメダルの組み合わせです。3つとも分かっている人のうち、2人以上が付けていたセットを、多い順に並べています（同じ絵柄を重ねて付けた場合は「×2」と出します）。${msN && msN < STAT_THIN ? `<b>まだ${msN}人なので参考程度です。</b>` : ''}</p>${msh || '<p class="small muted" style="margin:0">セットの記録は、まだありません（管理者が「今すぐ集計」をしたあとに出ます）。</p>'}` : '';
     // 編成（3人の組み合わせ）の勝率
     const cnI = +(s.el.dataset.cn === undefined || s.el.dataset.cn === '' ? -1 : s.el.dataset.cn), cnSel = COMP_NAMED[cnI] || null;
     const csL = (s.el.dataset.cs || '').split('\t').filter(Boolean).slice(0, 3);
@@ -6650,16 +6753,16 @@ function statRender0() {
       <div class="fl" style="margin-top:8px"><span class="label">ヒーローで絞る（3体まで）</span><div class="chips">${csL.map(h => `<button type="button" class="chip on" data-act="cp-del" data-v="${esc(h)}" aria-label="${esc(dispName(h))}を外す">${esc(dispName(h))} ✕</button>`).join('')}${csL.length < 3 ? `<div class="hpick" style="flex:1 1 12em"><button type="button" class="hpick-b" data-act="hp-toggle"><span>＋ヒーローを追加</span><span aria-hidden="true">▾</span></button><div class="hpick-l" hidden>${cPickOpts}</div></div>` : ''}${cnSel || csL.length ? '<button type="button" class="btn ghost" data-act="cp-clr" style="padding:2px 10px;min-height:0">選択を解除</button>' : ''}</div></div>
       <p class="small" style="margin:10px 0 4px"><b>${cnSel || csL.length ? `${[...(cnSel ? [cnSel.map(dispName).join('＋')] : []), ...csL.filter(h => !(cnSel || []).some(x => ordNz(x) === ordNz(h))).map(dispName)].map(esc).join('・')}を含む編成` : '全編成'}の勝率が高い順（上位${tcTop.length}件）</b>　<span class="muted">（${tcOk.length}編成が${COMP_MIN}試合以上）</span></p>
       ${tcRows || `<p class="small muted">この条件で${COMP_MIN}試合以上ある編成はまだありません。</p>`}</div></div>`;
-    body = `<p class="small" style="margin:10px 0 0"><b>集計：${doc.p}人／${doc.n}試合</b>（同じ試合は1回だけ数えます）　<span class="muted">最終更新 ${statMsTime(doc.t)}</span></p>
+    body = `<p class="small" style="margin:10px 0 0"><b>集計：${PM ? `期間内 ${DP.n}試合` : `${doc.p}人／${doc.n}試合`}</b>（同じ試合は1回だけ数えます）　<span class="muted">最終更新 ${statMsTime(doc.t)}</span></p>${perNote}
     </div></div>
     <div class="section"><div class="panel"><div class="hhead"><h2>ヒーローの<select id="st-hv" class="hvsel" aria-label="表示する内容"><option value="use"${hv === 'use' ? ' selected' : ''}>使用率</option><option value="wr"${hv === 'wr' ? ' selected' : ''}>勝率</option></select></h2><div class="hsearch"><input id="st-hq" type="search" inputmode="search" autocomplete="off" placeholder="ヒーロー名で探す" aria-label="ヒーロー名で探す" value="${esc(hq0)}"><button type="button" class="hs-x" data-act="hq-clr" aria-label="検索をクリア"${hq0 ? '' : ' hidden'}>×</button><div class="hs-l" id="st-hsug"${HL.sug ? '' : ' hidden'}>${HL.sug}</div></div></div><p class="small muted" style="margin:0 0 6px">${hv === 'use' ? '使われた回数の多い順です。棒は1位を100%とした長さで、右の数字は「そのヒーローを使った回数／ヒーロー全体の回数」です。' : '勝率の高い順です。使用率は、ヒーロー全体のうち使われた割合です。棒の薄い帯と下の数字は、勝率の95%信頼区間（ウィルソン）です。'}${HL.nq ? '検索中は、全体の順位を左に出しています。' : ''}</p><div id="st-hlist">${hr || '<p class="small muted">この条件のデータはありません。</p>'}</div><div id="st-hmore">${HL.nq ? '' : more('h', D.H.length, lim('h'))}</div></div></div>
-    ${compPanel}
+    ${PM ? '<div class="section"><div class="panel"><h2>編成の勝率</h2><p class="small muted" style="margin:0">期間の指定中は出せません（上の絞り込みの「期間」を「全期間」にすると出ます）。</p></div></div>' : compPanel}
     ${dkPanel}
-    <div class="section"><div class="panel"><h2>カードの使用率</h2>${perUI}${PM ? perSelHTML(s.el, '') : ''}${perNote}${hc ? pieToggle(s.el, 'stat', 'c') : ''}${hc ? `${hsel('st-hc', withC.length > 1 ? [allC, ...withC] : withC, hc.k, 'cn')}<p class="small muted" style="margin:8px 0 4px">${hc.all ? `すべてのヒーローを使っていた延べ${hc.cn}人のうち、そのカードを入れていた人の割合です（同じ人が複数のヒーローを使っていれば、ヒーローごとに1人と数えます）。` : `「${esc(dispName(hc.k))}」を使っていた${hc.cn}人のうち、そのカードを入れていた人の割合です。`}${hc.cn < STAT_THIN ? `<b>まだ${hc.cn}人なので参考程度です。</b>` : ''}</p>${pieOn(s.el, 'c') ? pieHTML(s.el, 'stat', 'c', cardRows.map(([c, v]) => ({ k: c, n: c, v, th: cardThumb('n:' + c) || (statS.cimg && statS.cimg.get(c)) || '' })), '枚') : ''}<div class="mlist"${pieOn(s.el, 'c') ? ' style="display:none"' : ''}>${cr}</div>${pieOn(s.el, 'c') ? '' : more('c', cardRows.length, lim('c'))}` : '<p class="small muted" style="margin:0">この条件では、カードの記録がありません。</p>'}</div></div>
-    <div class="section"><div class="panel"><h2>メダルの使用率</h2>${perUI}${PM ? perSelHTML(s.el, '2') : ''}${perNote}${hm ? pieToggle(s.el, 'stat', 'm') : ''}${hm ? `${hsel('st-hm', withM, hm.k, 'mn')}<p class="small muted" style="margin:8px 0 4px">同じ絵柄は、何個付けていても1つと数えます。${hm.mn < STAT_THIN ? `<b>まだ${hm.mn}人なので参考程度です。</b>` : ''}</p>${pieOn(s.el, 'm') ? pieHTML(s.el, 'stat', 'm', medRows.map(([i, v]) => { const k = Core.MEDAL_KEYS[i]; return { k, n: MEDAL_NAME[k] || k, v, ic: MEDAL_IMG[k] || '' }; }), '個') : ''}<div class="mlist"${pieOn(s.el, 'm') ? ' style="display:none"' : ''}>${mr}</div>` : '<p class="small muted" style="margin:0">この条件では、メダルの記録がありません。</p>'}</div></div>
+    <div class="section"><div class="panel"><h2>カードの使用率</h2>${hc ? pieToggle(s.el, 'stat', 'c') : ''}${hc ? `${hsel('st-hc', withC.length > 1 ? [allC, ...withC] : withC, hc.k, 'cn')}<p class="small muted" style="margin:8px 0 4px">${hc.all ? `すべてのヒーローを使っていた延べ${hc.cn}人のうち、そのカードを入れていた人の割合です（同じ人が複数のヒーローを使っていれば、ヒーローごとに1人と数えます）。` : `「${esc(dispName(hc.k))}」を使っていた${hc.cn}人のうち、そのカードを入れていた人の割合です。`}${hc.cn < STAT_THIN ? `<b>まだ${hc.cn}人なので参考程度です。</b>` : ''}</p>${pieOn(s.el, 'c') ? pieHTML(s.el, 'stat', 'c', cardRows.map(([c, v]) => ({ k: c, n: c, v, th: cardThumb('n:' + c) || (statS.cimg && statS.cimg.get(c)) || '' })), '枚') : ''}<div class="mlist"${pieOn(s.el, 'c') ? ' style="display:none"' : ''}>${cr}</div>${pieOn(s.el, 'c') ? '' : more('c', cardRows.length, lim('c'))}` : '<p class="small muted" style="margin:0">この条件では、カードの記録がありません。</p>'}</div></div>
+    <div class="section"><div class="panel"><h2>メダルの使用率</h2>${hm ? pieToggle(s.el, 'stat', 'm') : ''}${hm ? `${hsel('st-hm', withM, hm.k, 'mn')}<p class="small muted" style="margin:8px 0 4px">同じ絵柄は、何個付けていても1つと数えます。${hm.mn < STAT_THIN ? `<b>まだ${hm.mn}人なので参考程度です。</b>` : ''}</p>${pieOn(s.el, 'm') ? pieHTML(s.el, 'stat', 'm', medRows.map(([i, v]) => { const k = Core.MEDAL_KEYS[i]; return { k, n: MEDAL_NAME[k] || k, v, ic: MEDAL_IMG[k] || '' }; }), '個') : ''}<div class="mlist"${pieOn(s.el, 'm') ? ' style="display:none"' : ''}>${mr}</div>${msBox}` : '<p class="small muted" style="margin:0">この条件では、メダルの記録がありません。</p>'}</div></div>
     <div class="section"><div class="panel"><h2>ステージの勝率</h2>${hpick('st-hg', [{ k: '', t: '全ヒーロー' }].concat(hgList.map(e => ({ k: e.k, t: dispName(e.k) }))), hg)}<p class="small muted" style="margin:8px 0 6px">${hg ? `「${esc(dispName(hg))}」を使っていた人（味方・敵を含む全員）の、ステージごとの勝率です。` : '提供した人自身の、ステージごとの勝率です。'}</p>${gr || '<p class="small muted">この条件のデータはありません。</p>'}${more('g', GL.length, lim('g'))}`;
   }
-  el.innerHTML = head + `<div class="section"><div class="panel"><details class="fdet" data-fd="stat"${statsUI.fopen.has('stat') ? ' open' : ''}><summary>絞り込み${s.season !== 'all' || s.band !== 'all' || s.mode !== 'a' ? '<span class="admn">変更中</span><button type="button" class="btn ghost fdclr" data-act="stat-clear-filter">解除</button>' : ''}</summary>${filters}</details>${body}</div></div>` + pubBox + admin;
+  el.innerHTML = head + `<div class="section"><div class="panel"><details class="fdet" data-fd="stat"${statsUI.fopen.has('stat') ? ' open' : ''}><summary>絞り込み${s.season !== 'all' || s.band !== 'all' || s.mode !== 'a' || PMon ? '<span class="admn">変更中</span><button type="button" class="btn ghost fdclr" data-act="stat-clear-filter">解除</button>' : ''}</summary>${filters}</details>${body}</div></div>` + pubBox + admin;
   if (keep) { const k = document.getElementById(keep); if (k && k.focus) try { k.focus(); } catch (e) {} }
 }
 const HERO_SKIP = '（集計に入れない）';
@@ -6761,7 +6864,7 @@ document.addEventListener('click', e => {
   else if (a === 'cp-del') { const el = document.getElementById('view-stat'); el.dataset.cs = (el.dataset.cs || '').split('\t').filter(x => x && x !== t.dataset.v).join('\t'); statRender(); }
   else if (a === 'cp-clr') { const el = document.getElementById('view-stat'); delete el.dataset.cn; delete el.dataset.cs; statRender(); }
   else if (a === 'stat-less') { anchorPanel(t, true, () => { delete statS.more[t.dataset.k]; statRender(); }); }
-  else if (a === 'stat-clear-filter') { const v = document.getElementById('view-stat'); delete v.dataset.season; delete v.dataset.band; delete v.dataset.mode; statS.more = {}; statRender(); statDocLoad(); }
+  else if (a === 'stat-clear-filter') { const v = document.getElementById('view-stat'); delete v.dataset.season; delete v.dataset.band; delete v.dataset.mode; for (const k of ['pm', 'pd', 'd1', 'd2', 'pss', 'pmd', 'pl', 'pe']) delete v.dataset[k]; statS.more = {}; statRender(); statDocLoad(); }
   else if (a === 'stat-more') { anchorPanel(t, false, () => { statS.more[t.dataset.k] = (statS.more[t.dataset.k] || 10) + 20; statRender(); }); }
 });
 // 検索欄は、入力のたびに全体を描き直さず（キーボードが閉じてしまうため）、リストの部分だけ差し替える
@@ -6774,6 +6877,15 @@ function hqUpdate(closeSug) {
   if (!q) statRender();
 }
 document.addEventListener('input', e => { const t = e.target; if (t && t.id === 'st-hq') { const el = document.getElementById('view-stat'); el.dataset.hq = t.value; hqUpdate(false); } });
+document.addEventListener('change', e => {
+  const t = e.target; if (!t || (t.id !== 'st-d1' && t.id !== 'st-d2')) return; const el = document.getElementById('view-stat'); if (!el) return;
+  // 統計の日付：終了日は、開始日から31日以内にそろえる
+  el.dataset[t.id === 'st-d1' ? 'd1' : 'd2'] = t.value;
+  const a = el.dataset.d1, b = el.dataset.d2;
+  if (a) { const q = new Date(a + 'T00:00:00'); q.setDate(q.getDate() + 30); const mx = dstr(q.getTime()); if (!b || b > mx) el.dataset.d2 = mx; else if (b < a && t.id === 'st-d1') el.dataset.d2 = a; }
+  const dm = el.dataset.dmax; if (dm && el.dataset.d2 > dm) el.dataset.d2 = dm;
+  statS.more = {}; statRender(); statDocLoad();
+});
 document.addEventListener('change', e => {
   const t = e.target; if (!t || !t.id) return; const el = document.getElementById('view-stat');
   const map = { 'st-pss': 'pss', 'st-pss2': 'pss', 'st-pmd': 'pmd', 'st-pmd2': 'pmd', 'st-season': 'season', 'st-band': 'band', 'st-mode': 'mode', 'st-hc': 'hc', 'st-hm': 'hm', 'st-hg': 'hg', 'st-hd': 'hd', 'st-hv': 'hv' };
