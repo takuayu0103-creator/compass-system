@@ -4683,7 +4683,7 @@ function renderGuide() {
     <ul>
       <li><b>スクショ：</b>読み取りはすべて利用者の端末の中で行い、画像そのものはどこにも送らず、保存もしません。照合に使う特徴データ（縮小した形の情報など）だけを、このブラウザに保存します。</li>
       <li><b>戦績：</b>利用者が保存した試合の記録（ヒーロー・ステージ・スコア・ランク・メダル・pt・メモなど）です。集計と表示のためだけに使います。</li>
-      <li><b>フィードバック：</b>送った文章と、送った日時・アプリの版を、サーバー（Firebase）に保存します。運営者だけが読み、不具合の修正や機能の改善のためだけに使います。名前やアカウントの情報は付けません。</li>
+      <li><b>フィードバック：</b>送った文章と、送った日時・アプリの版を、サーバー（Firebase）に保存します。運営者だけが読み、不具合の修正や機能の改善のためだけに使います。名前やアカウントの情報は付けません。「返信先」にXのIDを書いた時だけ、そのIDも文章と一緒に保存し、返信のためだけに使います。</li>
       <li><b>ニックネーム（ログインした場合のみ）：</b>利用者が自分で決めた名前で、フレンド連携の相手の画面に表示されます。本名は登録しないでください。</li>
       <li><b>Googleアカウントの情報（ログインした場合のみ）：</b>ログインの仕組み（Firebase Authentication）により、アカウントを見分けるためのID・メールアドレス・Googleの表示名がGoogleのサービスに記録されます。本ツールは、これらをほかの利用者に表示しません。</li>
     </ul>
@@ -4733,8 +4733,12 @@ function renderGuide() {
     <p><b>JOIN🔶COMPASSでフレンドを見つけたら、フレンド連携で戦績を一緒に記録しよう！</b></p>`) : ''}
   </div>
   <div class="section" id="fb-box"><div class="panel"><h2>フィードバック</h2>
-    <p class="small muted" style="margin:0">不具合や欲しい機能を、運営者に送れます。名前は付かず、こちらから返信することはできません。返事が欲しい時は、X（<a href="https://x.com/26_SpringPeach" target="_blank" rel="noopener">@26_SpringPeach</a>）へ連絡してください。</p>
-    <textarea id="fb-text" maxlength="1000" placeholder="不具合や欲しい機能など（個人情報は書かないでください）" aria-label="フィードバックの内容"></textarea>
+    <p class="small muted" style="margin:0">不具合や欲しい機能を、運営者に送れます。名前は付きません。下の「返信先」を書かなければ、誰が送ったか分からないので、返信もできません。</p>
+    <p class="small" style="margin:8px 0 0"><b>書いてもらえると、直しやすくなります</b></p>
+    <ul class="small muted" style="margin:2px 0 0;padding-left:1.3em"><li>どの画面で（例：分析タブ、履歴の編集）</li><li>何をしたら</li><li>どうなったか（できれば、どうなってほしいか）</li></ul>
+    <textarea id="fb-text" maxlength="1000" placeholder="例：統計タブでメダルを開いたら、数字が出ませんでした。（個人情報は書かないでください）" aria-label="フィードバックの内容"></textarea>
+    <label class="fl" style="margin-top:8px"><span class="label">返信先（任意）</span><input type="text" id="fb-contact" maxlength="60" placeholder="返事が欲しい時だけ。XのID（例：@abc123）" autocomplete="off" aria-label="返信先のXのID"></label>
+    <p class="small muted" style="margin:4px 0 0">書いた場合だけ、そのXのアカウントあてに、Xで返信します。IDは返信のためだけに使い、運営者だけが読みます。</p>
     <div class="row" style="justify-content:space-between"><span class="small muted" id="fb-count">0 / 1000</span><button class="btn primary" data-act="fb-send">送信する</button></div>
     <p class="small" id="fb-msg" style="margin:0" hidden></p></div></div>`;
   try { pwaShow(); } catch (e) {}
@@ -4751,9 +4755,10 @@ async function feedbackSend() {
   try {
     await syncLoad();
     if (!FBA || !FBA.sendFeedback) throw new Error('送信の機能を読み込めませんでした');
-    await FBA.sendFeedback(text.slice(0, 1000), APP_VER);
+    const ct = (($('#fb-contact') || {}).value || '').replace(/\s+/g, '').slice(0, 60), head = ct ? `【返信先】${ct.startsWith('@') ? ct : '@' + ct}\n` : '';
+    await FBA.sendFeedback(head + text.slice(0, 1000 - head.length), APP_VER);
     try { localStorage.setItem(DBKEY + '-fb', String(Date.now())); } catch (e) {}
-    ta.value = ''; $('#fb-count').textContent = '0 / 1000'; say('送信しました。ありがとうございます。');
+    ta.value = ''; { const c = $('#fb-contact'); if (c) c.value = ''; } $('#fb-count').textContent = '0 / 1000'; say('送信しました。ありがとうございます。');
   } catch (e) { say('送信できませんでした。通信を確認して、もう一度試してください。（' + ((e && (e.code || e.message)) || '不明なエラー') + '）', true); }
   btn.disabled = false;
 }
@@ -5362,7 +5367,7 @@ const FB_CONFIG = {
   messagingSenderId: "218597639060",
   appId: "1:218597639060:web:689f64e778237dd8a50581"
 };
-const APP_VER = '26-11-22-CK', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
+const APP_VER = '26-11-22-CL', FB_VER = '10.14.1', SYNC_KEY = 'cps-sync-v1', SYNC_CHUNK = 250000;
 const syncS = { status: 'off', user: null, msg: '', err: false, busy: false, cm: null, at: 0, links: [], fmsg: '', ferr: false, joinCode: '', delAsk: '', fbusy: false };
 let FBA = null, syncApplying = false, syncTimer = null, syncLoading = null;
 function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
